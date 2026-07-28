@@ -317,6 +317,7 @@ API 경로, 요청 필드명 및 응답 필드명을 임의로 변경하지 않�
 - `CLAUDE.md`
 - `README.md`
 - `docs/api-spec.md`
+- `docs/idea.md`
 - `docs/feature-spec.md`
 
 ### 2단계: 현재 상태 확인
