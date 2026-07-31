@@ -136,6 +136,20 @@
 | `excludePlaceIds` | string[] | X | 이전에 노출되어 제외할 관광지 ID |
 | `keepPlaceIds` | string[] | X | 사용자가 이미 선택해 유지할 관광지 ID |
 
+### 동행 조건 선택값 (`companionTypes`)
+
+아래 값은 `/api/timelines/generate`의 동행 조건 선택값과 동일하며, `companionTypes`를 사용하는 모든 API에서 공통으로 사용한다.
+
+```
+solo
+friends
+couple
+infant
+senior
+mobility_impaired
+pet
+```
+
 ### 성공 응답
 
 ```
@@ -150,12 +164,17 @@
         "recommendationReason":"실내 이동이 가능하고 유아 편의시설이 있어 유아 동반 여행에 적합합니다.",
         "estimatedDurationMinutes":90,
         "tags": ["실내","유아 동반","휴식 공간"],
-        "imageUrl":"/images/places/place-001.jpg"
+        "imageUrl":"/images/places/place-001.jpg",
+        "category":"박물관",
+        "openTime":"09:00",
+        "closeTime":"18:00"
       }
     ]
   }
 }
 ```
+
+`category`, `openTime`, `closeTime`은 카드 UI 표시를 위해 추가된 선택 필드다. 값은 실시간 운영 정보가 아니라 예선 데모용 샘플 데이터다(본선에서 실제 관광 공공데이터로 대체 예정, `docs/idea.md` 5절 참고).
 
 ### 담당
 

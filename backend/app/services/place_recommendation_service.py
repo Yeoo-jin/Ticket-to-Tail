@@ -1,0 +1,165 @@
+"""동행 조건 기반 관광지 추천 (코드 기반 점수 계산, AI 미사용).
+
+관광지 데이터(app/data/places.json)에 없는 장소는 절대 만들어내지 않는다 -
+이 서비스는 순수하게 저장된 레코드만 필터링·정렬해서 반환한다.
+"""
+
+import random
+from typing import Dict, List, Optional, Sequence, Tuple
+
+from app.schemas.common import CompanionType
+from app.schemas.place import Place, PlaceRecommendData, PlaceRecommendRequest, PlaceRecord
+from app.services.place_data import load_places
+from app.utils.errors import InvalidInputError
+
+DEFAULT_RECOMMEND_COUNT = 6
+
+# 동행 조건별로 가점을 주는 태그 (요청사항 4절의 예시를 그대로 반영).
+_PREFERRED_TAGS: Dict[str, Sequence[str]] = {
+    "infant": ("실내", "휴식 공간", "유모차 접근성", "저상 시설"),
+    "senior": ("휴식 공간", "저상 시설", "엘리베이터", "실내"),
+    "mobility_impaired": ("저상 시설", "엘리베이터", "대중교통 접근"),
+    "pet": ("반려동물 동반",),
+    "friends": ("야경", "사진 명소", "체험"),
+    "couple": ("야경", "사진 명소", "체험"),
+    "solo": ("대중교통 접근", "산책", "체험"),
+}
+
+# "만" 표현이 있는 조건 - 해당 조건이 요청에 있으면 지원하지 않는 장소는 아예 제외한다.
+_HARD_FILTER_COMPANION_TYPES = ("pet",)
+
+
+def _passes_hard_filters(place: PlaceRecord, companion_types: Sequence[str]) -> bool:
+    for companion_type in _HARD_FILTER_COMPANION_TYPES:
+        if companion_type in companion_types and companion_type not in place.companionTypes:
+            return False
+    return True
+
+
+def _score(place: PlaceRecord, companion_types: Sequence[str]) -> int:
+    score = 0
+    for companion_type in companion_types:
+        if companion_type not in place.companionTypes:
+            # 조건에 부적합한 후보는 감점만 하고, 아래의 가산점(태그·실내·체류시간)은 주지 않는다.
+            score -= 2
+            continue
+
+        score += 3
+
+        preferred_tags = _PREFERRED_TAGS.get(companion_type, ())
+        score += sum(1 for tag in place.tags if tag in preferred_tags)
+
+        if companion_type in ("infant", "senior", "mobility_impaired") and place.indoor:
+            score += 2
+
+        if companion_type in ("infant", "senior") and place.estimatedDurationMinutes <= 60:
+            score += 1
+
+    return score
+
+
+def _weighted_sample_without_replacement(
+    scored: List[Tuple[PlaceRecord, int]], k: int, rng: random.Random
+) -> List[PlaceRecord]:
+    """점수가 높을수록 뽑힐 확률이 높은, 복원 없는 가중치 샘플링.
+
+    (Efraimidis-Spirakis 방식: u ** (1/weight)를 키로 정렬) 매 호출마다
+    상위권 후보는 대부분 뽑히지만, 순서와 일부 후보는 달라질 수 있다.
+    점수가 크게 낮은 후보(조건 불일치)가 상위로 뒤섞이는 것은 방지한다.
+    """
+    if k <= 0 or not scored:
+        return []
+    if k >= len(scored):
+        items = list(scored)
+        rng.shuffle(items)
+        return [place for place, _ in items]
+
+    min_score = min(score for _, score in scored)
+    keyed = []
+    for place, score in scored:
+        # 점수 차이를 지수적으로 반영해, 조건에 맞지 않는(감점된) 후보가
+        # 상위권으로 뒤섞여 들어오는 일은 거의 없게 하면서도 상위권 후보끼리는
+        # 여전히 순서가 바뀔 수 있는 정도의 무작위성을 남긴다.
+        weight = 2.0 ** (score - min_score)
+        key = rng.random() ** (1.0 / weight)
+        keyed.append((key, place))
+    keyed.sort(key=lambda item: item[0], reverse=True)
+    return [place for _, place in keyed[:k]]
+
+
+def _build_reason(place: PlaceRecord, companion_types: Sequence[str]) -> str:
+    for companion_type in companion_types:
+        reason = place.recommendationReasons.get(companion_type)
+        if reason:
+            return reason
+    return place.description
+
+
+def _to_response_place(place: PlaceRecord, companion_types: Sequence[str]) -> Place:
+    return Place(
+        placeId=place.placeId,
+        name=place.name,
+        description=place.description,
+        recommendationReason=_build_reason(place, companion_types),
+        estimatedDurationMinutes=place.estimatedDurationMinutes,
+        tags=place.tags,
+        imageUrl=place.imageUrl,
+        category=place.category,
+        openTime=place.openTime,
+        closeTime=place.closeTime,
+    )
+
+
+def recommend_places(
+    destination: str,
+    companion_types: Sequence[CompanionType],
+    exclude_place_ids: Optional[Sequence[str]] = None,
+    keep_place_ids: Optional[Sequence[str]] = None,
+    count: int = DEFAULT_RECOMMEND_COUNT,
+    rng: Optional[random.Random] = None,
+) -> List[Place]:
+    rng = rng or random.Random()
+    exclude_ids = set(exclude_place_ids or [])
+    keep_ids = list(dict.fromkeys(keep_place_ids or []))  # 순서 유지, 중복 제거
+
+    all_places = load_places()
+    by_id = {place.placeId: place for place in all_places}
+
+    kept = [by_id[pid] for pid in keep_ids if pid in by_id]
+    kept_ids = {p.placeId for p in kept}
+
+    candidates = [
+        place
+        for place in all_places
+        if place.region == destination
+        and place.placeId not in exclude_ids
+        and place.placeId not in kept_ids
+        and _passes_hard_filters(place, companion_types)
+    ]
+
+    scored: List[Tuple[PlaceRecord, int]] = [(place, _score(place, companion_types)) for place in candidates]
+
+    remaining_slots = max(count - len(kept), 0)
+    chosen = _weighted_sample_without_replacement(scored, remaining_slots, rng)
+
+    result_places = kept + chosen
+    return [_to_response_place(place, companion_types) for place in result_places]
+
+
+def get_place_recommendations(
+    request: PlaceRecommendRequest, rng: Optional[random.Random] = None
+) -> PlaceRecommendData:
+    destination = request.destination.strip()
+    if not destination:
+        raise InvalidInputError("여행 목적지(destination)를 입력해주세요.")
+    if not request.companionTypes:
+        raise InvalidInputError("동행 조건(companionTypes)을 하나 이상 선택해주세요.")
+
+    places = recommend_places(
+        destination=destination,
+        companion_types=request.companionTypes,
+        exclude_place_ids=request.excludePlaceIds,
+        keep_place_ids=request.keepPlaceIds,
+        rng=rng,
+    )
+    return PlaceRecommendData(places=places)
