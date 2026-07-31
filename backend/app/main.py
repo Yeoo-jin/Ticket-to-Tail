@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routes import bookings, health
+from app.routes import bookings, health, places
 from app.utils.errors import AppError
 
 load_dotenv()
@@ -59,3 +59,4 @@ async def unhandled_error_handler(request: Request, exc: Exception):
 
 app.include_router(health.router)
 app.include_router(bookings.router)
+app.include_router(places.router)
