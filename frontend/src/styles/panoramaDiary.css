@@ -1,0 +1,112 @@
+/* 폴라로이드 여행 캐러셀(panorama board) 전용 스타일.
+   밝은 종이 배경, 흰 폴라로이드 프레임, 아주 약한 그림자, 반투명 테이프만 사용하고
+   특정 앱의 로고·고유 스티커·강한 장식은 넣지 않는다. */
+
+.pb-paper {
+  background-color: #faf7f0;
+  background-image: radial-gradient(rgba(120, 100, 70, 0.05) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.pb-polaroid {
+  position: absolute;
+  background: #ffffff;
+  padding: 14px 14px 34px;
+  box-shadow: 0 6px 14px rgba(60, 50, 40, 0.14);
+  border-radius: 2px;
+}
+
+.pb-polaroid-photo {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #e5e0d5;
+}
+
+.pb-polaroid-caption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 8px;
+  font-size: 20px;
+  line-height: 1.3;
+  color: #6b5d4d;
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pb-sticker {
+  position: absolute;
+  font-size: 40px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
+}
+
+.pb-tape {
+  position: absolute;
+  opacity: 0.55;
+}
+.pb-tape-top {
+  top: -10px;
+  left: 50%;
+  width: 90px;
+  height: 26px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: repeating-linear-gradient(45deg, #f4e9c8, #f4e9c8 6px, #ecdca0 6px, #ecdca0 12px);
+}
+.pb-tape-corner {
+  top: -10px;
+  right: -10px;
+  width: 60px;
+  height: 60px;
+  transform: rotate(45deg);
+  background: repeating-linear-gradient(45deg, #f4e9c8, #f4e9c8 6px, #ecdca0 6px, #ecdca0 12px);
+}
+.pb-tape-washi {
+  top: -12px;
+  left: 50%;
+  width: 96px;
+  height: 28px;
+  transform: translateX(-50%) rotate(3deg);
+  background: repeating-linear-gradient(45deg, #f6c9d0, #f6c9d0 6px, #eeb3bd 6px, #eeb3bd 12px);
+}
+
+.pb-location-badge {
+  position: absolute;
+  display: inline-block;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  color: #8a7a63;
+  border-bottom: 1px solid #c9b98f;
+  padding-bottom: 4px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.pb-title-line {
+  position: absolute;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  color: #4a3e2e;
+  font-size: 38px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.pb-ending-line {
+  position: absolute;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #5b4d3c;
+  font-size: 26px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.pb-divider {
+  flex-shrink: 0;
+  width: 2px;
+  align-self: stretch;
+  background: #111;
+}
