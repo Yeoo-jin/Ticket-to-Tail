@@ -10,7 +10,14 @@
       "Bash(curl -s -o /dev/null -w \"docs:%{http_code}\\\\n\" http://localhost:8000/docs)",
       "Bash(kill 11475 11586 11587)",
       "Bash(curl -s -o /dev/null -w \"openapi:%{http_code}\\\\n\" http://localhost:8000/openapi.json)",
-      "Bash(curl -s -X POST http://localhost:8000/api/places/recommend -H \"Content-Type: application/json\" -d '{\"destination\":\"부산\",\"companionTypes\":[\"solo\",\"infant\"]}')"
+      "Bash(curl -s -X POST http://localhost:8000/api/places/recommend -H \"Content-Type: application/json\" -d '{\"destination\":\"부산\",\"companionTypes\":[\"solo\",\"infant\"]}')",
+      "Bash(node scripts/verify-photo-upload.mjs)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('/api/diaries/generate' in d['paths']\\)\")",
+      "Bash(kill 14714 14793 14794)",
+      "Bash(curl -s -i -X POST http://localhost:8000/api/diaries/generate -F destination=부산 -F tone=emotional -F 'memo=유아와 함께한 여행이라 중간중간 쉬어 갔다. 광안리에서 본 야경이 가장 기억에 남았고, 자갈치시장에서 먹은 음식도 맛있었다.' -F 'companionTypesJson=[\"infant\"]' -F 'timelineJson={\"timeline\":[{\"id\":\"item-001\",\"type\":\"attraction\",\"startTime\":\"2026-08-13T10:00:00\",\"endTime\":\"2026-08-13T11:30:00\",\"title\":\"국립해양박물관\",\"placeId\":\"place-001\",\"location\":\"부산 영도구\",\"description\":\"부산의 해양 문화를 체험할 수 있는 실내 박물관입니다.\",\"estimated\":true},{\"id\":\"item-002\",\"type\":\"attraction\",\"startTime\":\"2026-08-13T19:00:00\",\"endTime\":\"2026-08-13T20:30:00\",\"title\":\"광안리해수욕장\",\"placeId\":\"place-003\",\"location\":\"부산 수영구\",\"description\":\"광안대교 야경으로 유명한 해변입니다.\",\"estimated\":true}],\"summary\":{\"placeCount\":2,\"sightseeingMinutes\":180,\"estimatedTravelMinutes\":40,\"companionTypes\":[\"infant\"],\"pace\":\"normal\"},\"warnings\":[]}' -F 'selectedPlaceIdsJson=[\"place-001\",\"place-003\"]' -o /tmp/diary_live_response.json -w 'HTTP_STATUS:%{http_code}\\\\n')",
+      "Bash(python3 -m json.tool /tmp/diary_live_response.json)",
+      "Bash(curl -s -X POST http://localhost:8000/api/diaries/generate -F destination=부산 -F tone=emotional -F 'memo=유아와 함께한 여행이라 중간중간 쉬어 갔다. 광안리에서 본 야경이 가장 기억에 남았고, 자갈치시장에서 먹은 음식도 맛있었다.' -F 'companionTypesJson=[\"infant\"]' -F 'timelineJson={\"timeline\":[{\"id\":\"item-001\",\"type\":\"attraction\",\"startTime\":\"2026-08-13T10:00:00\",\"endTime\":\"2026-08-13T11:30:00\",\"title\":\"국립해양박물관\",\"placeId\":\"place-001\",\"location\":\"부산 영도구\",\"description\":\"부산의 해양 문화를 체험할 수 있는 실내 박물관입니다.\",\"estimated\":true},{\"id\":\"item-002\",\"type\":\"attraction\",\"startTime\":\"2026-08-13T19:00:00\",\"endTime\":\"2026-08-13T20:30:00\",\"title\":\"광안리해수욕장\",\"placeId\":\"place-003\",\"location\":\"부산 수영구\",\"description\":\"광안대교 야경으로 유명한 해변입니다.\",\"estimated\":true}],\"summary\":{\"placeCount\":2,\"sightseeingMinutes\":180,\"estimatedTravelMinutes\":40,\"companionTypes\":[\"infant\"],\"pace\":\"normal\"},\"warnings\":[]}' -F 'selectedPlaceIdsJson=[\"place-001\",\"place-003\"]' -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -o /tmp/diary_live_response.json)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

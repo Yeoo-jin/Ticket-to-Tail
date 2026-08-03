@@ -311,7 +311,7 @@ function TripPlannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6">
+    <div className="min-h-app bg-gray-50 px-4 py-6">
       <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <header className="mb-4">
           <h1 className="text-lg font-bold text-gray-900">Ticket to Tale</h1>

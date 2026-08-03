@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* iPhone Safari 호환성 보정. 디자인을 바꾸지 않는 범위의 최소 보정만 포함한다. */
+
+/* 노치 기기에서 상단바/하단 홈 인디케이터에 콘텐츠가 가리지 않게 한다.
+   env() 미지원 브라우저에서는 0px로 계산되어 아무 영향이 없다. */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 100vh는 Safari 주소창이 접히고 펼쳐질 때 실제 보이는 화면보다 커질 수 있다.
+   100dvh를 우선 쓰고, 미지원 브라우저는 이 선언 자체를 무시해 100vh가 그대로 적용된다. */
+.min-h-app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 가로 스크롤 미리보기(연결형 포토 다이어리)에서 iOS 관성 스크롤을 보장한다. */
+.ios-momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari는 글자 크기가 16px보다 작은 입력 요소에 포커스가 가면 화면을 자동으로 확대한다.
+   모바일 폭에서만 입력 요소의 최소 글자 크기를 16px로 올려 확대와 가로 넘침을 막는다. */
+@media (max-width: 640px) {
+  input[type='text'],
+  input[type='search'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='url'],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

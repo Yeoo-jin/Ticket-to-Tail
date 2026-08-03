@@ -1,14 +1,9 @@
-// 폴라로이드 캐러셀의 게시물(뷰포트) PNG 저장. 기존 imageExport.js의
-// exportNodeToPng(같은 master board를 1080 기준 pixelRatio로 저장하는 로직)를 그대로 재사용하고,
-// 파일명 규칙(01/02/03)과 "이미지·폰트 로딩 대기 후 캡처" 부분만 이 파일에서 추가한다.
-// 뷰포트는 분할 수와 무관하게 항상 1080 너비이므로 exportNodeToPng 재사용이 정확하지만,
-// "전체 board" 저장은 너비가 3240/4320으로 가변이라 별도로 pixelRatio=1 캡처를 사용한다.
+// 폴라로이드 캐러셀의 게시물(뷰포트) PNG 저장.
+// 게시물별/전체 순차 저장은 imageShare.js의 Blob 기반 유틸(다운로드·iPhone 공유 공용)을 쓰고,
+// 여기서는 파일명 규칙만 연결한다("전체 조각 저장"도 결국 다운로드이므로 Blob 경로 하나로 통일됨).
+// "전체 board"(가변 너비 3240/4320) 저장만 기존 data URL + a.download 방식을 그대로 유지한다.
 import { toPng } from 'html-to-image'
-import { exportNodeToPng } from './imageExport.js'
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import { createAllSegmentFiles, createSegmentFile, renderSegmentToBlob } from './imageShare.js'
 
 export function buildPanoramaFilename(destination, viewportIndex) {
   const safeDestination = (destination || '여행').replace(/[^\w가-힣]/g, '').slice(0, 20) || '여행'
@@ -38,11 +33,6 @@ async function waitForFontsReady() {
   }
 }
 
-export async function exportPanoramaViewport(node, destination, viewportIndex) {
-  await Promise.all([waitForImagesToDecode(node), waitForFontsReady()])
-  await exportNodeToPng(node, buildPanoramaFilename(destination, viewportIndex))
-}
-
 export async function exportFullBoard(node, destination) {
   if (!node) {
     throw new Error('저장할 포토 다이어리를 찾을 수 없습니다.')
@@ -59,21 +49,19 @@ export async function exportFullBoard(node, destination) {
   }
 }
 
-// 3개 뷰포트를 순서대로 각각 PNG로 저장한다. 뷰포트는 항상 마운트된 숨김 노드를 사용하므로
-// (검은 구분선·버튼 없이 게시물 영역만 포함) 별도로 화면을 전환할 필요가 없다.
-export async function exportAllPanoramaViewports(nodes, destination, { onProgress, gapMs = 200 } = {}) {
-  const results = []
-  for (let index = 0; index < nodes.length; index += 1) {
-    try {
-      await exportPanoramaViewport(nodes[index], destination, index)
-      results.push({ index, ok: true })
-    } catch (error) {
-      results.push({ index, ok: false, message: error.message })
-    }
-    if (onProgress) onProgress(index + 1, nodes.length)
-    if (index < nodes.length - 1) {
-      await wait(gapMs)
-    }
-  }
-  return results
+// --- 아래는 다운로드(Blob URL + a.download)와 iPhone 공유(File) 양쪽에서 공용으로 쓰는
+// 뷰포트 Blob/File 생성 함수. 뷰포트는 항상 정확히 1080×1350이므로
+// pixelRatio=1로 캡처하면 그대로 원본 크기가 된다. ---
+
+export async function renderPanoramaSegmentToBlob(node) {
+  return renderSegmentToBlob(node, { pixelRatio: 1 })
+}
+
+export async function createPanoramaSegmentFile(node, destination, viewportIndex) {
+  const blob = await renderPanoramaSegmentToBlob(node)
+  return createSegmentFile(blob, buildPanoramaFilename(destination, viewportIndex))
+}
+
+export async function createAllPanoramaSegmentFiles(nodes, destination) {
+  return createAllSegmentFiles(nodes, (index) => buildPanoramaFilename(destination, index), { pixelRatio: 1 })
 }

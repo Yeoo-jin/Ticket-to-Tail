@@ -967,3 +967,70 @@ git diff
 [ ] PR에 실행 방법과 미완성 항목을 작성했다.
 [ ] 팀 채팅에 작업 결과를 공유했다.
 ```
+
+---
+
+## 28. iPhone Safari 로컬 테스트
+
+같은 Wi-Fi에 있는 PC와 iPhone으로 실제 iPhone Safari에서 화면과 저장·공유 기능을 확인하는 방법입니다.
+
+### 준비물
+
+- PC와 iPhone이 **같은 Wi-Fi**에 연결되어 있어야 합니다(공유기 게스트망 등 분리된 네트워크는 서로 통신이 안 될 수 있습니다).
+- frontend는 상대 경로(`/api/...`)로 요청하고 Vite dev server의 proxy가 backend(`127.0.0.1:8000`)로 전달하므로, `frontend/.env`의 `VITE_API_BASE_URL`은 비워둔 상태여야 합니다.
+
+### 1. backend 실행
+
+```bash
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 2. frontend를 LAN에 열기
+
+```bash
+cd frontend
+npm run dev:lan
+```
+
+터미널에 `Local`과 함께 `Network` 주소가 표시됩니다. iPhone에서는 `Network`에 나온 주소가 아니라, 아래 방법으로 확인한 **Windows PC의 Wi-Fi IPv4 주소**로 접속합니다.
+
+### 3. Windows Wi-Fi IPv4 주소 확인
+
+명령 프롬프트(cmd)에서:
+
+```text
+ipconfig
+```
+
+"무선 LAN 어댑터 Wi-Fi" 항목의 **IPv4 주소**(예: `192.168.x.x` 형태)를 확인합니다. 이 문서에는 실제 IP 주소를 적지 않으니, 확인한 주소를 각자 기록해 사용하세요.
+
+### 4. iPhone Safari에서 접속
+
+iPhone Safari 주소창에 다음 형식으로 입력합니다.
+
+```text
+http://Windows_IP:5173
+```
+
+`Windows_IP`는 3번에서 확인한 주소로 바꿔 입력합니다. iPhone은 이 5173 포트(frontend)에만 접속하고, API 요청은 Vite proxy를 통해 자동으로 backend(8000)로 전달됩니다.
+
+### WSL2 환경에서 접속되지 않을 때
+
+이 프로젝트를 WSL2 안에서 실행 중이라면, WSL2는 자체 가상 네트워크를 쓰기 때문에 Windows의 Wi-Fi IP로 바로 접속해도 WSL2 안의 서버까지 도달하지 못할 수 있습니다. 이 경우 다음을 확인하세요.
+
+- Windows PowerShell(관리자 권한)에서 `netsh interface portproxy`로 5173/8000 포트를 WSL2 IP로 전달하는 설정이 되어 있는지
+- Windows 방화벽에서 해당 포트의 인바운드 연결이 허용되어 있는지(방화벽 설정은 자동으로 변경하지 않으므로 직접 확인·구성해야 합니다)
+- 위 설정이 익숙하지 않다면 여진에게 확인을 요청하세요.
+
+### 5. 결과 저장 확인
+
+- **네이티브 공유가 지원되는 경우**: "iPhone에서 저장·공유" 버튼을 누르면 공유 시트가 열립니다. 공유 시트에서 **이미지 저장**을 선택하면 사진 앱에 저장됩니다.
+- **HTTP 환경 등 공유가 지원되지 않는 경우**: "이미지 열기" 버튼을 누르면 화면 안에 이미지가 크게 표시됩니다. 이미지를 **길게 누르거나 Safari 공유 버튼**에서 이미지 저장을 선택하세요.
+- 데스크톱에서는 기존처럼 다운로드 버튼으로 파일을 저장할 수 있습니다.
+
+### 테스트 종료 후 서버 종료
+
+- frontend: `npm run dev:lan`을 실행한 터미널에서 `Ctrl + C`
+- backend: `uvicorn`을 실행한 터미널에서 `Ctrl + C`
+- WSL2 포트 전달을 설정했다면, 더 이상 LAN 테스트가 필요 없을 때 `netsh interface portproxy delete v4tov4 ...` 명령으로 해당 규칙을 정리하는 것을 권장합니다(자동으로 삭제되지 않습니다).
