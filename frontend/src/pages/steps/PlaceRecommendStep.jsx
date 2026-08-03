@@ -3,6 +3,11 @@ import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
 import { MAX_SELECTABLE_PLACES } from '../../utils/placeSelection'
 
+const PACE_OPTIONS = [
+  { value: 'normal', label: '보통' },
+  { value: 'relaxed', label: '여유롭게' },
+]
+
 function PlaceRecommendStep({
   places,
   selectedPlaceIds,
@@ -10,6 +15,11 @@ function PlaceRecommendStep({
   selectionLimitMessage,
   onAutoSelect,
   onRefresh,
+  pace,
+  onChangePace,
+  onGenerateTimeline,
+  timelineLoading,
+  timelineError,
   loading,
   error,
   onBack,
@@ -67,6 +77,35 @@ function PlaceRecommendStep({
         <p className="text-center text-[11px] text-gray-400">
           선택한 관광지는 유지하고, 나머지 후보만 새로 추천합니다.
         </p>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-gray-200 p-3">
+        <p className="text-sm font-semibold text-gray-900">일정 여유</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {PACE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChangePace(option.value)}
+              className={`rounded-lg border px-3 py-2 text-sm ${
+                pace === option.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <ErrorMessage message={timelineError} />
+
+        <button
+          type="button"
+          onClick={onGenerateTimeline}
+          disabled={timelineLoading || selectedPlaceIds.length === 0}
+          className="mt-3 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+        >
+          {timelineLoading ? '타임라인 생성 중...' : '타임라인 생성하기'}
+        </button>
       </div>
 
       <button

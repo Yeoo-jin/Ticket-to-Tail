@@ -149,6 +149,36 @@ def test_missing_destination_returns_400_invalid_input():
 
 
 # ---------------------------------------------------------------------------
+# solo 배타 정책: solo 단독은 허용, solo+다른 조건은 400
+# ---------------------------------------------------------------------------
+
+
+def test_solo_alone_is_allowed():
+    response = client.post(
+        "/api/places/recommend",
+        json={"destination": "부산", "companionTypes": ["solo"]},
+    )
+    assert response.status_code == 200
+
+
+def test_solo_with_other_condition_returns_400_invalid_input():
+    response = client.post(
+        "/api/places/recommend",
+        json={"destination": "부산", "companionTypes": ["solo", "infant"]},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_INPUT"
+
+
+def test_multiple_non_solo_conditions_are_allowed():
+    response = client.post(
+        "/api/places/recommend",
+        json={"destination": "부산", "companionTypes": ["infant", "senior"]},
+    )
+    assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
 # 5. 추천 후보 수 확인
 # ---------------------------------------------------------------------------
 

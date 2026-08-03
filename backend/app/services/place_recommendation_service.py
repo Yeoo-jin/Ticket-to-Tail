@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from app.schemas.common import CompanionType
 from app.schemas.place import Place, PlaceRecommendData, PlaceRecommendRequest, PlaceRecord
 from app.services.place_data import load_places
+from app.utils.companion_validation import validate_companion_types
 from app.utils.errors import InvalidInputError
 
 DEFAULT_RECOMMEND_COUNT = 6
@@ -179,8 +180,7 @@ def get_place_recommendations(
     destination = request.destination.strip()
     if not destination:
         raise InvalidInputError("여행 목적지(destination)를 입력해주세요.")
-    if not request.companionTypes:
-        raise InvalidInputError("동행 조건(companionTypes)을 하나 이상 선택해주세요.")
+    validate_companion_types(request.companionTypes)
 
     places, auto_selected_ids = recommend_places(
         destination=destination,

@@ -11,3 +11,25 @@ export const COMPANION_TYPES = [
 export function companionTypeLabel(value) {
   return COMPANION_TYPES.find((type) => type.value === value)?.label || value
 }
+
+export function companionTypeLabels(values) {
+  return (values || []).map(companionTypeLabel)
+}
+
+const SOLO = 'solo'
+
+// solo는 "동행인 없음"을 뜻하므로 다른 조건과 동시에 선택될 수 없다.
+// solo를 고르면 나머지를 모두 해제하고, 다른 조건을 고르면 solo를 해제한다.
+export function toggleCompanionSelection(current, value) {
+  const isSelected = current.includes(value)
+
+  if (isSelected) {
+    return current.filter((type) => type !== value)
+  }
+
+  if (value === SOLO) {
+    return [SOLO]
+  }
+
+  return [...current.filter((type) => type !== SOLO), value]
+}

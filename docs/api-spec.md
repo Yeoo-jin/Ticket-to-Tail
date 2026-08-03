@@ -151,6 +151,14 @@ mobility_impaired
 pet
 ```
 
+**공통 검증 규칙** (`companionTypes`를 사용하는 모든 API에 동일하게 적용):
+
+- 최소 1개 이상 선택해야 한다. 비어 있으면 공통 오류 응답(`INVALID_INPUT`).
+- `solo`는 "동행인 없음"을 의미하므로 다른 조건과 함께 선택할 수 없다. `solo`와 다른 값이 함께 오면 공통 오류 응답(`INVALID_INPUT`).
+  - 허용: `["solo"]`, `["infant"]`, `["infant","senior"]`, `["friends_couple","mobility_impaired","pet"]`
+  - 거부: `["solo","infant"]`, `["pet","solo"]`, `["solo","friends_couple","senior"]`
+- `solo`가 아닌 조건끼리는 여러 개를 자유롭게 함께 선택할 수 있다.
+
 ### 성공 응답
 
 ```
@@ -226,7 +234,9 @@ pet
 
 ## POST `/api/timelines/generate`
 
-구조화된 예매정보와 동행 조건을 바탕으로 이동시간과 휴식시간을 고려한 여행 타임라인을 생성한다.
+구조화된 예매정보와 선택한 관광지(1~3개)를 바탕으로, 운영시간·예상 이동시간·휴식시간을 고려한
+여행 타임라인을 생성한다. 시간·제약조건 계산은 전부 백엔드 코드에서 결정적으로 처리하며
+Gemini(AI)는 호출하지 않는다.
 
 ### 요청
 
@@ -235,7 +245,9 @@ pet
   "bookings": [
     {
       "type":"flight",
+      "departureLocation":null,
       "arrivalLocation":"인천공항",
+      "departureTime":null,
       "arrivalTime":"2026-08-12T10:30:00"
     },
     {
@@ -244,22 +256,20 @@ pet
       "arrivalLocation":"부산역",
       "departureTime":"2026-08-12T13:20:00",
       "arrivalTime":"2026-08-12T16:05:00"
-    }
-  ],
-  "companionTypes": ["infant"],
-  "selectionMode":"manual",
-  "selectedPlaces": [
-    {
-      "placeId":"place-001",
-      "name":"국립해양박물관",
-      "estimatedDurationMinutes":90
     },
     {
-      "placeId":"place-004",
-      "name":"부산시민공원",
-      "estimatedDurationMinutes":60
+      "type":"flight",
+      "departureLocation":"인천공항",
+      "arrivalLocation":null,
+      "departureTime":"2026-08-14T18:00:00",
+      "arrivalTime":null
     }
-  ]
+  ],
+  "companionTypes": ["infant","mobility_impaired"],
+  "selectedPlaceIds": ["place-001","place-009","place-013"],
+  "destination":"부산",
+  "pace":"normal",
+  "seed":42
 }
 ```
 
@@ -267,31 +277,40 @@ pet
 
 | 필드 | 자료형 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `bookings` | object[] | O | 구조화된 항공·철도 예매정보 |
-| `companionTypes` | string[] | O | 동행 조건 |
-| `additionalRequest` | string | X | 사용자의 추가 요청사항 |
-| `selectionMode` | string | O | 관광지 선택 방식: `manual` 또는 `auto` |
-| `selectedPlaces` | object[] | 조건부 | 직접 선택 시 사용자가 선택한 관광지 목록 |
+| `bookings` | object[] | O | `/api/bookings/parse` 응답의 `bookings`를 그대로 전달 |
+| `companionTypes` | string[] | O | 동행 조건. `/api/places/recommend`의 `companionTypes`와 같은 enum, 같은 필드명, 같은 공통 검증 규칙(위 2절 참고: 최소 1개, `solo`는 다른 값과 함께 선택 불가)을 그대로 사용한다. 서로 다른 값을 여러 개 선택할 수 있으며, **동일한 값의 중복만 금지**(예: `["infant","infant"]`는 오류) — 배열 순서는 결과에 영향을 주지 않는다 |
+| `selectedPlaceIds` | string[] | O | 사용자가 선택한 관광지 ID, 1개 이상 3개 이하. `places.json`에 존재하는 ID만 허용하며, 존재하지 않으면 공통 오류(`INVALID_INPUT`) 응답 |
+| `destination` | string | O | 여행 목적 지역 (표시·검증용) |
+| `pace` | string | O | 일정 여유 정도: `normal` 또는 `relaxed`. `relaxed`는 이동·휴식 여유를 더 크게 반영 |
+| `seed` | integer | X | 같은 seed로 요청하면 동일한 결과를 재현한다. "다른 일정 추천받기" 시 새 seed(또는 생략)로 재요청 |
 
-### 동행 조건 선택값
+### 동행 조건별 반영 방식 (복수 선택 시 모두 반영)
 
-```
-solo
-friends_couple
-infant
-senior
-mobility_impaired
-pet
-```
+`companionTypes`에 여러 값이 있으면 하나만 우선하지 않고 전부 반영한다.
+
+| 값 | 반영 내용 | 여러 조건 선택 시 결합 방식 |
+| --- | --- | --- |
+| `solo` | 기본 이동·휴식 여유 | 다른 조건과 함께 선택할 수 없음(동행인 없음을 의미) — 함께 오면 `INVALID_INPUT` |
+| `friends_couple` | 야경·사진 명소 태그가 있는 장소는 체류 시간을 추가로 늘림 | 체류시간 가산에 포함(상한 있음) |
+| `infant` | 이동 여유와 휴식시간을 크게 늘림 | 이동 배수·휴식·정착 버퍼 후보값에 포함 |
+| `senior` | 이동·휴식시간을 확대 | 이동 배수·휴식·정착 버퍼 후보값에 포함 |
+| `mobility_impaired` | 이동·환승 여유를 가장 넉넉하게 반영 | 이동 배수·휴식·정착 버퍼 후보값에 포함(대체로 가장 큼) |
+| `pet` | 반려동물 동반이 불가능한 선택 관광지는 제외(`warnings`에 사유 표시), 휴식은 야외 휴식으로 안내 | 선택된 조건 중 하나라도 `pet`이면 적용 |
+
+- **이동시간 배수 / 휴식시간 / 정착·환승 버퍼**: 선택된 `companionTypes` 각각의 기준값 중 **가장 넉넉한(큰) 값**을 채택한다.
+- **체류시간 가산**(예: `friends_couple`의 야경·사진 명소 여유): 해당되는 조건을 반영하되 한 장소당 합리적인 상한을 둔다.
+- **`pet`**: 선택된 조건에 `pet`이 포함되어 있으면, 반려동물 동반이 불가능한 선택 관광지는 배치하지 않고 사유를 `warnings`에 남긴다.
 
 ### 처리 내용
 
-1. 항공편과 열차의 출발·도착 시간을 고정 일정으로 확인한다.
-2. `manual`이면 사용자가 선택한 관광지를 사용한다.
-3. `auto`이면 동행 조건과 이동 가능 시간을 바탕으로 관광지를 자동 선택한다.
-4. 관광지 운영시간, 체류시간, 장소 간 이동시간을 확인한다.
-5. 식사·휴식 일정을 포함해 시간순으로 배치한다.
-6. 일정에 포함하지 못한 관광지가 있다면 제외 이유를 반환한다.
+1. `bookings`에서 가장 늦은 도착 시각 이후부터 관광 가능 시간이 시작된다(그 이전에는 일정을 넣지 않음).
+2. 도착 이후에 남은 출발 예매가 있으면, 그 출발 시각 전까지 이동 여유를 남기고 관광 가능 시간을 끝낸다.
+3. 관광 가능 시간을 하루 09:00~21:00 단위로 나눠 `selectedPlaceIds`를 순서대로 배치한다.
+4. 각 관광지는 `places.json`의 `openTime`~`closeTime` 안에서만 방문하고, `estimatedDurationMinutes`만큼 체류한다.
+5. 관광지 사이·역/공항에서 첫 관광지까지는 데모 규칙으로 예상 이동시간을 계산해 별도 `transport` 항목으로 넣는다(실시간 지도 API 미사용).
+6. 동행 조건·`pace`에 따라 이동 여유·휴식시간을 가감한다.
+7. 시간이 부족하거나 운영시간과 맞지 않아 배치하지 못한 관광지는 조용히 빼지 않고 `warnings`에 사유를 남긴다.
+8. 모든 항목은 겹치지 않게, 시간순으로 정렬해 반환한다.
 
 ### 성공 응답
 
@@ -299,65 +318,98 @@ pet
 {
   "success":true,
   "data": {
-    "timelineId":"timeline-001",
-    "title":"유아와 함께하는 여유로운 부산 여행",
-    "summary":"긴 이동을 줄이고 일정 사이 충분한 휴식시간을 반영한 여행 일정입니다.",
-    "days": [
+    "timeline": [
       {
-        "date":"2026-08-12",
-        "items": [
-          {
-            "id":"item-001",
-            "startTime":"10:30",
-            "endTime":"11:30",
-            "category":"transport",
-            "title":"인천공항 도착 및 입국",
-            "location":"인천국제공항",
-            "description":"입국 심사와 수하물 수령을 진행합니다.",
-            "recommendationReason":"유아 동반을 고려해 충분한 준비시간을 확보했습니다."
-          },
-          {
-            "id":"item-002",
-            "startTime":"11:50",
-            "endTime":"12:50",
-            "category":"transport",
-            "title":"공항철도로 서울역 이동",
-            "location":"서울역",
-            "description":"공항철도를 이용해 서울역으로 이동합니다.",
-            "recommendationReason":"환승이 단순하고 짐과 유모차를 가지고 이동하기 편한 경로입니다."
-          },
-          {
-            "id":"item-003",
-            "startTime":"16:40",
-            "endTime":"17:40",
-            "category":"rest",
-            "title":"숙소 체크인 및 휴식",
-            "location":"부산 숙소",
-            "description":"이동 후 숙소에서 휴식합니다.",
-            "recommendationReason":"유아의 피로를 고려해 관광 전에 휴식 일정을 배치했습니다."
-          }
-        ]
+        "id":"item-001",
+        "type":"arrival",
+        "startTime":"2026-08-12T10:30:00",
+        "endTime":"2026-08-12T11:00:00",
+        "title":"인천공항 도착",
+        "placeId":null,
+        "location":"인천공항",
+        "description":"예매정보 기준 도착 시각이며, 정리·이동 준비 여유 시간을 함께 표시합니다.",
+        "estimated":false
+      },
+      {
+        "id":"item-002",
+        "type":"transport",
+        "startTime":"2026-08-12T13:20:00",
+        "endTime":"2026-08-12T16:05:00",
+        "title":"열차로 서울역 → 부산역 이동",
+        "placeId":null,
+        "location":"부산역",
+        "description":"예매된 교통편 이동 구간입니다.",
+        "estimated":false
+      },
+      {
+        "id":"item-003",
+        "type":"transport",
+        "startTime":"2026-08-12T16:35:00",
+        "endTime":"2026-08-12T17:14:00",
+        "title":"씨라이프 부산아쿠아리움으로 이동",
+        "placeId":null,
+        "location":"씨라이프 부산아쿠아리움",
+        "description":"데모 데이터를 기반으로 계산한 예상 이동시간입니다. 실제 소요시간과 다를 수 있습니다.",
+        "estimated":true
+      },
+      {
+        "id":"item-004",
+        "type":"attraction",
+        "startTime":"2026-08-12T17:14:00",
+        "endTime":"2026-08-12T18:44:00",
+        "title":"씨라이프 부산아쿠아리움",
+        "placeId":"place-009",
+        "location":"부산 해운대구 해운대해변로 266",
+        "description":"해운대 인근에 위치한 실내 아쿠아리움입니다.",
+        "estimated":true
+      },
+      {
+        "id":"item-005",
+        "type":"rest",
+        "startTime":"2026-08-12T18:44:00",
+        "endTime":"2026-08-12T19:19:00",
+        "title":"휴식",
+        "placeId":null,
+        "location":"부산 해운대구 해운대해변로 266",
+        "description":"다음 일정 전 휴식 시간입니다.",
+        "estimated":true
       }
-    ]
+    ],
+    "summary": {
+      "placeCount":3,
+      "sightseeingMinutes":260,
+      "estimatedTravelMinutes":143,
+      "companionTypes": ["infant"],
+      "pace":"normal"
+    },
+    "warnings": []
   }
 }
 ```
 
-### 타임라인 카테고리
+### 타임라인 항목 타입 (`type`)
 
 ```
+arrival
 transport
-food
-sightseeing
-activity
+attraction
 rest
-accommodation
+departure
 ```
+
+`estimated`는 해당 항목의 시각이 예매정보 그대로의 정확한 값(`false`: `arrival`/`departure`/예매편 `transport`)인지,
+백엔드가 데모 규칙으로 계산한 추정값(`true`: 관광지 사이 `transport`, `attraction`, `rest`)인지 구분한다.
+화면에는 `estimated:true` 항목을 "예상 이동시간"처럼 추정값임을 알 수 있게 표시한다.
+
+### `warnings`
+
+시간·운영시간 제약으로 배치하지 못한 관광지, 동행 조건과 맞지 않아 제외한 관광지가 있으면
+빈 배열이 아닌 사유 문자열 목록으로 반환한다(성공 응답이면서 `warnings`가 있을 수 있음).
 
 ### 담당
 
-- **AI·백엔드 로직:** 여진
-- **동행 조건별 추천 기준:** 준영
+- **백엔드 로직:** 여진
+- **동행 조건별 반영 기준:** 준영
 - **결과 화면:** 서영
 
 ---
