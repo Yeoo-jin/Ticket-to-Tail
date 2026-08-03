@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import BlogStory from '../../components/diary/BlogStory'
+import PanoramaDiary from '../../components/diary/PanoramaDiary'
 import PhotoStyleControls from '../../components/diary/PhotoStyleControls'
-import SnsCarousel from '../../components/diary/SnsCarousel'
-import ThemeSwitcher from '../../components/diary/ThemeSwitcher'
+import { DEFAULT_DIARY_THEME } from '../../utils/diaryTheme'
 import { sanitizeStoryCards } from '../../utils/storyCards'
 
 async function copyText(text) {
@@ -44,12 +44,14 @@ function DiaryResultStep({
   diaryData,
   photos,
   destination,
-  theme,
-  onChangeTheme,
   viewMode,
   onChangeViewMode,
-  activeCardIndex,
-  onChangeActiveCardIndex,
+  panoramaPreset,
+  onChangePanoramaPreset,
+  panoramaViewMode,
+  onChangePanoramaViewMode,
+  activeViewportIndex,
+  onChangeActiveViewportIndex,
   photoStyles,
   onChangePhotoStyle,
   onRegenerate,
@@ -121,25 +123,31 @@ function DiaryResultStep({
             </button>
           </div>
 
-          <div>
-            <p className="mb-2 text-xs font-semibold text-gray-500">테마</p>
-            <ThemeSwitcher theme={theme} onChangeTheme={onChangeTheme} />
-          </div>
-
           <PhotoStyleControls photos={photos} photoStyles={photoStyles} onChangeStyle={onChangePhotoStyle} />
 
           {viewMode === 'carousel' ? (
-            <SnsCarousel
+            <PanoramaDiary
+              diaryData={diaryData}
+              photos={photos}
+              photoStyles={photoStyles}
+              storyCards={storyCards}
+              destination={destination}
+              preset={panoramaPreset}
+              onChangePreset={onChangePanoramaPreset}
+              viewMode={panoramaViewMode}
+              onChangeViewMode={onChangePanoramaViewMode}
+              activeViewportIndex={activeViewportIndex}
+              onChangeActiveViewportIndex={onChangeActiveViewportIndex}
+            />
+          ) : (
+            <BlogStory
               cards={storyCards}
               photos={photos}
               photoStyles={photoStyles}
-              theme={theme}
-              destination={destination}
-              activeIndex={activeCardIndex}
-              onChangeActiveIndex={onChangeActiveCardIndex}
+              theme={DEFAULT_DIARY_THEME}
+              hashtags={hashtags}
+              diary={diary}
             />
-          ) : (
-            <BlogStory cards={storyCards} photos={photos} photoStyles={photoStyles} theme={theme} hashtags={hashtags} diary={diary} />
           )}
 
           <details className="rounded-lg border border-gray-200 p-3">

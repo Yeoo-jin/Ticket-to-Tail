@@ -1,21 +1,20 @@
 // 사진 꾸미기(간단 스타일)에 사용하는 순수 유틸. 원본 파일은 절대 수정하지 않고
 // CSS filter/overlay로 표시 시에만 스타일을 적용한다.
-export const PHOTO_FILTERS = ['original', 'warm', 'cool', 'film', 'monochrome']
+export const PHOTO_FILTERS = ['original', 'warm', 'soft_film', 'monochrome']
 
 export const PHOTO_FILTER_LABELS = {
   original: '원본',
   warm: '따뜻하게',
-  cool: '시원하게',
-  film: '필름',
+  soft_film: '소프트 필름',
   monochrome: '흑백',
 }
 
+// 폴라로이드 포토보드에 어울리도록 이전보다 약하게 조정한 필터 값.
 export const PHOTO_FILTER_CSS = {
   original: 'none',
-  warm: 'saturate(1.25) sepia(0.18) brightness(1.05)',
-  cool: 'saturate(1.05) hue-rotate(-8deg) brightness(1.02) contrast(1.02)',
-  film: 'contrast(1.08) saturate(0.9) brightness(0.98) sepia(0.12)',
-  monochrome: 'grayscale(1) contrast(1.05)',
+  warm: 'saturate(1.12) sepia(0.1) brightness(1.02)',
+  soft_film: 'contrast(1.03) saturate(0.92) brightness(1) sepia(0.06)',
+  monochrome: 'grayscale(0.9) contrast(1.02)',
 }
 
 export const PHOTO_POSITIONS = ['top', 'center', 'bottom']

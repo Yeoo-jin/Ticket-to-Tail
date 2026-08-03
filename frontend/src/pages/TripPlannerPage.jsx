@@ -5,7 +5,7 @@ import { recommendPlaces } from '../services/placeApi'
 import { generateTimeline } from '../services/timelineApi'
 import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
-import { DEFAULT_DIARY_THEME } from '../utils/diaryTheme'
+import { DEFAULT_PANORAMA_PRESET } from '../utils/panoramaLayouts'
 import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
 import { setPhotoStyleField } from '../utils/photoStyle'
 import { SELECTION_LIMIT_MESSAGE, resolveAutoSelection, toggleSelection } from '../utils/placeSelection'
@@ -60,10 +60,12 @@ function TripPlannerPage() {
   const [diaryLoading, setDiaryLoading] = useState(false)
   const [diaryError, setDiaryError] = useState('')
 
-  // 결과 화면 표시 상태(테마·보기 방식·현재 카드·사진 스타일)는 "처음부터 다시 시작"에서만 초기화한다.
-  const [diaryTheme, setDiaryThemeState] = useState(DEFAULT_DIARY_THEME)
+  // 결과 화면 표시 상태(레이아웃 프리셋·보기 방식·현재 게시물·사진 스타일)는
+  // "처음부터 다시 시작"에서만 초기화한다.
   const [diaryViewMode, setDiaryViewMode] = useState('carousel')
-  const [activeCardIndex, setActiveCardIndex] = useState(0)
+  const [panoramaPreset, setPanoramaPreset] = useState(DEFAULT_PANORAMA_PRESET)
+  const [panoramaViewMode, setPanoramaViewMode] = useState('connected')
+  const [activeViewportIndex, setActiveViewportIndex] = useState(0)
   const [photoStyles, setPhotoStyles] = useState({})
 
   // 사진 미리보기 URL은 컴포넌트가 완전히 사라질 때 한 번에 정리한다 (최신 photos를 ref로 추적).
@@ -259,9 +261,10 @@ function TripPlannerPage() {
     setDiaryTone('emotional')
     setDiaryData(null)
     setDiaryError('')
-    setDiaryThemeState(DEFAULT_DIARY_THEME)
     setDiaryViewMode('carousel')
-    setActiveCardIndex(0)
+    setPanoramaPreset(DEFAULT_PANORAMA_PRESET)
+    setPanoramaViewMode('connected')
+    setActiveViewportIndex(0)
     setPhotoStyles({})
   }
 
@@ -362,12 +365,14 @@ function TripPlannerPage() {
             diaryData={diaryData}
             photos={photos}
             destination={destination}
-            theme={diaryTheme}
-            onChangeTheme={setDiaryThemeState}
             viewMode={diaryViewMode}
             onChangeViewMode={setDiaryViewMode}
-            activeCardIndex={activeCardIndex}
-            onChangeActiveCardIndex={setActiveCardIndex}
+            panoramaPreset={panoramaPreset}
+            onChangePanoramaPreset={setPanoramaPreset}
+            panoramaViewMode={panoramaViewMode}
+            onChangePanoramaViewMode={setPanoramaViewMode}
+            activeViewportIndex={activeViewportIndex}
+            onChangeActiveViewportIndex={setActiveViewportIndex}
             photoStyles={photoStyles}
             onChangePhotoStyle={handleChangePhotoStyle}
             onRegenerate={handleRegenerateDiary}
