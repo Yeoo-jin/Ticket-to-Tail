@@ -1,118 +1,156 @@
-// 폴라로이드 여행 캐러셀의 "master board" 좌표계와 레이아웃 프리셋.
-// 보드는 항상 3240×1350(가로 1080짜리 게시물 3장이 이어진 크기)이며,
+// 폴라로이드 여행 캐러셀의 "master board" 좌표계.
+// 보드는 항상 높이 1350, 너비는 사용자가 고른 분할 수(3 또는 4) × 1080이며,
 // 여기 정의된 좌표는 이 보드 기준 절대 좌표(px)다.
-export const BOARD_WIDTH = 3240
-export const BOARD_HEIGHT = 1350
 export const SEGMENT_WIDTH = 1080
-export const VIEWPORT_COUNT = 3
+export const BOARD_HEIGHT = 1350
 
-export const PANORAMA_PRESETS = ['polaroid_classic', 'polaroid_playful', 'polaroid_minimal']
-export const DEFAULT_PANORAMA_PRESET = 'polaroid_classic'
-
-export const PANORAMA_PRESET_LABELS = {
-  polaroid_classic: '클래식',
-  polaroid_playful: '플레이풀',
-  polaroid_minimal: '미니멀',
-}
+export const SPLIT_COUNTS = [3, 4]
+export const DEFAULT_SPLIT_COUNT = 3
 
 export const MAX_PANORAMA_PHOTOS = 5
 
-// 사진 개수별로 어떤 슬롯에 몇 번째 사진(0부터)을 배치할지 결정한다.
-// 슬롯 개수가 곧 사용하는 사진 개수이므로 같은 사진이 두 번 배정되지 않는다.
-// big1/big2: 큰 대표 폴라로이드, straddle/small3: 1·2번째 경계와 2·3번째 경계를 걸치는 작은 폴라로이드,
-// small2b: 5장일 때만 쓰는 2번째 게시물 안의 추가 작은 폴라로이드.
-export const SLOT_PLAN_BY_PHOTO_COUNT = {
+export function resolveSplitCount(splitCount) {
+  return SPLIT_COUNTS.includes(splitCount) ? splitCount : DEFAULT_SPLIT_COUNT
+}
+
+export function getBoardWidth(splitCount) {
+  return SEGMENT_WIDTH * resolveSplitCount(splitCount)
+}
+
+// 게시물 사이 경계 x좌표들. 3분할이면 [1080, 2160], 4분할이면 [1080, 2160, 3240].
+export function getBoundaries(splitCount) {
+  const count = resolveSplitCount(splitCount)
+  return Array.from({ length: count - 1 }, (_, i) => (i + 1) * SEGMENT_WIDTH)
+}
+
+const MARGIN = 70
+const CONTENT_TOP = 170
+const CONTENT_BOTTOM = 1220
+const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
+
+const PHOTO_ASPECT_RATIO = 4 / 5 // width / height
+// 아래 여백에 최대 글자 크기(36px) 기준 2줄 메모가 들어가도 잘리지 않도록 여유 있게 잡는다.
+const FRAME_PAD = 44 // 위·좌·우 여백
+const FRAME_BOTTOM_PAD_RATIO = 2.5 // 아래 여백은 위쪽 여백의 약 2.5배(메모 2줄 포함)
+
+// large/medium 두 단계만 사용한다. (640-520)/640 = 18.75% ≤ 25%(요구사항).
+const LARGE_WIDTH = 640
+const MEDIUM_WIDTH = 520
+
+function buildFrameSize(frameWidth) {
+  const photoWidth = frameWidth - FRAME_PAD * 2
+  const photoHeight = photoWidth / PHOTO_ASPECT_RATIO
+  const bottomPad = FRAME_PAD * FRAME_BOTTOM_PAD_RATIO
+  const frameHeight = photoHeight + FRAME_PAD + bottomPad
+  return { frameWidth, frameHeight, photoWidth, photoHeight }
+}
+
+const LARGE_SIZE = buildFrameSize(LARGE_WIDTH)
+const MEDIUM_SIZE = buildFrameSize(MEDIUM_WIDTH)
+
+// 사진 개수별 크기 구성(L=large, M=medium). 슬롯 수 = 사진 수이므로 중복 배정이 없다.
+const COMPOSITION_BY_COUNT = {
   0: [],
-  1: ['big1'],
-  2: ['big1', 'straddle'],
-  3: ['big1', 'straddle', 'small3'],
-  4: ['big1', 'big2', 'straddle', 'small3'],
-  5: ['big1', 'big2', 'straddle', 'small2b', 'small3'],
+  1: ['L'],
+  2: ['L', 'M'],
+  3: ['L', 'M', 'M'],
+  4: ['L', 'L', 'M', 'M'],
+  5: ['L', 'L', 'M', 'M', 'M'],
 }
 
-// 캡션을 붙일 수 있는 슬롯의 우선순위(최대 2개까지만 사용).
-export const CAPTION_SLOT_PRIORITY = ['big2', 'small3', 'straddle']
+// -4~4도 사이에서 사진마다 조금씩 다른 회전을, y는 작은 편차를 결정론적으로 배정한다.
+const ROTATION_TABLE = [-3, 2, -4, 3, -2]
+const Y_JITTER_TABLE = [-30, 25, -35, 20, -15]
 
-// 기준(classic) 좌표. 다른 프리셋은 이 좌표를 그대로 재사용하고 회전 각도·테이프
-// 스타일만 다르게 적용한다 - 위치가 프리셋마다 달라 경계선을 벗어나는 사고를 막기 위함이다.
-const BASE_GEOMETRY = {
-  big1: { x: 110, y: 140, w: 760, h: 950, rotation: -2, tape: 'top' },
-  big2: { x: 1340, y: 150, w: 700, h: 880, rotation: 1.5, tape: 'top' },
-  // 1080 경계(1번·2번 게시물 사이)를 걸치도록 의도적으로 960~1190에 배치.
-  straddle: { x: 960, y: 520, w: 230, h: 290, rotation: 5, tape: 'corner' },
-  small2b: { x: 1850, y: 1060, w: 210, h: 260, rotation: -3, tape: 'corner' },
-  // 2160 경계(2번·3번 게시물 사이)를 걸치도록 의도적으로 2080~2310에 배치.
-  small3: { x: 2080, y: 430, w: 230, h: 290, rotation: -4, tape: 'top' },
-  locationLabel: { x: 70, y: 55, w: 340 },
-  titleLine: { x: 1150, y: 60, w: 760 },
-  ending: { x: 2350, y: 1120, w: 560 },
-  sticker1: { x: 900, y: 260, emoji: '✈️' },
-  sticker2: { x: 2900, y: 260, emoji: '🌿' },
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
 }
 
-function scaleRotation(geometry, rotationScale) {
-  const scaled = {}
-  for (const [key, value] of Object.entries(geometry)) {
-    scaled[key] = 'rotation' in value
-      ? { ...value, rotation: Math.round(value.rotation * rotationScale * 10) / 10 }
-      : { ...value }
-  }
-  return scaled
+function tapeFor(index) {
+  // 테이프는 board 전체에서 최대 2개만 사용한다.
+  if (index === 0) return 'top'
+  if (index === 2) return 'corner'
+  return 'none'
 }
 
-function withTape(geometry, tapeVariant) {
-  const result = {}
-  for (const [key, value] of Object.entries(geometry)) {
-    result[key] = 'tape' in value ? { ...value, tape: tapeVariant } : { ...value }
-  }
-  return result
+// medium 슬롯을 경계에 우선 배정하고, 남는 슬롯(large 전부 + 넘치는 medium)은
+// board 전체에 걸쳐 균등 분산한다. 이렇게 하면 사진 수가 충분할 때는 실제 사진이
+// 경계를 걸치고, board 너비(분할 수)가 바뀌면 x좌표 전체가 다시 분산된다.
+function computeCenters(sizes, boardWidth, boundaries) {
+  const centers = {}
+  const mediumIndexes = sizes.map((s, i) => ({ s, i })).filter((o) => o.s === 'M').map((o) => o.i)
+
+  mediumIndexes.forEach((slotIndex, order) => {
+    if (order < boundaries.length) {
+      centers[slotIndex] = boundaries[order]
+    }
+  })
+
+  const unassigned = sizes.map((_, i) => i).filter((i) => !(i in centers))
+  unassigned.forEach((slotIndex, order) => {
+    const dims = sizes[slotIndex] === 'L' ? LARGE_SIZE : MEDIUM_SIZE
+    const spanStart = MARGIN + dims.frameWidth / 2
+    const spanEnd = boardWidth - MARGIN - dims.frameWidth / 2
+    const t = unassigned.length === 1 ? 0.5 : order / (unassigned.length - 1)
+    centers[slotIndex] = spanStart + (spanEnd - spanStart) * t
+  })
+
+  return centers
 }
 
-// 세 프리셋 모두 동일한 좌표(BASE_GEOMETRY)를 공유해 3장 연결 구조와 경계 겹침이
-// 항상 성립하도록 하고, 회전 각도·테이프 스타일·스티커 개수만 다르게 준다.
-export const PRESET_GEOMETRY = {
-  polaroid_classic: BASE_GEOMETRY,
-  polaroid_playful: withTape(scaleRotation(BASE_GEOMETRY, 1.6), 'washi'),
-  polaroid_minimal: withTape(scaleRotation(BASE_GEOMETRY, 0.2), 'none'),
+// splitCount·photoCount에 대해 각 사진의 board 절대 좌표(x/y/w/h/rotation/tape)를 계산한다.
+export function getPanoramaLayout({ splitCount, photoCount }) {
+  const resolvedSplit = resolveSplitCount(splitCount)
+  const boardWidth = getBoardWidth(resolvedSplit)
+  const boundaries = getBoundaries(resolvedSplit)
+  const clampedCount = clamp(photoCount, 0, MAX_PANORAMA_PHOTOS)
+  const sizes = COMPOSITION_BY_COUNT[clampedCount] || []
+
+  const centers = computeCenters(sizes, boardWidth, boundaries)
+  const baselineY = CONTENT_TOP + (CONTENT_HEIGHT - LARGE_SIZE.frameHeight) / 2
+
+  const photoSlots = sizes.map((size, index) => {
+    const dims = size === 'L' ? LARGE_SIZE : MEDIUM_SIZE
+    const x = clamp(centers[index] - dims.frameWidth / 2, MARGIN, boardWidth - MARGIN - dims.frameWidth)
+    const y = clamp(baselineY + (Y_JITTER_TABLE[index] || 0), CONTENT_TOP, CONTENT_BOTTOM - dims.frameHeight)
+    return {
+      photoIndex: index,
+      size,
+      x: Math.round(x),
+      y: Math.round(y),
+      w: dims.frameWidth,
+      h: dims.frameHeight,
+      photoW: dims.photoWidth,
+      photoH: dims.photoHeight,
+      framePad: FRAME_PAD,
+      rotation: ROTATION_TABLE[index % ROTATION_TABLE.length],
+      tape: tapeFor(index),
+    }
+  })
+
+  return { splitCount: resolvedSplit, boardWidth, boundaries, photoSlots }
 }
 
-export const PRESET_STYLE = {
-  polaroid_classic: { stickerCount: 1 },
-  polaroid_playful: { stickerCount: 2 },
-  polaroid_minimal: { stickerCount: 0 },
+// 배경 위 독립 글귀 3개의 고정 위치 프리셋. 'bridge'는 항상 첫 번째 경계(x=1080)
+// 위에 오도록 만들어, 사진 수와 무관하게 최소 1개의 요소는 항상 경계를 걸치게 한다.
+export const BACKGROUND_CAPTION_PRESETS = [
+  { id: 'top-left', label: '왼쪽 위', y: 60, textAlign: 'left', maxWidth: 520 },
+  { id: 'bridge', label: '경계 위(다리)', y: 1255, textAlign: 'center', maxWidth: 460 },
+  { id: 'bottom-right', label: '오른쪽 아래', y: 1255, textAlign: 'right', maxWidth: 520 },
+]
+
+export function getBackgroundCaptionX(presetId, boardWidth) {
+  if (presetId === 'top-left') return MARGIN
+  if (presetId === 'bottom-right') return boardWidth - MARGIN
+  return SEGMENT_WIDTH // 'bridge' - 항상 첫 번째 경계(1080)
 }
 
-export function resolvePanoramaPreset(preset) {
-  return PANORAMA_PRESETS.includes(preset) ? preset : DEFAULT_PANORAMA_PRESET
-}
-
-// preset·photoCount에 대해 어떤 사진이 어떤 슬롯(좌표)에 들어가는지 계산한다.
-// photoCount는 0~5로 clamp되며, 5장을 넘는 사진은 사용하지 않는다(MAX_PANORAMA_PHOTOS).
-export function getPanoramaLayout({ preset, photoCount }) {
-  const resolvedPreset = resolvePanoramaPreset(preset)
-  const geometry = PRESET_GEOMETRY[resolvedPreset]
-  const clampedCount = Math.max(0, Math.min(photoCount, MAX_PANORAMA_PHOTOS))
-  const slotNames = SLOT_PLAN_BY_PHOTO_COUNT[clampedCount] || []
-
-  const photoSlots = slotNames.map((slot, photoIndex) => ({
-    slot,
-    photoIndex,
-    ...geometry[slot],
-  }))
-
-  return {
-    preset: resolvedPreset,
-    geometry,
-    style: PRESET_STYLE[resolvedPreset],
-    photoSlots,
-  }
-}
-
-// 슬롯의 board 절대 좌표 rect가 세그먼트 인덱스(0/1/2)의 뷰포트와 겹치는지 확인한다.
+// 슬롯의 board 절대 좌표 rect가 어느 세그먼트(들)와 겹치는지 확인한다.
 // 뷰포트 n은 [n*SEGMENT_WIDTH, (n+1)*SEGMENT_WIDTH) 구간을 담당한다.
-export function segmentsOverlappingRect(x, width) {
+export function segmentsOverlappingRect(x, width, splitCount) {
+  const resolvedSplit = resolveSplitCount(splitCount)
   const segments = []
-  for (let index = 0; index < VIEWPORT_COUNT; index += 1) {
+  for (let index = 0; index < resolvedSplit; index += 1) {
     const start = index * SEGMENT_WIDTH
     const end = start + SEGMENT_WIDTH
     if (x < end && x + width > start) {
@@ -121,3 +159,5 @@ export function segmentsOverlappingRect(x, width) {
   }
   return segments
 }
+
+export { CONTENT_BOTTOM, CONTENT_TOP, MARGIN }

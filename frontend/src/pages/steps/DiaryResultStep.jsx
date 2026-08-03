@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
+import BackgroundCaptionEditor from '../../components/diary/BackgroundCaptionEditor'
+import BackgroundColorPicker from '../../components/diary/BackgroundColorPicker'
 import BlogStory from '../../components/diary/BlogStory'
+import FontSelector from '../../components/diary/FontSelector'
 import PanoramaDiary from '../../components/diary/PanoramaDiary'
+import PhotoCaptionEditor from '../../components/diary/PhotoCaptionEditor'
 import PhotoStyleControls from '../../components/diary/PhotoStyleControls'
 import { DEFAULT_DIARY_THEME } from '../../utils/diaryTheme'
 import { sanitizeStoryCards } from '../../utils/storyCards'
@@ -46,12 +50,24 @@ function DiaryResultStep({
   destination,
   viewMode,
   onChangeViewMode,
-  panoramaPreset,
-  onChangePanoramaPreset,
+  splitCount,
+  onChangeSplitCount,
   panoramaViewMode,
   onChangePanoramaViewMode,
   activeViewportIndex,
   onChangeActiveViewportIndex,
+  backgroundColor,
+  onChangeBackgroundColor,
+  font,
+  onChangeFont,
+  polaroidCaptionSize,
+  onChangePolaroidCaptionSize,
+  backgroundTextSize,
+  onChangeBackgroundTextSize,
+  photoCaptions,
+  onChangePhotoCaption,
+  backgroundCaptions,
+  onChangeBackgroundCaption,
   photoStyles,
   onChangePhotoStyle,
   onRegenerate,
@@ -74,7 +90,7 @@ function DiaryResultStep({
     )
   }
 
-  const { title, diary, summary, snsPost, photoCaptions, hashtags, generationMode, warnings } = diaryData
+  const { title, diary, summary, snsPost, photoCaptions: aiPhotoCaptions, hashtags, generationMode, warnings } = diaryData
   const hashtagText = hashtags.join(' ')
   const otherWarnings = warnings.filter((warning) => !warning.includes('AI 호출에 실패'))
 
@@ -123,22 +139,66 @@ function DiaryResultStep({
             </button>
           </div>
 
-          <PhotoStyleControls photos={photos} photoStyles={photoStyles} onChangeStyle={onChangePhotoStyle} />
-
           {viewMode === 'carousel' ? (
-            <PanoramaDiary
-              diaryData={diaryData}
-              photos={photos}
-              photoStyles={photoStyles}
-              storyCards={storyCards}
-              destination={destination}
-              preset={panoramaPreset}
-              onChangePreset={onChangePanoramaPreset}
-              viewMode={panoramaViewMode}
-              onChangeViewMode={onChangePanoramaViewMode}
-              activeViewportIndex={activeViewportIndex}
-              onChangeActiveViewportIndex={onChangeActiveViewportIndex}
-            />
+            <>
+              <PanoramaDiary
+                photos={photos}
+                photoStyles={photoStyles}
+                destination={destination}
+                splitCount={splitCount}
+                onChangeSplitCount={onChangeSplitCount}
+                viewMode={panoramaViewMode}
+                onChangeViewMode={onChangePanoramaViewMode}
+                activeViewportIndex={activeViewportIndex}
+                onChangeActiveViewportIndex={onChangeActiveViewportIndex}
+                backgroundColor={backgroundColor}
+                font={font}
+                polaroidCaptionSize={polaroidCaptionSize}
+                backgroundTextSize={backgroundTextSize}
+                photoCaptions={photoCaptions}
+                backgroundCaptions={backgroundCaptions}
+              />
+
+              <PhotoCaptionEditor photos={photos} captions={photoCaptions} onChangeCaption={onChangePhotoCaption} />
+
+              <BackgroundCaptionEditor captions={backgroundCaptions} onChangeCaption={onChangeBackgroundCaption} />
+
+              <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+                <p className="text-xs font-semibold text-gray-500">글자·배경 꾸미기</p>
+                <div>
+                  <p className="mb-1.5 text-[11px] text-gray-500">폰트 (사진·배경 글귀 공통)</p>
+                  <FontSelector font={font} onChangeFont={onChangeFont} />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] text-gray-500">사진 글귀 크기: {polaroidCaptionSize}</p>
+                  <input
+                    type="range"
+                    min={18}
+                    max={36}
+                    value={polaroidCaptionSize}
+                    onChange={(event) => onChangePolaroidCaptionSize(Number(event.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] text-gray-500">배경 글귀 크기: {backgroundTextSize}</p>
+                  <input
+                    type="range"
+                    min={24}
+                    max={72}
+                    value={backgroundTextSize}
+                    onChange={(event) => onChangeBackgroundTextSize(Number(event.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] text-gray-500">배경 색상</p>
+                  <BackgroundColorPicker color={backgroundColor} onChangeColor={onChangeBackgroundColor} />
+                </div>
+              </div>
+
+              <PhotoStyleControls photos={photos} photoStyles={photoStyles} onChangeStyle={onChangePhotoStyle} />
+            </>
           ) : (
             <BlogStory
               cards={storyCards}
@@ -176,11 +236,11 @@ function DiaryResultStep({
                 <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-800">{snsPost}</p>
               </div>
 
-              {photoCaptions.length > 0 && (
+              {aiPhotoCaptions.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500">사진별 캡션</p>
+                  <p className="text-xs font-semibold text-gray-500">AI 사진별 캡션 (참고용)</p>
                   <ul className="mt-1 space-y-1 text-sm text-gray-800">
-                    {photoCaptions.map((item) => (
+                    {aiPhotoCaptions.map((item) => (
                       <li key={item.photoIndex} className="break-words">
                         사진 {item.photoIndex + 1}: {item.caption}
                       </li>
