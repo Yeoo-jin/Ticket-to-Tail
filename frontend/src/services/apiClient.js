@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+// VITE_API_BASE_URL이 비어 있으면 상대 경로(/api/...)로 요청한다. 개발 환경에서는
+// Vite dev server의 proxy(vite.config.js)가 이를 backend로 전달하므로, iPhone 등
+// 다른 기기에서 접속해도 브라우저 자신을 가리키는 localhost/127.0.0.1이 코드에 남지 않는다.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 async function handleResponse(response) {
   const payload = await response.json().catch(() => null)

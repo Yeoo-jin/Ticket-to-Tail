@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { autoTextColor, normalizeHexColor } from '../../utils/backgroundColor'
 import { truncateAtWordBoundary } from '../../utils/memoDistribution'
 import {
@@ -8,9 +8,9 @@ import {
   getBackgroundCaptionX,
   getPanoramaLayout,
 } from '../../utils/panoramaLayouts'
-import { exportAllPanoramaViewports, exportFullBoard, exportPanoramaViewport } from '../../utils/panoramaExport'
 import { getPhotoStyle } from '../../utils/photoStyle'
 import { posterFontStack } from '../../utils/posterFonts'
+import PanoramaExportPanel from './PanoramaExportPanel'
 import PanoramaPreview from './PanoramaPreview'
 import PanoramaViewport from './PanoramaViewport'
 import PolaroidPhoto from './PolaroidPhoto'
@@ -46,6 +46,7 @@ function BackgroundCaptionText({ caption, boardWidth, fontFamily, fontSize, colo
 // AI 다이어리 결과가 아니라 사용자가 직접 쓴 사진별 글귀 + 배경 글귀 + 업로드 사진을 하나의
 // master board 콘텐츠로 엮는 오케스트레이터. "판(board)"은 이 컴포넌트가 한 번만 만들고,
 // PanoramaViewport에게 여러 번(미리보기용 축소, 내보내기용 원본 크기) 그대로 넘겨 잘라 보여준다.
+// 저장·공유(Blob/File, iPhone 대응 포함)는 PanoramaExportPanel이 전담한다.
 function PanoramaDiary({
   photos,
   photoStyles,
@@ -118,52 +119,25 @@ function PanoramaDiary({
 
   const exportRefs = useRef([])
   const fullBoardRef = useRef(null)
-  const [exporting, setExporting] = useState(false)
-  const [exportMessage, setExportMessage] = useState('')
 
   const safeActiveIndex = Math.min(Math.max(activeViewportIndex, 0), layout.splitCount - 1)
 
-  async function handleExportCurrent() {
-    if (exporting) return
-    setExporting(true)
-    setExportMessage('')
-    try {
-      await exportPanoramaViewport(exportRefs.current[safeActiveIndex], destination, safeActiveIndex)
-      setExportMessage('현재 게시물을 저장했어요.')
-    } catch (error) {
-      setExportMessage(error.message)
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  async function handleExportAll() {
-    if (exporting) return
-    setExporting(true)
-    setExportMessage('')
-    const results = await exportAllPanoramaViewports(exportRefs.current.slice(0, layout.splitCount), destination)
-    setExporting(false)
-    const failures = results.filter((result) => !result.ok).map((result) => result.index + 1)
-    setExportMessage(
-      failures.length > 0
-        ? `${failures.join(', ')}번 게시물 저장에 실패했습니다.`
-        : `${layout.splitCount}장을 모두 저장했어요.`
-    )
-  }
-
-  async function handleExportFullBoard() {
-    if (exporting) return
-    setExporting(true)
-    setExportMessage('')
-    try {
-      await exportFullBoard(fullBoardRef.current, destination)
-      setExportMessage('전체 보드를 저장했어요.')
-    } catch (error) {
-      setExportMessage(error.message)
-    } finally {
-      setExporting(false)
-    }
-  }
+  // 준비된 저장용 파일이 최신 상태를 반영하는지 판단하는 키. 배경색·폰트·글자 크기·글귀·
+  // 사진별 필터가 하나라도 바뀌면 값이 달라져 PanoramaExportPanel이 "다시 준비해주세요"를 보여준다.
+  const boardStateKey = useMemo(
+    () =>
+      [
+        resolvedBackgroundColor,
+        font,
+        polaroidCaptionSize,
+        backgroundTextSize,
+        JSON.stringify(photoCaptions),
+        JSON.stringify(backgroundCaptions),
+        JSON.stringify(photoStyles),
+        photos.map((photo) => photo.previewUrl).join(','),
+      ].join('|'),
+    [resolvedBackgroundColor, font, polaroidCaptionSize, backgroundTextSize, photoCaptions, backgroundCaptions, photoStyles, photos]
+  )
 
   return (
     <div>
@@ -233,42 +207,21 @@ function PanoramaDiary({
             {boardContent}
           </PanoramaViewport>
         ))}
-        <div
-          ref={fullBoardRef}
-          style={{ width: layout.boardWidth, height: 1350, position: 'relative' }}
-        >
+        <div ref={fullBoardRef} style={{ width: layout.boardWidth, height: 1350, position: 'relative' }}>
           {boardContent}
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={handleExportCurrent}
-          disabled={exporting}
-          className="rounded-lg border border-blue-300 py-2 text-xs font-medium text-blue-700 disabled:opacity-40"
-        >
-          현재 게시물 저장
-        </button>
-        <button
-          type="button"
-          onClick={handleExportAll}
-          disabled={exporting}
-          className="rounded-lg border border-blue-300 py-2 text-xs font-medium text-blue-700 disabled:opacity-40"
-        >
-          전체 {layout.splitCount}장 저장
-        </button>
+      <div className="mt-3">
+        <PanoramaExportPanel
+          exportRefs={exportRefs}
+          fullBoardRef={fullBoardRef}
+          splitCount={layout.splitCount}
+          activeViewportIndex={safeActiveIndex}
+          destination={destination}
+          boardStateKey={boardStateKey}
+        />
       </div>
-      <button
-        type="button"
-        onClick={handleExportFullBoard}
-        disabled={exporting}
-        className="mt-2 w-full rounded-lg border border-gray-300 py-2 text-xs font-medium text-gray-600 disabled:opacity-40"
-      >
-        전체 보드 PNG로 저장 (선택)
-      </button>
-      {exporting && <p className="mt-1 text-center text-[11px] text-gray-400">이미지를 저장하는 중...</p>}
-      {!exporting && exportMessage && <p className="mt-1 text-center text-[11px] text-gray-500">{exportMessage}</p>}
     </div>
   )
 }

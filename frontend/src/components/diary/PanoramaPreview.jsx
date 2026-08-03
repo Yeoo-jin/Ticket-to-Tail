@@ -27,7 +27,7 @@ function PanoramaPreview({
 
     return (
       <div>
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="ios-momentum-scroll overflow-x-auto rounded-lg border border-gray-200">
           <div className="inline-flex bg-black">
             {segments.map((segmentIndex) => (
               <div key={segmentIndex} className="flex">
