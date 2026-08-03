@@ -418,80 +418,143 @@ departure
 
 ## POST `/api/diaries/generate`
 
-생성된 여행 타임라인과 사용자가 입력한 사진·메모를 바탕으로 AI 여행 다이어리를 생성한다.
+선택 관광지 기반으로 생성된 여행 타임라인과, 사용자가 입력한 사진·메모를 바탕으로
+AI(Gemini) 여행 다이어리를 생성한다. 시간·제약조건 계산이 아니라 자연어 생성이 핵심이므로
+Gemini를 사용하지만, 사진/개수/용량 검증과 결과 정규화는 전부 백엔드 코드에서 처리한다.
 
-사진을 함께 전송하는 경우 `multipart/form-data`를 사용한다.
+사진 파일을 포함할 수 있으므로 `multipart/form-data`로 요청한다. JSON으로 표현하기 애매한
+배열·객체 필드는 JSON 문자열로 감싸 전달하고, 백엔드가 파싱한 뒤 반드시 Pydantic으로 재검증한다.
 
-### 요청 필드
+### 요청 필드 (`multipart/form-data`)
 
 | 필드 | 자료형 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `timeline` | JSON string | O | 생성된 여행 타임라인 |
-| `memo` | string | X | 여행 중 작성한 메모 |
-| `writingStyle` | string | O | 다이어리 문체 |
-| `length` | string | O | 다이어리 분량 |
-| `images` | File[] | X | 여행 사진 |
+| `destination` | string | O | 여행 목적 지역 |
+| `tone` | string | O | 다이어리 문체. 아래 "문체 선택값" 참고 |
+| `memo` | string | X | 전체 여행 메모 |
+| `companionTypesJson` | JSON string | O | 동행 조건 배열(`companionTypes`)을 JSON 문자열로 인코딩. `/api/places/recommend`·`/api/timelines/generate`와 동일한 enum·공통 검증 규칙(최소 1개, solo 배타 정책) 적용 |
+| `timelineJson` | JSON string | O | `/api/timelines/generate` 응답의 `data`(`timeline`/`summary`/`warnings`)를 그대로 JSON 문자열로 인코딩 |
+| `selectedPlaceIdsJson` | JSON string | O | 선택한 관광지 ID 배열. `places.json`에 존재하는 ID만 허용 |
+| `photoMemosJson` | JSON string | X | 사진별 메모 배열(문자열[]). 사진 순서와 배열 순서가 일치해야 한다 |
+| `photos` | File[] | X | 여행 사진. 최대 5장, 1장당 최대 5MB, `image/jpeg`·`image/png`·`image/webp`만 허용 |
 
-### 요청 예시
+`memo`와 `photos`가 모두 없으면 공통 오류 응답(`INVALID_INPUT`)을 반환한다.
 
-```
-timeline: 생성된 타임라인 JSON
-memo: 부산에 도착해서 먹은 음식이 맛있었고 바다 야경이 예뻤다.
-writingStyle: emotional
-length: medium
-images: [busan1.jpg, busan2.jpg]
-```
-
-### 문체 선택값
+### 문체 선택값 (`tone`)
 
 ```
-emotional
-casual
-informative
-humorous
-sns
-```
-
-### 분량 선택값
-
-```
-short
-medium
-long
+emotional   감성적인 - 감정과 여운을 담아 서정적으로
+plain       담백한 - 꾸밈없이 사실 위주로 간결하게
+cheerful    유쾌한 - 밝고 경쾌한 어조로
+concise     간결한 - 짧고 명료한 문장으로 핵심만
 ```
 
 ### 처리 내용
 
-1. 타임라인에서 날짜와 방문 장소를 추출한다.
-2. 사진과 메모를 해당 일정에 연결한다.
-3. 선택한 문체와 분량을 반영한다.
-4. 날짜별 여행 일기와 SNS용 콘텐츠를 생성한다.
+1. `multipart/form-data` 요청을 검증하고, JSON 문자열 필드를 파싱해 Pydantic 모델로 재검증한다.
+2. 타임라인 항목과 전체 메모를 텍스트로 정규화한다.
+3. 사진의 MIME 타입·개수(최대 5장)·용량(장당 최대 5MB)을 검증한다(실패 시 어떤 사진도 저장하지 않고 `INVALID_INPUT` 반환).
+4. 타임라인·메모·사진을 Gemini에 전달해 구조화된 JSON을 생성한다.
+5. Gemini 응답을 Pydantic으로 검증하고, JSON 오류나 스키마 오류는 최대 1회 교정 재시도한다.
+6. `photoCaptions` 개수를 실제 업로드된 사진 개수에 맞추고, `hashtags`를 `#` 접두사로 정규화한다.
+7. AI 호출 자체가 실패하면(네트워크/타임아웃/429/5xx, 또는 재시도 후에도 검증 실패) 제한적인 템플릿 fallback으로 응답한다.
+8. `storyCards`의 `photoIndexes`가 업로드된 사진 범위를 벗어나면 걸러내고, `id`를 `card-1`, `card-2`... 순서로 재부여한다.
 
 ### 성공 응답
 
 ```
 {
-  "success":true,
+  "success": true,
   "data": {
-    "diaryId":"diary-001",
-    "title":"부산에서 보낸 여유로운 하루",
-    "summary":"기차를 타고 부산으로 이동해 지역 음식과 야경을 즐긴 여행입니다.",
-    "entries": [
+    "title": "부산에서 보낸 여유로운 하루",
+    "diary": "인천공항에 도착한 뒤 서울역을 거쳐 부산으로 이동했다. 긴 이동 후 숙소에서 잠시 쉬고 부산의 저녁을 천천히 즐겼다.",
+    "summary": "기차를 타고 부산으로 이동해 지역 음식과 야경을 즐긴 여행입니다.",
+    "snsPost": "기차를 타고 떠난 부산 여행. 여유롭게 쉬고 아름다운 야경까지 즐긴 하루!",
+    "photoCaptions": [
+      { "photoIndex": 0, "caption": "부산에서 시작된 첫 번째 저녁" }
+    ],
+    "hashtags": ["#부산여행", "#KTX여행", "#가족여행"],
+    "storyCards": [
       {
-        "date":"2026-08-12",
-        "title":"부산 여행의 시작",
-        "content":"인천공항에 도착한 뒤 서울역을 거쳐 부산으로 이동했다. 긴 이동 후 숙소에서 잠시 쉬고 부산의 저녁을 천천히 즐겼다.",
-        "imageCaption":"부산에서 시작된 첫 번째 저녁",
-        "hashtags": ["#부산여행","#KTX여행","#가족여행"
-        ]
+        "id": "card-1",
+        "type": "cover",
+        "photoIndexes": [0],
+        "headline": "부산에서의 하루",
+        "body": "기차를 타고 도착한 부산에서 여유로운 저녁을 보냈다.",
+        "caption": "",
+        "locationLabel": "부산",
+        "dateLabel": "2026-08-13",
+        "accentWords": ["여유", "야경"],
+        "layoutVariant": "full-bleed"
+      },
+      {
+        "id": "card-2",
+        "type": "quote",
+        "photoIndexes": [],
+        "headline": "기억에 남는 순간",
+        "body": "긴 이동 후 맞이한 부산의 저녁이 가장 좋았다.",
+        "caption": "",
+        "locationLabel": null,
+        "dateLabel": null,
+        "accentWords": [],
+        "layoutVariant": "text-only"
+      },
+      {
+        "id": "card-3",
+        "type": "ending",
+        "photoIndexes": [],
+        "headline": "여행을 마치며",
+        "body": "짧지만 알찬 부산 여행이었다.",
+        "caption": "",
+        "locationLabel": null,
+        "dateLabel": null,
+        "accentWords": [],
+        "layoutVariant": "text-only"
       }
     ],
-    "snsText":"기차를 타고 떠난 부산 여행. 여유롭게 쉬고 아름다운 야경까지 즐긴 하루!",
-    "hashtags": ["#부산여행","#국내여행","#여행기록"
-    ]
+    "generationMode": "ai",
+    "warnings": []
   }
 }
 ```
+
+### 응답 필드
+
+| 필드 | 자료형 | 설명 |
+| --- | --- | --- |
+| `title` | string | 다이어리 제목 |
+| `diary` | string | 본문 형태의 여행 일기 |
+| `summary` | string | 여행 한줄 또는 짧은 요약 |
+| `snsPost` | string | SNS 게시글용 문구 |
+| `photoCaptions` | object[] | `{photoIndex, caption}`. 업로드된 사진 개수와 항상 동일한 길이(사진이 없으면 빈 배열) |
+| `hashtags` | string[] | `#`으로 시작하도록 정규화된 해시태그 (최대 10개) |
+| `storyCards` | object[] | 사진 중심 SNS 캐러셀·블로그형 포토 스토리를 렌더링하기 위한 카드 배열(3~6개). 아래 "storyCards 필드" 참고 |
+| `generationMode` | string | `ai` 또는 `fallback`. AI 호출 실패로 템플릿 결과를 반환했으면 `fallback` |
+| `warnings` | string[] | fallback 사용 등 참고 사항. 없으면 빈 배열 |
+
+### `storyCards` 필드
+
+프론트엔드는 `title`/`diary`/`summary`/`snsPost`/`photoCaptions`/`hashtags`를 보조 텍스트 콘텐츠로 유지하면서,
+`storyCards` 배열을 SNS 캐러셀(4:5 카드)과 블로그형 포토 스토리의 메인 콘텐츠로 사용한다. 테마(`film`/`scrapbook`/`magazine`)
+전환은 프론트엔드에서 동일한 `storyCards` 데이터를 다른 CSS로 렌더링하는 방식으로 처리하며, AI를 다시 호출하지 않는다.
+
+| 필드 | 자료형 | 설명 |
+| --- | --- | --- |
+| `id` | string | 카드 고유 ID. 백엔드가 `card-1`, `card-2`... 순서로 재부여 |
+| `type` | string | `cover` \| `single_photo` \| `collage` \| `quote` \| `ending` |
+| `photoIndexes` | int[] | 이 카드가 사용하는 사진 인덱스(0부터 시작). 업로드된 사진 범위를 벗어나는 값은 제거됨. 사진이 없으면 항상 빈 배열 |
+| `headline` | string | 짧은 제목 |
+| `body` | string | 1~3문장의 짧은 본문(긴 `diary` 본문을 그대로 복사하지 않음) |
+| `caption` | string | 사진 위/아래에 표시할 짧은 문구. 없으면 빈 문자열 |
+| `locationLabel` | string \| null | 장소 표시. 근거가 없으면 `null` |
+| `dateLabel` | string \| null | 날짜 표시. 근거가 없으면 `null` |
+| `accentWords` | string[] | 스티커처럼 표시할 짧은 단어(0~4개) |
+| `layoutVariant` | string | `full-bleed` \| `framed` \| `split-2` \| `asymmetric` \| `text-only` |
+
+생성 규칙: 사진이 있으면 사진 개수·순서를 고려해 3~6개 카드를 생성하고(사진이 1장이면 같은 사진을 무리하게 반복하지 않음),
+사진이 없으면 `cover`·`quote`·`ending` 타입의 텍스트 기반 카드만 생성한다. `photoIndexes` 범위 초과나 카드 개수(3~6개) 위반은
+기존 다이어리 검증과 동일하게 최대 1회 교정 재시도하며, 재시도 후에도 실패하면 제한적 템플릿 fallback이 최소한
+`cover`·`quote`·`ending` 3개 카드를 반환한다.
 
 ### 담당
 

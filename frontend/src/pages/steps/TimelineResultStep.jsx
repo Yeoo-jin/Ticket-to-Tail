@@ -11,7 +11,7 @@ const TYPE_STYLE = {
   departure: 'bg-sky-100 text-sky-700',
 }
 
-function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, loading, error }) {
+function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, onGoToDiary, loading, error }) {
   const timeline = timelineData?.timeline ?? []
   const summary = timelineData?.summary
   const warnings = timelineData?.warnings ?? []
@@ -87,6 +87,15 @@ function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, load
       )}
 
       <div className="mt-4 space-y-2">
+        <button
+          type="button"
+          onClick={onGoToDiary}
+          disabled={loading}
+          className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+        >
+          여행 다이어리 만들기
+        </button>
+
         <button
           type="button"
           onClick={onRegenerate}
