@@ -34,6 +34,10 @@ class Place(BaseModel):
 
 class PlaceRecommendData(BaseModel):
     places: List[Place]
+    # 자동 선택("추천 관광지 자동 선택") 대상으로 추천하는 placeId 목록. places의 부분집합이며,
+    # 내부 추천 점수 상위 항목(최대 3개)이다. 프론트는 점수를 직접 계산하지 않고 이 값만 사용한다.
+    # 선택 필드가 아니라 항상 채워서 반환하는 정식 응답 필드이므로 기본값을 두지 않는다.
+    autoSelectedPlaceIds: List[str]
 
 
 class PlaceRecommendResponse(BaseModel):

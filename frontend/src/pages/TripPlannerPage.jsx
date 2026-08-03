@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { parseBookingText } from '../services/bookingApi'
 import { recommendPlaces } from '../services/placeApi'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
+import { SELECTION_LIMIT_MESSAGE, resolveAutoSelection, toggleSelection } from '../utils/placeSelection'
 import BookingInputStep from './steps/BookingInputStep'
 import BookingResultStep from './steps/BookingResultStep'
 import CompanionSelectStep from './steps/CompanionSelectStep'
@@ -26,8 +27,9 @@ function TripPlannerPage() {
   const [companionTypes, setCompanionTypes] = useState([])
 
   const [places, setPlaces] = useState([])
-  const [shownPlaceIds, setShownPlaceIds] = useState([])
+  const [autoSelectedPlaceIds, setAutoSelectedPlaceIds] = useState([])
   const [selectedPlaceIds, setSelectedPlaceIds] = useState([])
+  const [selectionLimitMessage, setSelectionLimitMessage] = useState('')
   const [placesLoading, setPlacesLoading] = useState(false)
   const [placesError, setPlacesError] = useState('')
 
@@ -58,7 +60,7 @@ function TripPlannerPage() {
     try {
       const data = await recommendPlaces({ destination, companionTypes, excludePlaceIds, keepPlaceIds })
       setPlaces(data.places)
-      setShownPlaceIds((prev) => [...new Set([...prev, ...data.places.map((place) => place.placeId)])])
+      setAutoSelectedPlaceIds(data.autoSelectedPlaceIds)
       return true
     } catch (error) {
       setPlacesError(error.message)
@@ -70,23 +72,31 @@ function TripPlannerPage() {
 
   async function handleRequestPlaces() {
     setSelectedPlaceIds([])
-    setShownPlaceIds([])
+    setSelectionLimitMessage('')
     const ok = await fetchPlaces({})
     if (ok) setStep(STEP.PLACE_RECOMMEND)
   }
 
   function handleToggleSelect(placeId) {
-    setSelectedPlaceIds((prev) =>
-      prev.includes(placeId) ? prev.filter((id) => id !== placeId) : [...prev, placeId],
-    )
+    const { selectedIds, limitReached } = toggleSelection(selectedPlaceIds, placeId)
+    setSelectedPlaceIds(selectedIds)
+    setSelectionLimitMessage(limitReached ? SELECTION_LIMIT_MESSAGE : '')
   }
 
-  function handleSelectAll() {
-    setSelectedPlaceIds(places.map((place) => place.placeId))
+  function handleAutoSelect() {
+    const availableIds = places.map((place) => place.placeId)
+    setSelectedPlaceIds(resolveAutoSelection(autoSelectedPlaceIds, availableIds))
+    setSelectionLimitMessage('')
   }
 
   async function handleRefreshPlaces() {
-    await fetchPlaces({ excludePlaceIds: shownPlaceIds, keepPlaceIds: selectedPlaceIds })
+    // 선택한 관광지(keepPlaceIds)는 그대로 유지하고, 선택하지 않은 현재 후보(excludePlaceIds)만 교체한다.
+    const keepPlaceIds = selectedPlaceIds
+    const excludePlaceIds = places
+      .filter((place) => !selectedPlaceIds.includes(place.placeId))
+      .map((place) => place.placeId)
+    setSelectionLimitMessage('')
+    await fetchPlaces({ excludePlaceIds, keepPlaceIds })
   }
 
   return (
@@ -133,7 +143,8 @@ function TripPlannerPage() {
             places={places}
             selectedPlaceIds={selectedPlaceIds}
             onToggleSelect={handleToggleSelect}
-            onSelectAll={handleSelectAll}
+            selectionLimitMessage={selectionLimitMessage}
+            onAutoSelect={handleAutoSelect}
             onRefresh={handleRefreshPlaces}
             loading={placesLoading}
             error={placesError}

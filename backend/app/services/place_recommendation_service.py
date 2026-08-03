@@ -13,6 +13,7 @@ from app.services.place_data import load_places
 from app.utils.errors import InvalidInputError
 
 DEFAULT_RECOMMEND_COUNT = 6
+MAX_AUTO_SELECT_COUNT = 3
 
 # 동행 조건별로 가점을 주는 태그 (요청사항 4절의 예시를 그대로 반영).
 _PREFERRED_TAGS: Dict[str, Sequence[str]] = {
@@ -20,8 +21,7 @@ _PREFERRED_TAGS: Dict[str, Sequence[str]] = {
     "senior": ("휴식 공간", "저상 시설", "엘리베이터", "실내"),
     "mobility_impaired": ("저상 시설", "엘리베이터", "대중교통 접근"),
     "pet": ("반려동물 동반",),
-    "friends": ("야경", "사진 명소", "체험"),
-    "couple": ("야경", "사진 명소", "체험"),
+    "friends_couple": ("야경", "사진 명소", "체험"),
     "solo": ("대중교통 접근", "산책", "체험"),
 }
 
@@ -110,6 +110,23 @@ def _to_response_place(place: PlaceRecord, companion_types: Sequence[str]) -> Pl
     )
 
 
+def _compute_auto_selected_ids(
+    result_places: Sequence[PlaceRecord],
+    companion_types: Sequence[str],
+    rng: random.Random,
+    max_count: int = MAX_AUTO_SELECT_COUNT,
+) -> List[str]:
+    """이번 응답에 실제로 포함된 장소(result_places)만 대상으로, 내부 점수 상위 max_count개를 고른다.
+
+    동점 후보의 순서는 같은 rng로 미리 섞은 뒤 안정 정렬(sort)하는 방식으로 정하므로,
+    seed가 같으면 항상 같은 결과가 나온다 (테스트에서 재현 가능).
+    """
+    scored = [(place, _score(place, companion_types)) for place in result_places]
+    rng.shuffle(scored)
+    scored.sort(key=lambda item: item[1], reverse=True)
+    return [place.placeId for place, _ in scored[:max_count]]
+
+
 def recommend_places(
     destination: str,
     companion_types: Sequence[CompanionType],
@@ -117,7 +134,8 @@ def recommend_places(
     keep_place_ids: Optional[Sequence[str]] = None,
     count: int = DEFAULT_RECOMMEND_COUNT,
     rng: Optional[random.Random] = None,
-) -> List[Place]:
+) -> Tuple[List[Place], List[str]]:
+    """관광지 추천 결과와, 그중 자동 선택 대상(autoSelectedPlaceIds)을 함께 반환한다."""
     rng = rng or random.Random()
     exclude_ids = set(exclude_place_ids or [])
     keep_ids = list(dict.fromkeys(keep_place_ids or []))  # 순서 유지, 중복 제거
@@ -125,7 +143,13 @@ def recommend_places(
     all_places = load_places()
     by_id = {place.placeId: place for place in all_places}
 
-    kept = [by_id[pid] for pid in keep_ids if pid in by_id]
+    unknown_keep_ids = [pid for pid in keep_ids if pid not in by_id]
+    if unknown_keep_ids:
+        raise InvalidInputError(
+            f"keepPlaceIds에 존재하지 않는 관광지 ID가 있습니다: {', '.join(unknown_keep_ids)}"
+        )
+
+    kept = [by_id[pid] for pid in keep_ids]
     kept_ids = {p.placeId for p in kept}
 
     candidates = [
@@ -143,7 +167,10 @@ def recommend_places(
     chosen = _weighted_sample_without_replacement(scored, remaining_slots, rng)
 
     result_places = kept + chosen
-    return [_to_response_place(place, companion_types) for place in result_places]
+    response_places = [_to_response_place(place, companion_types) for place in result_places]
+    auto_selected_ids = _compute_auto_selected_ids(result_places, companion_types, rng)
+
+    return response_places, auto_selected_ids
 
 
 def get_place_recommendations(
@@ -155,11 +182,11 @@ def get_place_recommendations(
     if not request.companionTypes:
         raise InvalidInputError("동행 조건(companionTypes)을 하나 이상 선택해주세요.")
 
-    places = recommend_places(
+    places, auto_selected_ids = recommend_places(
         destination=destination,
         companion_types=request.companionTypes,
         exclude_place_ids=request.excludePlaceIds,
         keep_place_ids=request.keepPlaceIds,
         rng=rng,
     )
-    return PlaceRecommendData(places=places)
+    return PlaceRecommendData(places=places, autoSelectedPlaceIds=auto_selected_ids)
