@@ -5,10 +5,13 @@ import { recommendPlaces } from '../services/placeApi'
 import { generateTimeline } from '../services/timelineApi'
 import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
-import { DEFAULT_PANORAMA_PRESET } from '../utils/panoramaLayouts'
+import { DEFAULT_BACKGROUND_COLOR } from '../utils/backgroundColor'
+import { buildDefaultBackgroundCaptions } from '../utils/memoDistribution'
+import { DEFAULT_SPLIT_COUNT } from '../utils/panoramaLayouts'
 import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
 import { setPhotoStyleField } from '../utils/photoStyle'
 import { SELECTION_LIMIT_MESSAGE, resolveAutoSelection, toggleSelection } from '../utils/placeSelection'
+import { DEFAULT_POSTER_FONT } from '../utils/posterFonts'
 import BookingInputStep from './steps/BookingInputStep'
 import BookingResultStep from './steps/BookingResultStep'
 import CompanionSelectStep from './steps/CompanionSelectStep'
@@ -60,12 +63,19 @@ function TripPlannerPage() {
   const [diaryLoading, setDiaryLoading] = useState(false)
   const [diaryError, setDiaryError] = useState('')
 
-  // 결과 화면 표시 상태(레이아웃 프리셋·보기 방식·현재 게시물·사진 스타일)는
-  // "처음부터 다시 시작"에서만 초기화한다.
+  // 결과 화면 표시·꾸미기 상태는 "처음부터 다시 시작"에서만 초기화한다.
   const [diaryViewMode, setDiaryViewMode] = useState('carousel')
-  const [panoramaPreset, setPanoramaPreset] = useState(DEFAULT_PANORAMA_PRESET)
+  const [splitCount, setSplitCount] = useState(DEFAULT_SPLIT_COUNT)
   const [panoramaViewMode, setPanoramaViewMode] = useState('connected')
   const [activeViewportIndex, setActiveViewportIndex] = useState(0)
+  const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKGROUND_COLOR)
+  const [font, setFont] = useState(DEFAULT_POSTER_FONT)
+  const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(24)
+  const [backgroundTextSize, setBackgroundTextSize] = useState(40)
+  // photoCaptions: 사진별 아래 글귀(index 정렬). null이면 아직 초기화 전(첫 생성 시 photoMemo로 채움).
+  const [photoCaptions, setPhotoCaptions] = useState(null)
+  // backgroundCaptions: 배경 위 독립 글귀 3개. null이면 아직 초기화 전(첫 생성 시 기본값으로 채움).
+  const [backgroundCaptions, setBackgroundCaptions] = useState(null)
   const [photoStyles, setPhotoStyles] = useState({})
 
   // 사진 미리보기 URL은 컴포넌트가 완전히 사라질 때 한 번에 정리한다 (최신 photos를 ref로 추적).
@@ -204,6 +214,20 @@ function TripPlannerPage() {
     setPhotoStyles((prev) => setPhotoStyleField(prev, index, field, value))
   }
 
+  function handleChangePhotoCaption(index, value) {
+    setPhotoCaptions((prev) => {
+      const next = [...(prev || [])]
+      next[index] = value
+      return next
+    })
+  }
+
+  function handleChangeBackgroundCaption(presetId, patch) {
+    setBackgroundCaptions((prev) =>
+      (prev || []).map((caption) => (caption.presetId === presetId ? { ...caption, ...patch } : caption))
+    )
+  }
+
   async function requestDiary() {
     setDiaryLoading(true)
     setDiaryError('')
@@ -219,6 +243,18 @@ function TripPlannerPage() {
         photos,
       })
       setDiaryData(data)
+      // 사진별 글귀: 이미 사용자가 수정한 값은 그대로 두고(인덱스로 정렬), 새로 추가된
+      // 사진에만 해당 photoMemo를 기본값으로 채운다. "같은 정보로 다시 생성"에서도 유지된다.
+      setPhotoCaptions((prev) =>
+        photos.map((photo, index) => (prev && prev[index] !== undefined ? prev[index] : photo.memo))
+      )
+      // 배경 글귀: 최초 생성 시 한 번만 기본값(diaryMemo 문장 → destination → 날짜)을 만들고,
+      // 이후에는 사용자가 수정한 값을 그대로 유지한다.
+      setBackgroundCaptions((prev) => {
+        if (prev) return prev
+        const dateLabel = timelineData?.timeline?.[0]?.startTime?.slice(0, 10) || ''
+        return buildDefaultBackgroundCaptions({ diaryMemo, destination, dateLabel })
+      })
       return true
     } catch (error) {
       setDiaryError(error.message)
@@ -262,9 +298,15 @@ function TripPlannerPage() {
     setDiaryData(null)
     setDiaryError('')
     setDiaryViewMode('carousel')
-    setPanoramaPreset(DEFAULT_PANORAMA_PRESET)
+    setSplitCount(DEFAULT_SPLIT_COUNT)
     setPanoramaViewMode('connected')
     setActiveViewportIndex(0)
+    setBackgroundColor(DEFAULT_BACKGROUND_COLOR)
+    setFont(DEFAULT_POSTER_FONT)
+    setPolaroidCaptionSize(24)
+    setBackgroundTextSize(40)
+    setPhotoCaptions(null)
+    setBackgroundCaptions(null)
     setPhotoStyles({})
   }
 
@@ -367,12 +409,24 @@ function TripPlannerPage() {
             destination={destination}
             viewMode={diaryViewMode}
             onChangeViewMode={setDiaryViewMode}
-            panoramaPreset={panoramaPreset}
-            onChangePanoramaPreset={setPanoramaPreset}
+            splitCount={splitCount}
+            onChangeSplitCount={setSplitCount}
             panoramaViewMode={panoramaViewMode}
             onChangePanoramaViewMode={setPanoramaViewMode}
             activeViewportIndex={activeViewportIndex}
             onChangeActiveViewportIndex={setActiveViewportIndex}
+            backgroundColor={backgroundColor}
+            onChangeBackgroundColor={setBackgroundColor}
+            font={font}
+            onChangeFont={setFont}
+            polaroidCaptionSize={polaroidCaptionSize}
+            onChangePolaroidCaptionSize={setPolaroidCaptionSize}
+            backgroundTextSize={backgroundTextSize}
+            onChangeBackgroundTextSize={setBackgroundTextSize}
+            photoCaptions={photoCaptions || []}
+            onChangePhotoCaption={handleChangePhotoCaption}
+            backgroundCaptions={backgroundCaptions || []}
+            onChangeBackgroundCaption={handleChangeBackgroundCaption}
             photoStyles={photoStyles}
             onChangePhotoStyle={handleChangePhotoStyle}
             onRegenerate={handleRegenerateDiary}
