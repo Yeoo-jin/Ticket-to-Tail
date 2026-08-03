@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { parseBookingText } from '../services/bookingApi'
+import { generateDiary } from '../services/diaryApi'
 import { recommendPlaces } from '../services/placeApi'
 import { generateTimeline } from '../services/timelineApi'
 import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
+import { DEFAULT_DIARY_THEME } from '../utils/diaryTheme'
+import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
+import { setPhotoStyleField } from '../utils/photoStyle'
 import { SELECTION_LIMIT_MESSAGE, resolveAutoSelection, toggleSelection } from '../utils/placeSelection'
 import BookingInputStep from './steps/BookingInputStep'
 import BookingResultStep from './steps/BookingResultStep'
 import CompanionSelectStep from './steps/CompanionSelectStep'
+import DiaryInputStep from './steps/DiaryInputStep'
+import DiaryResultStep from './steps/DiaryResultStep'
 import PlaceRecommendStep from './steps/PlaceRecommendStep'
 import TimelineResultStep from './steps/TimelineResultStep'
 
@@ -17,8 +23,10 @@ const STEP = {
   COMPANION_SELECT: 3,
   PLACE_RECOMMEND: 4,
   TIMELINE_RESULT: 5,
+  DIARY_INPUT: 6,
+  DIARY_RESULT: 7,
 }
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 7
 
 function TripPlannerPage() {
   const [step, setStep] = useState(STEP.BOOKING_INPUT)
@@ -42,6 +50,32 @@ function TripPlannerPage() {
   const [timelineData, setTimelineData] = useState(null)
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState('')
+
+  // photos: [{ file, previewUrl, memo }]
+  const [photos, setPhotos] = useState([])
+  const [photoError, setPhotoError] = useState('')
+  const [diaryMemo, setDiaryMemo] = useState('')
+  const [diaryTone, setDiaryTone] = useState('emotional')
+  const [diaryData, setDiaryData] = useState(null)
+  const [diaryLoading, setDiaryLoading] = useState(false)
+  const [diaryError, setDiaryError] = useState('')
+
+  // 결과 화면 표시 상태(테마·보기 방식·현재 카드·사진 스타일)는 "처음부터 다시 시작"에서만 초기화한다.
+  const [diaryTheme, setDiaryThemeState] = useState(DEFAULT_DIARY_THEME)
+  const [diaryViewMode, setDiaryViewMode] = useState('carousel')
+  const [activeCardIndex, setActiveCardIndex] = useState(0)
+  const [photoStyles, setPhotoStyles] = useState({})
+
+  // 사진 미리보기 URL은 컴포넌트가 완전히 사라질 때 한 번에 정리한다 (최신 photos를 ref로 추적).
+  const photosRef = useRef(photos)
+  useEffect(() => {
+    photosRef.current = photos
+  }, [photos])
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+    }
+  }, [])
 
   async function handleParseBooking() {
     setBookingLoading(true)
@@ -138,12 +172,107 @@ function TripPlannerPage() {
     await requestTimeline()
   }
 
+  function handleAddPhotos(fileList) {
+    const { accepted, errors } = resolveNewPhotos(photos.length, fileList)
+    if (accepted.length > 0) {
+      const newEntries = accepted.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        memo: '',
+      }))
+      setPhotos((prev) => [...prev, ...newEntries])
+    }
+    setPhotoError(errors.length > 0 ? errors[0] : '')
+  }
+
+  function handleRemovePhoto(index) {
+    setPhotos((prev) => {
+      const target = prev[index]
+      if (target) URL.revokeObjectURL(target.previewUrl)
+      return removePhotoAt(prev, index)
+    })
+    setPhotoError('')
+  }
+
+  function handleChangePhotoMemo(index, value) {
+    setPhotos((prev) => prev.map((photo, i) => (i === index ? { ...photo, memo: value } : photo)))
+  }
+
+  function handleChangePhotoStyle(index, field, value) {
+    setPhotoStyles((prev) => setPhotoStyleField(prev, index, field, value))
+  }
+
+  async function requestDiary() {
+    setDiaryLoading(true)
+    setDiaryError('')
+    try {
+      const data = await generateDiary({
+        destination,
+        tone: diaryTone,
+        memo: diaryMemo,
+        companionTypes,
+        timeline: timelineData,
+        selectedPlaceIds,
+        photoMemos: photos.map((photo) => photo.memo),
+        photos,
+      })
+      setDiaryData(data)
+      return true
+    } catch (error) {
+      setDiaryError(error.message)
+      return false
+    } finally {
+      setDiaryLoading(false)
+    }
+  }
+
+  async function handleGenerateDiary() {
+    const ok = await requestDiary()
+    if (ok) setStep(STEP.DIARY_RESULT)
+  }
+
+  async function handleRegenerateDiary() {
+    // 사진·메모·문체·타임라인을 그대로 유지한 채 같은 조건으로 다시 생성한다.
+    await requestDiary()
+  }
+
+  function handleStartOver() {
+    photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+
+    setStep(STEP.BOOKING_INPUT)
+    setBookingText('')
+    setBookingResult(null)
+    setBookingError('')
+    setDestination('')
+    setCompanionTypes([])
+    setPlaces([])
+    setAutoSelectedPlaceIds([])
+    setSelectedPlaceIds([])
+    setSelectionLimitMessage('')
+    setPlacesError('')
+    setPace('normal')
+    setTimelineData(null)
+    setTimelineError('')
+    setPhotos([])
+    setPhotoError('')
+    setDiaryMemo('')
+    setDiaryTone('emotional')
+    setDiaryData(null)
+    setDiaryError('')
+    setDiaryThemeState(DEFAULT_DIARY_THEME)
+    setDiaryViewMode('carousel')
+    setActiveCardIndex(0)
+    setPhotoStyles({})
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6">
       <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <header className="mb-4">
           <h1 className="text-lg font-bold text-gray-900">Ticket to Tale</h1>
-          <p className="text-xs text-gray-400">단계 {step} / {TOTAL_STEPS}</p>
+          <p className="text-xs text-gray-400">
+            단계 {step} / {TOTAL_STEPS}
+          </p>
         </header>
 
         {step === STEP.BOOKING_INPUT && (
@@ -201,8 +330,51 @@ function TripPlannerPage() {
             timelineData={timelineData}
             onRegenerate={handleRegenerateTimeline}
             onReselectPlaces={() => setStep(STEP.PLACE_RECOMMEND)}
+            onGoToDiary={() => setStep(STEP.DIARY_INPUT)}
             loading={timelineLoading}
             error={timelineError}
+          />
+        )}
+
+        {step === STEP.DIARY_INPUT && (
+          <DiaryInputStep
+            destination={destination}
+            timelineData={timelineData}
+            photos={photos}
+            photoError={photoError}
+            onAddPhotos={handleAddPhotos}
+            onRemovePhoto={handleRemovePhoto}
+            onChangePhotoMemo={handleChangePhotoMemo}
+            memo={diaryMemo}
+            onChangeMemo={setDiaryMemo}
+            tone={diaryTone}
+            onChangeTone={setDiaryTone}
+            onSubmit={handleGenerateDiary}
+            canSubmit={canGenerateDiary({ memo: diaryMemo, photoCount: photos.length })}
+            loading={diaryLoading}
+            error={diaryError}
+            onBack={() => setStep(STEP.TIMELINE_RESULT)}
+          />
+        )}
+
+        {step === STEP.DIARY_RESULT && (
+          <DiaryResultStep
+            diaryData={diaryData}
+            photos={photos}
+            destination={destination}
+            theme={diaryTheme}
+            onChangeTheme={setDiaryThemeState}
+            viewMode={diaryViewMode}
+            onChangeViewMode={setDiaryViewMode}
+            activeCardIndex={activeCardIndex}
+            onChangeActiveCardIndex={setActiveCardIndex}
+            photoStyles={photoStyles}
+            onChangePhotoStyle={handleChangePhotoStyle}
+            onRegenerate={handleRegenerateDiary}
+            onEditInput={() => setStep(STEP.DIARY_INPUT)}
+            onStartOver={handleStartOver}
+            loading={diaryLoading}
+            error={diaryError}
           />
         )}
       </div>
