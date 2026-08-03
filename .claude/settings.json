@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8000/docs)",
+      "Bash(kill 8515 8693 8694)",
+      "Bash(curl -s -X POST http://localhost:8000/api/timelines/generate -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(kill 10455 10534 10535)",
+      "Bash(python3 -)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['data']['summary']\\)\")",
+      "Bash(curl -s -o /dev/null -w \"docs:%{http_code}\\\\n\" http://localhost:8000/docs)",
+      "Bash(kill 11475 11586 11587)",
+      "Bash(curl -s -o /dev/null -w \"openapi:%{http_code}\\\\n\" http://localhost:8000/openapi.json)",
+      "Bash(curl -s -X POST http://localhost:8000/api/places/recommend -H \"Content-Type: application/json\" -d '{\"destination\":\"부산\",\"companionTypes\":[\"solo\",\"infant\"]}')"
+    ]
+  }
+}
