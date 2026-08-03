@@ -133,17 +133,18 @@
 | --- | --- | --- | --- |
 | `destination` | string | O | 여행 목적 지역 |
 | `companionTypes` | string[] | O | 동행 조건 |
-| `excludePlaceIds` | string[] | X | 이전에 노출되어 제외할 관광지 ID |
-| `keepPlaceIds` | string[] | X | 사용자가 이미 선택해 유지할 관광지 ID |
+| `excludePlaceIds` | string[] | X | 직전 추천에서 노출됐지만 사용자가 선택하지 않은 관광지 ID (다시 추천하지 않음) |
+| `keepPlaceIds` | string[] | X | 사용자가 이미 선택해 그대로 유지할 관광지 ID (응답 앞쪽에 그대로 포함됨). `places.json`에 없는 ID가 포함되면 공통 오류 응답(`INVALID_INPUT`)을 반환한다 |
+
+`keepPlaceIds` + 새로 추천되는 관광지를 합쳐 `places`는 항상 최대 6개이며(부족하면 6개 미만 가능), `keepPlaceIds`로 넘긴 관광지는 응답의 맨 앞쪽에, 나머지 새 후보가 그 뒤에 오는 순서로 반환된다. "다른 관광지 추천받기"를 호출할 때는 사용자가 선택한 관광지를 `keepPlaceIds`로, 선택하지 않은 관광지를 `excludePlaceIds`로 함께 전달한다.
 
 ### 동행 조건 선택값 (`companionTypes`)
 
-아래 값은 `/api/timelines/generate`의 동행 조건 선택값과 동일하며, `companionTypes`를 사용하는 모든 API에서 공통으로 사용한다.
+아래 값은 `/api/timelines/generate`의 동행 조건 선택값과 동일하며, `companionTypes`를 사용하는 모든 API에서 공통으로 사용한다. 이전에는 `friends`/`couple`이 분리되어 있었으나, 최종 서비스 기획에 맞춰 `friends_couple` 하나로 통합했다.
 
 ```
 solo
-friends
-couple
+friends_couple
 infant
 senior
 mobility_impaired
@@ -169,12 +170,23 @@ pet
         "openTime":"09:00",
         "closeTime":"18:00"
       }
-    ]
+    ],
+    "autoSelectedPlaceIds": ["place-001"]
   }
 }
 ```
 
 `category`, `openTime`, `closeTime`은 카드 UI 표시를 위해 추가된 선택 필드다. 값은 실시간 운영 정보가 아니라 예선 데모용 샘플 데이터다(본선에서 실제 관광 공공데이터로 대체 예정, `docs/idea.md` 5절 참고).
+
+### 응답 필드 - `autoSelectedPlaceIds`
+
+`places` 응답에 포함된 관광지 중, "추천 관광지 자동 선택"에 사용할 대상을 서버가 미리 계산해 알려주는 **정식 응답 필드**다 (선택 필드가 아님).
+
+| 필드 | 자료형 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `autoSelectedPlaceIds` | string[] | O | 자동 선택 대상 placeId 목록. `places`의 부분집합이며 내부 추천 점수 상위 최대 3개. 후보가 3개 미만이면 존재하는 만큼만 포함, 지원하지 않는 지역 등으로 `places`가 빈 배열이면 `[]` |
+
+프론트엔드는 추천 점수를 직접 계산하거나 카드 순서만으로 자동 선택 대상을 판단하지 않고, 이 필드 값을 그대로 사용한다.
 
 ### 담당
 
@@ -265,8 +277,7 @@ pet
 
 ```
 solo
-friends
-couple
+friends_couple
 infant
 senior
 mobility_impaired
