@@ -39,7 +39,9 @@ export async function exportFullBoard(node, destination) {
   }
   await Promise.all([waitForImagesToDecode(node), waitForFontsReady()])
   try {
-    const dataUrl = await toPng(node, { pixelRatio: 1, cacheBust: true })
+    // cacheBust를 쓰지 않는 이유는 renderSegmentToBlob(imageShare.js) 주석 참고:
+    // 로컬 blob: 사진 URL에 쿼리스트링이 붙으면 fetch가 실패해 저장이 깨진다.
+    const dataUrl = await toPng(node, { pixelRatio: 1 })
     const link = document.createElement('a')
     link.download = buildFullBoardFilename(destination)
     link.href = dataUrl

@@ -14,6 +14,7 @@ import { buildFullBoardFilename, buildPanoramaFilename } from '../src/utils/pano
 import {
   BACKGROUND_CAPTION_PRESETS,
   BOARD_HEIGHT,
+  MARGIN,
   MAX_PANORAMA_PHOTOS,
   SEGMENT_WIDTH,
   SPLIT_COUNTS,
@@ -163,6 +164,49 @@ check('사진이 1장뿐이라도(medium 없음) 배경 bridge 글귀가 항상 
   assert.equal(hasMedium, false) // 사진만으로는 경계를 걸치지 않는 경우
   // 그래도 bridge 프리셋 자체는 항상 1080에 고정되어 있어 최소 1개 요소는 항상 경계를 걸친다.
   assert.equal(getBackgroundCaptionX('bridge', layout.boardWidth), 1080)
+})
+
+// ---------------------------------------------------------------------------
+// 배경 글귀 위치(정렬 변경): x는 `left: x` + `transform: translateX(0/-50%/-100%)`로
+// 렌더링되므로, 실제 화면 상 박스 범위는 정렬(textAlign)에 따라 아래처럼 계산된다.
+// 어떤 정렬을 선택해도 같은 프리셋이면 항상 같은 모서리 영역 박스를 차지해야 하고
+// (= 정렬 버튼이 "박스 안 텍스트 정렬"로 일관되게 동작), 그 박스는 캔버스 밖으로
+// 나가면 안 된다(과거엔 top-left/bottom-right에서 정렬을 바꾸면 캔버스 밖으로 밀려났음).
+// ---------------------------------------------------------------------------
+
+function captionBoxBounds(presetId, boardWidth, textAlign) {
+  const preset = BACKGROUND_CAPTION_PRESETS.find((p) => p.id === presetId)
+  const x = getBackgroundCaptionX(presetId, boardWidth, textAlign)
+  if (textAlign === 'right') return [x - preset.maxWidth, x]
+  if (textAlign === 'center') return [x - preset.maxWidth / 2, x + preset.maxWidth / 2]
+  return [x, x + preset.maxWidth]
+}
+
+for (const splitCount of SPLIT_COUNTS) {
+  const boardWidth = getBoardWidth(splitCount)
+  for (const presetId of ['top-left', 'bridge', 'bottom-right']) {
+    const boxes = ['left', 'center', 'right'].map((align) => captionBoxBounds(presetId, boardWidth, align))
+
+    check(`[${splitCount}분할] '${presetId}' 프리셋: 정렬을 바꿔도 항상 같은 박스 영역을 차지한다`, () => {
+      boxes.forEach(([start, end]) => {
+        assert.ok(Math.abs(start - boxes[0][0]) < 0.001, '정렬이 바뀌어도 박스 시작점이 같아야 한다')
+        assert.ok(Math.abs(end - boxes[0][1]) < 0.001, '정렬이 바뀌어도 박스 끝점이 같아야 한다')
+      })
+    })
+
+    check(`[${splitCount}분할] '${presetId}' 프리셋: 어떤 정렬을 선택해도 박스가 캔버스(0~${boardWidth}) 밖으로 나가지 않는다`, () => {
+      boxes.forEach(([start, end]) => {
+        assert.ok(start >= 0, `박스 시작점(${start})이 0보다 작다`)
+        assert.ok(end <= boardWidth, `박스 끝점(${end})이 board 너비(${boardWidth})를 넘는다`)
+      })
+    })
+  }
+}
+
+check("정렬을 넘기지 않으면(레거시 호출) 기존과 동일하게 프리셋 기본 위치를 반환한다", () => {
+  assert.equal(getBackgroundCaptionX('top-left', getBoardWidth(3)), MARGIN)
+  assert.equal(getBackgroundCaptionX('bottom-right', getBoardWidth(3)), getBoardWidth(3) - MARGIN)
+  assert.equal(getBackgroundCaptionX('bridge', getBoardWidth(3)), SEGMENT_WIDTH)
 })
 
 check('large 슬롯은 하나의 게시물 안에만 속한다(의도치 않은 걸침 없음)', () => {

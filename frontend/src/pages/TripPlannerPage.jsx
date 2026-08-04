@@ -64,7 +64,6 @@ function TripPlannerPage() {
   const [diaryError, setDiaryError] = useState('')
 
   // 결과 화면 표시·꾸미기 상태는 "처음부터 다시 시작"에서만 초기화한다.
-  const [diaryViewMode, setDiaryViewMode] = useState('carousel')
   const [splitCount, setSplitCount] = useState(DEFAULT_SPLIT_COUNT)
   const [panoramaViewMode, setPanoramaViewMode] = useState('connected')
   const [activeViewportIndex, setActiveViewportIndex] = useState(0)
@@ -297,7 +296,6 @@ function TripPlannerPage() {
     setDiaryTone('emotional')
     setDiaryData(null)
     setDiaryError('')
-    setDiaryViewMode('carousel')
     setSplitCount(DEFAULT_SPLIT_COUNT)
     setPanoramaViewMode('connected')
     setActiveViewportIndex(0)
@@ -407,8 +405,6 @@ function TripPlannerPage() {
             diaryData={diaryData}
             photos={photos}
             destination={destination}
-            viewMode={diaryViewMode}
-            onChangeViewMode={setDiaryViewMode}
             splitCount={splitCount}
             onChangeSplitCount={setSplitCount}
             panoramaViewMode={panoramaViewMode}
