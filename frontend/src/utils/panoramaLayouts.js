@@ -139,10 +139,33 @@ export const BACKGROUND_CAPTION_PRESETS = [
   { id: 'bottom-right', label: '오른쪽 아래', y: 1255, textAlign: 'right', maxWidth: 520 },
 ]
 
-export function getBackgroundCaptionX(presetId, boardWidth) {
-  if (presetId === 'top-left') return MARGIN
-  if (presetId === 'bottom-right') return boardWidth - MARGIN
-  return SEGMENT_WIDTH // 'bridge' - 항상 첫 번째 경계(1080)
+// 각 글귀 요소는 `width: maxWidth`가 고정된 박스이고, 실제 화면 위치는
+// `left: x` + `transform: translateX(0/-50%/-100%)`(정렬에 따라 결정)로 정해진다.
+// x가 프리셋에만 의존하고 정렬(textAlign)과 무관하면, top-left/bottom-right처럼
+// 캔버스 가장자리에 붙은 프리셋은 정렬을 바꿀 때 박스가 캔버스 밖으로 밀려나
+// (예: top-left에서 '오른쪽' 선택 시 x=70에서 왼쪽으로 maxWidth만큼 이동)
+// 위치 변경이 반영되지 않는 것처럼 보인다. 그래서 x 자체를 정렬에 따라
+// "박스가 항상 같은 모서리 영역 안에 머무르도록" 다시 계산한다.
+export function getBackgroundCaptionX(presetId, boardWidth, textAlign) {
+  const preset = BACKGROUND_CAPTION_PRESETS.find((p) => p.id === presetId)
+  const maxWidth = preset ? preset.maxWidth : 0
+
+  if (presetId === 'top-left') {
+    // 박스는 항상 [MARGIN, MARGIN+maxWidth] 영역(왼쪽 위 모서리)에 머무른다.
+    if (textAlign === 'right') return MARGIN + maxWidth
+    if (textAlign === 'center') return MARGIN + maxWidth / 2
+    return MARGIN
+  }
+  if (presetId === 'bottom-right') {
+    // 박스는 항상 [boardWidth-MARGIN-maxWidth, boardWidth-MARGIN] 영역(오른쪽 아래 모서리)에 머무른다.
+    if (textAlign === 'left') return boardWidth - MARGIN - maxWidth
+    if (textAlign === 'center') return boardWidth - MARGIN - maxWidth / 2
+    return boardWidth - MARGIN
+  }
+  // 'bridge' - 항상 첫 번째 경계(1080) 주변에 머무른다.
+  if (textAlign === 'left') return SEGMENT_WIDTH - maxWidth / 2
+  if (textAlign === 'right') return SEGMENT_WIDTH + maxWidth / 2
+  return SEGMENT_WIDTH
 }
 
 // 슬롯의 board 절대 좌표 rect가 어느 세그먼트(들)와 겹치는지 확인한다.

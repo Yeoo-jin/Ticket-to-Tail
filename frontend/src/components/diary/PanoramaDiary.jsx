@@ -21,7 +21,7 @@ const BACKGROUND_CAPTION_MAX_CHARS = 60
 function BackgroundCaptionText({ caption, boardWidth, fontFamily, fontSize, color }) {
   if (!caption.visible || !caption.text) return null
   const preset = BACKGROUND_CAPTION_PRESETS.find((p) => p.id === caption.presetId)
-  const x = getBackgroundCaptionX(caption.presetId, boardWidth)
+  const x = getBackgroundCaptionX(caption.presetId, boardWidth, caption.textAlign)
   const transform = caption.textAlign === 'center' ? 'translateX(-50%)' : caption.textAlign === 'right' ? 'translateX(-100%)' : 'none'
 
   return (
@@ -192,8 +192,11 @@ function PanoramaDiary({
         onChangeActiveViewportIndex={onChangeActiveViewportIndex}
       />
 
-      {/* 내보내기 전용 숨김 노드: 검은 구분선·버튼 없이 1080×1350 원본 크기 뷰포트만 담는다. */}
-      <div style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none' }} aria-hidden="true">
+      {/* 내보내기 전용 숨김 노드: 검은 구분선·버튼 없이 1080×1350 원본 크기 뷰포트만 담는다.
+          position:fixed + 화면 밖 좌표 대신, 크기 0인 컨테이너로 잘라내는 방식을 쓴다.
+          (Safari의 SVG 기반 캡처(html-to-image)는 화면에서 아주 멀리 떨어진 fixed 요소의
+          페인트를 건너뛰는 경우가 보고되어 있어, 레이아웃은 정상 진행하되 보이지 않게만 처리한다.) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
         {Array.from({ length: layout.splitCount }, (_, segmentIndex) => (
           <PanoramaViewport
             key={segmentIndex}

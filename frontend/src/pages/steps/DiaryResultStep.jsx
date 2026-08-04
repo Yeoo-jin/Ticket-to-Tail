@@ -1,15 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import BackgroundCaptionEditor from '../../components/diary/BackgroundCaptionEditor'
 import BackgroundColorPicker from '../../components/diary/BackgroundColorPicker'
-import BlogStory from '../../components/diary/BlogStory'
 import FontSelector from '../../components/diary/FontSelector'
 import PanoramaDiary from '../../components/diary/PanoramaDiary'
 import PhotoCaptionEditor from '../../components/diary/PhotoCaptionEditor'
 import PhotoStyleControls from '../../components/diary/PhotoStyleControls'
-import { DEFAULT_DIARY_THEME } from '../../utils/diaryTheme'
-import { sanitizeStoryCards } from '../../utils/storyCards'
 
 async function copyText(text) {
   if (!navigator.clipboard) {
@@ -48,8 +45,6 @@ function DiaryResultStep({
   diaryData,
   photos,
   destination,
-  viewMode,
-  onChangeViewMode,
   splitCount,
   onChangeSplitCount,
   panoramaViewMode,
@@ -76,11 +71,6 @@ function DiaryResultStep({
   loading,
   error,
 }) {
-  const storyCards = useMemo(
-    () => (diaryData ? sanitizeStoryCards(diaryData.storyCards, photos.length) : []),
-    [diaryData, photos.length]
-  )
-
   if (!diaryData) {
     return (
       <section>
@@ -118,97 +108,63 @@ function DiaryResultStep({
         <LoadingIndicator label="다이어리를 다시 생성하는 중..." />
       ) : (
         <div className="mt-3 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => onChangeViewMode('carousel')}
-              className={`rounded-lg py-2 text-sm font-medium ${
-                viewMode === 'carousel' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700'
-              }`}
-            >
-              SNS 캐러셀 보기
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangeViewMode('blog')}
-              className={`rounded-lg py-2 text-sm font-medium ${
-                viewMode === 'blog' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700'
-              }`}
-            >
-              블로그 보기
-            </button>
+          <PanoramaDiary
+            photos={photos}
+            photoStyles={photoStyles}
+            destination={destination}
+            splitCount={splitCount}
+            onChangeSplitCount={onChangeSplitCount}
+            viewMode={panoramaViewMode}
+            onChangeViewMode={onChangePanoramaViewMode}
+            activeViewportIndex={activeViewportIndex}
+            onChangeActiveViewportIndex={onChangeActiveViewportIndex}
+            backgroundColor={backgroundColor}
+            font={font}
+            polaroidCaptionSize={polaroidCaptionSize}
+            backgroundTextSize={backgroundTextSize}
+            photoCaptions={photoCaptions}
+            backgroundCaptions={backgroundCaptions}
+          />
+
+          <PhotoCaptionEditor photos={photos} captions={photoCaptions} onChangeCaption={onChangePhotoCaption} />
+
+          <BackgroundCaptionEditor captions={backgroundCaptions} onChangeCaption={onChangeBackgroundCaption} />
+
+          <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+            <p className="text-xs font-semibold text-gray-500">글자·배경 꾸미기</p>
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500">폰트 (사진·배경 글귀 공통)</p>
+              <FontSelector font={font} onChangeFont={onChangeFont} />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500">사진 글귀 크기: {polaroidCaptionSize}</p>
+              <input
+                type="range"
+                min={18}
+                max={36}
+                value={polaroidCaptionSize}
+                onChange={(event) => onChangePolaroidCaptionSize(Number(event.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500">배경 글귀 크기: {backgroundTextSize}</p>
+              <input
+                type="range"
+                min={24}
+                max={72}
+                value={backgroundTextSize}
+                onChange={(event) => onChangeBackgroundTextSize(Number(event.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500">배경 색상</p>
+              <BackgroundColorPicker color={backgroundColor} onChangeColor={onChangeBackgroundColor} />
+            </div>
           </div>
 
-          {viewMode === 'carousel' ? (
-            <>
-              <PanoramaDiary
-                photos={photos}
-                photoStyles={photoStyles}
-                destination={destination}
-                splitCount={splitCount}
-                onChangeSplitCount={onChangeSplitCount}
-                viewMode={panoramaViewMode}
-                onChangeViewMode={onChangePanoramaViewMode}
-                activeViewportIndex={activeViewportIndex}
-                onChangeActiveViewportIndex={onChangeActiveViewportIndex}
-                backgroundColor={backgroundColor}
-                font={font}
-                polaroidCaptionSize={polaroidCaptionSize}
-                backgroundTextSize={backgroundTextSize}
-                photoCaptions={photoCaptions}
-                backgroundCaptions={backgroundCaptions}
-              />
-
-              <PhotoCaptionEditor photos={photos} captions={photoCaptions} onChangeCaption={onChangePhotoCaption} />
-
-              <BackgroundCaptionEditor captions={backgroundCaptions} onChangeCaption={onChangeBackgroundCaption} />
-
-              <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-                <p className="text-xs font-semibold text-gray-500">글자·배경 꾸미기</p>
-                <div>
-                  <p className="mb-1.5 text-[11px] text-gray-500">폰트 (사진·배경 글귀 공통)</p>
-                  <FontSelector font={font} onChangeFont={onChangeFont} />
-                </div>
-                <div>
-                  <p className="mb-1.5 text-[11px] text-gray-500">사진 글귀 크기: {polaroidCaptionSize}</p>
-                  <input
-                    type="range"
-                    min={18}
-                    max={36}
-                    value={polaroidCaptionSize}
-                    onChange={(event) => onChangePolaroidCaptionSize(Number(event.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <p className="mb-1.5 text-[11px] text-gray-500">배경 글귀 크기: {backgroundTextSize}</p>
-                  <input
-                    type="range"
-                    min={24}
-                    max={72}
-                    value={backgroundTextSize}
-                    onChange={(event) => onChangeBackgroundTextSize(Number(event.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <p className="mb-1.5 text-[11px] text-gray-500">배경 색상</p>
-                  <BackgroundColorPicker color={backgroundColor} onChangeColor={onChangeBackgroundColor} />
-                </div>
-              </div>
-
-              <PhotoStyleControls photos={photos} photoStyles={photoStyles} onChangeStyle={onChangePhotoStyle} />
-            </>
-          ) : (
-            <BlogStory
-              cards={storyCards}
-              photos={photos}
-              photoStyles={photoStyles}
-              theme={DEFAULT_DIARY_THEME}
-              hashtags={hashtags}
-              diary={diary}
-            />
-          )}
+          <PhotoStyleControls photos={photos} photoStyles={photoStyles} onChangeStyle={onChangePhotoStyle} />
 
           <details className="rounded-lg border border-gray-200 p-3">
             <summary className="cursor-pointer text-sm font-semibold text-gray-900">텍스트 보기 및 복사</summary>

@@ -35,7 +35,12 @@ export async function renderSegmentToBlob(node, { pixelRatio = 1 } = {}) {
 
   let blob
   try {
-    blob = await toBlob(node, { pixelRatio, cacheBust: true })
+    // cacheBust는 쓰지 않는다: html-to-image가 켜져 있으면 이미지 URL에 "?타임스탬프"를
+    // 붙여서 다시 fetch하는데, 사진은 로컬 blob: URL이라 쿼리스트링이 붙으면 더 이상
+    // 유효한 URL이 아니게 되어(브라우저가 blob 레지스트리에서 찾지 못함) fetch가 실패하고
+    // 사진이 빈 이미지로 나오거나 저장 자체가 멈춘다. 이 앱의 리소스(로컬 blob 사진,
+    // 번들된 폰트 파일)는 URL이 바뀌지 않는 한 내용도 바뀌지 않으므로 캐시 무효화가 애초에 필요 없다.
+    blob = await toBlob(node, { pixelRatio })
   } catch {
     throw new Error('이미지 생성에 실패했습니다. 사진이 너무 크거나 메모리가 부족할 수 있습니다.')
   }
