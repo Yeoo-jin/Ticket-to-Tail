@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { autoTextColor, normalizeHexColor } from '../../utils/backgroundColor'
 import { truncateAtWordBoundary } from '../../utils/memoDistribution'
 import {
@@ -17,6 +17,15 @@ import PolaroidPhoto from './PolaroidPhoto'
 
 const POLAROID_CAPTION_MAX_CHARS = 40
 const BACKGROUND_CAPTION_MAX_CHARS = 60
+
+function readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
 
 function BackgroundCaptionText({ caption, boardWidth, fontFamily, fontSize, color }) {
   if (!caption.visible || !caption.text) return null
@@ -71,51 +80,90 @@ function PanoramaDiary({
   const textColor = autoTextColor(resolvedBackgroundColor)
   const fontFamily = posterFontStack(font)
 
-  const boardContent = (
-    <div className="relative h-full w-full" style={{ backgroundColor: resolvedBackgroundColor }}>
-      <div
-        className="absolute inset-0"
-        style={{ backgroundImage: 'radial-gradient(rgba(120,100,70,0.05) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
-      />
-
-      {layout.photoSlots.map((slot) => (
-        <PolaroidPhoto
-          key={slot.photoIndex}
-          x={slot.x}
-          y={slot.y}
-          width={slot.w}
-          height={slot.h}
-          photoH={slot.photoH}
-          framePad={slot.framePad}
-          rotation={slot.rotation}
-          tape={slot.tape}
-          photo={photos[slot.photoIndex]}
-          photoStyle={getPhotoStyle(photoStyles, slot.photoIndex)}
-          caption={truncateAtWordBoundary(photoCaptions[slot.photoIndex] || '', POLAROID_CAPTION_MAX_CHARS)}
-          fontFamily={fontFamily}
-          captionFontSize={polaroidCaptionSize}
+  // photosForBoard만 다르고 나머지는 동일한 board를 만든다. 화면 미리보기(boardContent)는
+  // 가벼운 blob: URL을 그대로 쓰고, 내보내기용(exportBoardContent)은 base64 data: URL을 쓴다
+  // (아래 exportPhotos 설명 참고 — html-to-image가 사진을 못 읽어오는 문제를 근본적으로 피하기 위함).
+  function renderBoard(photosForBoard) {
+    return (
+      <div className="relative h-full w-full" style={{ backgroundColor: resolvedBackgroundColor }}>
+        <div
+          className="absolute inset-0"
+          style={{ backgroundImage: 'radial-gradient(rgba(120,100,70,0.05) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
         />
-      ))}
 
-      {backgroundCaptions.map((caption) => (
-        <BackgroundCaptionText
-          key={caption.presetId}
-          caption={caption}
-          boardWidth={layout.boardWidth}
-          fontFamily={fontFamily}
-          fontSize={backgroundTextSize}
-          color={textColor}
-        />
-      ))}
+        {layout.photoSlots.map((slot) => (
+          <PolaroidPhoto
+            key={slot.photoIndex}
+            x={slot.x}
+            y={slot.y}
+            width={slot.w}
+            height={slot.h}
+            photoH={slot.photoH}
+            framePad={slot.framePad}
+            rotation={slot.rotation}
+            tape={slot.tape}
+            photo={photosForBoard[slot.photoIndex]}
+            photoStyle={getPhotoStyle(photoStyles, slot.photoIndex)}
+            caption={truncateAtWordBoundary(photoCaptions[slot.photoIndex] || '', POLAROID_CAPTION_MAX_CHARS)}
+            fontFamily={fontFamily}
+            captionFontSize={polaroidCaptionSize}
+          />
+        ))}
 
-      <span className="pb-sticker" style={{ left: layout.boardWidth - 140, top: 55 }}>
-        ✈️
-      </span>
-      <span className="pb-sticker" style={{ left: 30, top: 1255 }}>
-        🌿
-      </span>
-    </div>
-  )
+        {backgroundCaptions.map((caption) => (
+          <BackgroundCaptionText
+            key={caption.presetId}
+            caption={caption}
+            boardWidth={layout.boardWidth}
+            fontFamily={fontFamily}
+            fontSize={backgroundTextSize}
+            color={textColor}
+          />
+        ))}
+
+        <span className="pb-sticker" style={{ left: layout.boardWidth - 140, top: 55 }}>
+          ✈️
+        </span>
+        <span className="pb-sticker" style={{ left: 30, top: 1255 }}>
+          🌿
+        </span>
+      </div>
+    )
+  }
+
+  const boardContent = renderBoard(photos)
+
+  // 내보내기(저장·공유) 전용 사진 URL. 화면 미리보기는 사진을 blob: URL로 보여주는데,
+  // html-to-image는 저장 시 각 <img>를 다시 fetch해서 embed하는 과정에서 (1) 실패한 fetch
+  // 결과를 내부적으로 영구 캐시해버리는 버그와 (2) Safari(특히 iOS)의 blob: URL fetch 자체가
+  // 불안정한 문제가 겹쳐, 화면엔 사진이 정상 표시돼도 저장된 이미지에만 사진이 빠지는 경우가
+  // 있었다. data: URL(base64)은 html-to-image가 애초에 다시 fetch하지 않고 그대로 쓰므로
+  // 이 문제를 구조적으로 피할 수 있다. 원본 File을 직접 읽어 변환한다(blob: URL을 다시 fetch하지 않음).
+  const [exportPhotoDataUrls, setExportPhotoDataUrls] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    if (photos.length === 0) {
+      setExportPhotoDataUrls([])
+      return undefined
+    }
+    Promise.all(photos.map((photo) => readAsDataUrl(photo.file)))
+      .then((urls) => {
+        if (!cancelled) setExportPhotoDataUrls(urls)
+      })
+      .catch(() => {
+        if (!cancelled) setExportPhotoDataUrls([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [photos])
+
+  const exportPhotosReady = photos.length === 0 || exportPhotoDataUrls.length === photos.length
+  const exportPhotos = photos.map((photo, index) => ({
+    ...photo,
+    previewUrl: exportPhotoDataUrls[index] || photo.previewUrl,
+  }))
+  const exportBoardContent = renderBoard(exportPhotos)
 
   const exportRefs = useRef([])
   const fullBoardRef = useRef(null)
@@ -216,11 +264,11 @@ function PanoramaDiary({
               exportRefs.current[segmentIndex] = node
             }}
           >
-            {boardContent}
+            {exportBoardContent}
           </PanoramaViewport>
         ))}
         <div ref={fullBoardRef} style={{ width: layout.boardWidth, height: 1350, position: 'relative' }}>
-          {boardContent}
+          {exportBoardContent}
         </div>
       </div>
 
@@ -232,6 +280,7 @@ function PanoramaDiary({
           activeViewportIndex={safeActiveIndex}
           destination={destination}
           boardStateKey={boardStateKey}
+          photosReady={exportPhotosReady}
         />
       </div>
     </div>

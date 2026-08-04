@@ -24,7 +24,15 @@ function useObjectUrls(files) {
 // 게시물(뷰포트) PNG 저장·공유 UI. "준비"(Blob/File 생성)와 "저장·공유"(이미 준비된 File 사용)를
 // 분리해, PNG 생성에 걸리는 시간 때문에 navigator.share에 필요한 사용자 제스처가 사라지지
 // 않게 한다. 지원하지 않는 기능(예: 공유 미지원 환경)은 버튼을 숨기고 대체 안내를 보여준다.
-function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewportIndex, destination, boardStateKey }) {
+function PanoramaExportPanel({
+  exportRefs,
+  fullBoardRef,
+  splitCount,
+  activeViewportIndex,
+  destination,
+  boardStateKey,
+  photosReady,
+}) {
   const [currentFile, setCurrentFile] = useState(null)
   const [currentFileKey, setCurrentFileKey] = useState(null)
   const [allFiles, setAllFiles] = useState(null)
@@ -45,7 +53,7 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
   const allThumbnailUrls = useObjectUrls(allReady ? allFiles : null)
 
   async function handlePrepareCurrent() {
-    if (busy) return
+    if (busy || !photosReady) return
     setBusy(true)
     setMessage('')
     try {
@@ -85,7 +93,7 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
   }
 
   async function handlePrepareAll() {
-    if (busy) return
+    if (busy || !photosReady) return
     setBusy(true)
     setMessage('')
     try {
@@ -132,7 +140,7 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
   }
 
   async function handleExportFullBoard() {
-    if (busy) return
+    if (busy || !photosReady) return
     setBusy(true)
     setMessage('')
     try {
@@ -155,7 +163,7 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
           <button
             type="button"
             onClick={handlePrepareCurrent}
-            disabled={busy}
+            disabled={busy || !photosReady}
             className="rounded-lg border border-gray-300 py-2.5 text-xs font-medium text-gray-700 disabled:opacity-40"
           >
             현재 조각 준비
@@ -197,7 +205,7 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
           <button
             type="button"
             onClick={handlePrepareAll}
-            disabled={busy}
+            disabled={busy || !photosReady}
             className="rounded-lg border border-gray-300 py-2.5 text-xs font-medium text-gray-700 disabled:opacity-40"
           >
             전체 조각 준비
@@ -255,12 +263,13 @@ function PanoramaExportPanel({ exportRefs, fullBoardRef, splitCount, activeViewp
       <button
         type="button"
         onClick={handleExportFullBoard}
-        disabled={busy}
+        disabled={busy || !photosReady}
         className="w-full rounded-lg border border-gray-300 py-2.5 text-xs font-medium text-gray-600 disabled:opacity-40"
       >
         전체 보드 PNG로 저장 (선택)
       </button>
 
+      {!photosReady && <p className="text-center text-[11px] text-gray-400">사진을 저장용으로 준비하는 중...</p>}
       {busy && <p className="text-center text-[11px] text-gray-400">이미지를 처리하는 중...</p>}
       {!busy && message && <p className="text-center text-[11px] text-gray-500">{message}</p>}
 
