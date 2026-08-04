@@ -59,7 +59,7 @@
 
 .pb-divider {
   flex-shrink: 0;
-  width: 2px;
+  width: 1.6px;
   align-self: stretch;
   background: #111;
 }
