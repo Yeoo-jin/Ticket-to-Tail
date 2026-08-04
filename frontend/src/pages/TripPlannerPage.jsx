@@ -31,51 +31,68 @@ const STEP = {
 }
 const TOTAL_STEPS = 7
 
-function TripPlannerPage() {
-  const [step, setStep] = useState(STEP.BOOKING_INPUT)
+// 진행 상태를 sessionStorage에 저장해, 브라우저(특히 iPhone Safari)가 탭을 새로고침해도
+// 처음(1단계)으로 돌아가지 않고 하던 화면으로 복원되게 한다. 업로드한 사진(File)은
+// sessionStorage에 저장할 수 없어(직렬화 불가) 복원 대상에서 제외한다 — 사진이 필요한
+// 화면(6·7단계)으로 복원되더라도 사진 슬롯만 비어 보일 뿐 화면 자체가 깨지지는 않는다.
+const STORAGE_KEY = 'ticketToTale:tripPlannerState:v1'
 
-  const [bookingText, setBookingText] = useState('')
-  const [bookingResult, setBookingResult] = useState(null)
+function loadPersistedState() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function TripPlannerPage() {
+  const [persisted] = useState(loadPersistedState)
+
+  const [step, setStep] = useState(persisted?.step ?? STEP.BOOKING_INPUT)
+
+  const [bookingText, setBookingText] = useState(persisted?.bookingText ?? '')
+  const [bookingResult, setBookingResult] = useState(persisted?.bookingResult ?? null)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingError, setBookingError] = useState('')
 
-  const [destination, setDestination] = useState('')
-  const [companionTypes, setCompanionTypes] = useState([])
+  const [destination, setDestination] = useState(persisted?.destination ?? '')
+  const [companionTypes, setCompanionTypes] = useState(persisted?.companionTypes ?? [])
 
-  const [places, setPlaces] = useState([])
-  const [autoSelectedPlaceIds, setAutoSelectedPlaceIds] = useState([])
-  const [selectedPlaceIds, setSelectedPlaceIds] = useState([])
+  const [places, setPlaces] = useState(persisted?.places ?? [])
+  const [autoSelectedPlaceIds, setAutoSelectedPlaceIds] = useState(persisted?.autoSelectedPlaceIds ?? [])
+  const [selectedPlaceIds, setSelectedPlaceIds] = useState(persisted?.selectedPlaceIds ?? [])
   const [selectionLimitMessage, setSelectionLimitMessage] = useState('')
   const [placesLoading, setPlacesLoading] = useState(false)
   const [placesError, setPlacesError] = useState('')
 
-  const [pace, setPace] = useState('normal')
-  const [timelineData, setTimelineData] = useState(null)
+  const [pace, setPace] = useState(persisted?.pace ?? 'normal')
+  const [timelineData, setTimelineData] = useState(persisted?.timelineData ?? null)
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState('')
 
-  // photos: [{ file, previewUrl, memo }]
+  // photos: [{ file, previewUrl, memo }] — 새로고침 후에는 복원되지 않는다(위 설명 참고).
   const [photos, setPhotos] = useState([])
   const [photoError, setPhotoError] = useState('')
-  const [diaryMemo, setDiaryMemo] = useState('')
-  const [diaryTone, setDiaryTone] = useState('emotional')
-  const [diaryData, setDiaryData] = useState(null)
+  const [diaryMemo, setDiaryMemo] = useState(persisted?.diaryMemo ?? '')
+  const [diaryTone, setDiaryTone] = useState(persisted?.diaryTone ?? 'emotional')
+  const [diaryData, setDiaryData] = useState(persisted?.diaryData ?? null)
   const [diaryLoading, setDiaryLoading] = useState(false)
   const [diaryError, setDiaryError] = useState('')
 
   // 결과 화면 표시·꾸미기 상태는 "처음부터 다시 시작"에서만 초기화한다.
-  const [splitCount, setSplitCount] = useState(DEFAULT_SPLIT_COUNT)
-  const [panoramaViewMode, setPanoramaViewMode] = useState('connected')
-  const [activeViewportIndex, setActiveViewportIndex] = useState(0)
-  const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKGROUND_COLOR)
-  const [font, setFont] = useState(DEFAULT_POSTER_FONT)
-  const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(24)
-  const [backgroundTextSize, setBackgroundTextSize] = useState(40)
+  const [splitCount, setSplitCount] = useState(persisted?.splitCount ?? DEFAULT_SPLIT_COUNT)
+  const [panoramaViewMode, setPanoramaViewMode] = useState(persisted?.panoramaViewMode ?? 'connected')
+  const [activeViewportIndex, setActiveViewportIndex] = useState(persisted?.activeViewportIndex ?? 0)
+  const [backgroundColor, setBackgroundColor] = useState(persisted?.backgroundColor ?? DEFAULT_BACKGROUND_COLOR)
+  const [font, setFont] = useState(persisted?.font ?? DEFAULT_POSTER_FONT)
+  const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(persisted?.polaroidCaptionSize ?? 24)
+  const [backgroundTextSize, setBackgroundTextSize] = useState(persisted?.backgroundTextSize ?? 40)
   // photoCaptions: 사진별 아래 글귀(index 정렬). null이면 아직 초기화 전(첫 생성 시 photoMemo로 채움).
-  const [photoCaptions, setPhotoCaptions] = useState(null)
+  const [photoCaptions, setPhotoCaptions] = useState(persisted?.photoCaptions ?? null)
   // backgroundCaptions: 배경 위 독립 글귀 3개. null이면 아직 초기화 전(첫 생성 시 기본값으로 채움).
-  const [backgroundCaptions, setBackgroundCaptions] = useState(null)
-  const [photoStyles, setPhotoStyles] = useState({})
+  const [backgroundCaptions, setBackgroundCaptions] = useState(persisted?.backgroundCaptions ?? null)
+  const [photoStyles, setPhotoStyles] = useState(persisted?.photoStyles ?? {})
 
   // 사진 미리보기 URL은 컴포넌트가 완전히 사라질 때 한 번에 정리한다 (최신 photos를 ref로 추적).
   const photosRef = useRef(photos)
@@ -85,6 +102,91 @@ function TripPlannerPage() {
   useEffect(() => {
     return () => {
       photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+    }
+  }, [])
+
+  // 진행 상태를 sessionStorage에 계속 저장한다(로딩 중 상태·오류 메시지·사진은 제외 —
+  // 로딩 중 상태로 복원되면 영원히 도는 스피너만 보이고, 오류는 새로고침 후엔 의미가 없다).
+  useEffect(() => {
+    const snapshot = {
+      step,
+      bookingText,
+      bookingResult,
+      destination,
+      companionTypes,
+      places,
+      autoSelectedPlaceIds,
+      selectedPlaceIds,
+      pace,
+      timelineData,
+      diaryMemo,
+      diaryTone,
+      diaryData,
+      splitCount,
+      panoramaViewMode,
+      activeViewportIndex,
+      backgroundColor,
+      font,
+      polaroidCaptionSize,
+      backgroundTextSize,
+      photoCaptions,
+      backgroundCaptions,
+      photoStyles,
+    }
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+    } catch {
+      // sessionStorage를 쓸 수 없어도(용량 초과 등) 앱 동작 자체에는 영향이 없어야 하므로 무시한다.
+    }
+  }, [
+    step,
+    bookingText,
+    bookingResult,
+    destination,
+    companionTypes,
+    places,
+    autoSelectedPlaceIds,
+    selectedPlaceIds,
+    pace,
+    timelineData,
+    diaryMemo,
+    diaryTone,
+    diaryData,
+    splitCount,
+    panoramaViewMode,
+    activeViewportIndex,
+    backgroundColor,
+    font,
+    polaroidCaptionSize,
+    backgroundTextSize,
+    photoCaptions,
+    backgroundCaptions,
+    photoStyles,
+  ])
+
+  // 개발 환경에서만: 페이지가 왜 다시 로드됐는지(HMR 재연결, 탭 백그라운드 전환 등) 추적하기
+  // 위한 진단 로그. 프로덕션 빌드에는 포함되지 않는다.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined
+
+    function handlePageShow(event) {
+      const navEntry = performance.getEntriesByType?.('navigation')?.[0]
+      console.log('[dev] pageshow', { persisted: event.persisted, navigationType: navEntry?.type })
+    }
+    function handlePageHide(event) {
+      console.log('[dev] pagehide', { persisted: event.persisted })
+    }
+    function handleBeforeUnload() {
+      console.log('[dev] beforeunload')
+    }
+
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
 
@@ -275,6 +377,11 @@ function TripPlannerPage() {
 
   function handleStartOver() {
     photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+    try {
+      sessionStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // 무시 — 다음 저장 effect가 어차피 초기화된 상태로 다시 덮어쓴다.
+    }
 
     setStep(STEP.BOOKING_INPUT)
     setBookingText('')

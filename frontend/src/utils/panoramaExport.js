@@ -66,6 +66,8 @@ export async function createPanoramaSegmentFile(node, destination, viewportIndex
   return createSegmentFile(blob, buildPanoramaFilename(destination, viewportIndex))
 }
 
-export async function createAllPanoramaSegmentFiles(nodes, destination) {
-  return createAllSegmentFiles(nodes, (index) => buildPanoramaFilename(destination, index), { pixelRatio: 1 })
+export async function createAllPanoramaSegmentFiles(splitCount, destination, getNode, releaseNode) {
+  return createAllSegmentFiles(splitCount, (index) => buildPanoramaFilename(destination, index), getNode, releaseNode, {
+    pixelRatio: 1,
+  })
 }

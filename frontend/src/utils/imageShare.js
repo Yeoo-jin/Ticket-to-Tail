@@ -60,15 +60,19 @@ export function createSegmentFile(blob, filename) {
   return new File([blob], filename, { type: 'image/png' })
 }
 
-// 여러 노드를 순서대로 각각 Blob→File로 만든다. 동시에 여러 캡처를 시도하면 렌더링이
-// 꼬일 수 있어 순차 처리한다.
-export async function createAllSegmentFiles(nodes, filenameFor, { pixelRatio = 1, onProgress } = {}) {
+// count개 조각을 순서대로 각각 Blob→File로 만든다. 동시에 여러 캡처를 시도하면 렌더링이
+// 꼬일 수 있어 순차 처리한다. 노드는 getNode(index)로 그때그때 하나씩만 마운트해서 받고,
+// 캡처가 끝나면 releaseNode()로 바로 언마운트한다(여러 조각을 동시에 DOM에 띄워두지 않기 위함).
+export async function createAllSegmentFiles(count, filenameFor, getNode, releaseNode, { pixelRatio = 1, onProgress } = {}) {
   const files = []
-  for (let index = 0; index < nodes.length; index += 1) {
+  for (let index = 0; index < count; index += 1) {
     // eslint-disable-next-line no-await-in-loop
-    const blob = await renderSegmentToBlob(nodes[index], { pixelRatio })
+    const node = await getNode(index)
+    // eslint-disable-next-line no-await-in-loop
+    const blob = await renderSegmentToBlob(node, { pixelRatio })
     files.push(createSegmentFile(blob, filenameFor(index)))
-    if (onProgress) onProgress(index + 1, nodes.length)
+    releaseNode()
+    if (onProgress) onProgress(index + 1, count)
   }
   return files
 }

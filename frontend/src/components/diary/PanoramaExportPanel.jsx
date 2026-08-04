@@ -25,8 +25,8 @@ function useObjectUrls(files) {
 // 분리해, PNG 생성에 걸리는 시간 때문에 navigator.share에 필요한 사용자 제스처가 사라지지
 // 않게 한다. 지원하지 않는 기능(예: 공유 미지원 환경)은 버튼을 숨기고 대체 안내를 보여준다.
 function PanoramaExportPanel({
-  exportRefs,
-  fullBoardRef,
+  requestCaptureNode,
+  releaseCaptureNode,
   splitCount,
   activeViewportIndex,
   destination,
@@ -57,7 +57,7 @@ function PanoramaExportPanel({
     setBusy(true)
     setMessage('')
     try {
-      const node = exportRefs.current[activeViewportIndex]
+      const node = await requestCaptureNode({ kind: 'segment', segmentIndex: activeViewportIndex })
       const file = await createPanoramaSegmentFile(node, destination, activeViewportIndex)
       setCurrentFile(file)
       setCurrentFileKey(expectedCurrentKey)
@@ -65,6 +65,7 @@ function PanoramaExportPanel({
     } catch (error) {
       setMessage(error.message)
     } finally {
+      releaseCaptureNode()
       setBusy(false)
     }
   }
@@ -97,14 +98,15 @@ function PanoramaExportPanel({
     setBusy(true)
     setMessage('')
     try {
-      const nodes = exportRefs.current.slice(0, splitCount)
-      const files = await createAllPanoramaSegmentFiles(nodes, destination)
+      const getNode = (index) => requestCaptureNode({ kind: 'segment', segmentIndex: index })
+      const files = await createAllPanoramaSegmentFiles(splitCount, destination, getNode, releaseCaptureNode)
       setAllFiles(files)
       setAllFilesKey(expectedAllKey)
       setMessage(`${files.length}장 이미지가 모두 준비됐어요.`)
     } catch (error) {
       setMessage(error.message)
     } finally {
+      releaseCaptureNode()
       setBusy(false)
     }
   }
@@ -144,11 +146,13 @@ function PanoramaExportPanel({
     setBusy(true)
     setMessage('')
     try {
-      await exportFullBoard(fullBoardRef.current, destination)
+      const node = await requestCaptureNode({ kind: 'full' })
+      await exportFullBoard(node, destination)
       setMessage('전체 보드를 저장했어요.')
     } catch (error) {
       setMessage(error.message)
     } finally {
+      releaseCaptureNode()
       setBusy(false)
     }
   }
