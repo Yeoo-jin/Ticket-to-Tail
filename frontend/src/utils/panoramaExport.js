@@ -39,8 +39,10 @@ export async function exportFullBoard(node, destination) {
   }
   await Promise.all([waitForImagesToDecode(node), waitForFontsReady()])
   try {
-    // cacheBust를 쓰지 않는 이유는 renderSegmentToBlob(imageShare.js) 주석 참고:
-    // 로컬 blob: 사진 URL에 쿼리스트링이 붙으면 fetch가 실패해 저장이 깨진다.
+    // cacheBust를 쓰지 않는 이유와 "예열용" 첫 캡처를 버리는 이유는
+    // renderSegmentToBlob(imageShare.js) 주석 참고: 로컬 blob: 사진 URL에 쿼리스트링이
+    // 붙으면 fetch가 실패하고, Safari는 같은 노드의 첫 캡처에서 사진만 빠뜨리는 경우가 있다.
+    await toPng(node, { pixelRatio: 1 }).catch(() => {})
     const dataUrl = await toPng(node, { pixelRatio: 1 })
     const link = document.createElement('a')
     link.download = buildFullBoardFilename(destination)

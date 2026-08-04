@@ -40,6 +40,12 @@ export async function renderSegmentToBlob(node, { pixelRatio = 1 } = {}) {
     // 유효한 URL이 아니게 되어(브라우저가 blob 레지스트리에서 찾지 못함) fetch가 실패하고
     // 사진이 빈 이미지로 나오거나 저장 자체가 멈춘다. 이 앱의 리소스(로컬 blob 사진,
     // 번들된 폰트 파일)는 URL이 바뀌지 않는 한 내용도 바뀌지 않으므로 캐시 무효화가 애초에 필요 없다.
+    //
+    // Safari(특히 iOS)는 html-to-image(및 dom-to-image 계열 라이브러리 전반)의 "첫 캡처"에서
+    // <img> 사진만 빠진 채로 렌더링하고, 같은 노드를 곧바로 다시 캡처하면 정상적으로 나오는
+    // 문제가 널리 보고되어 있다(텍스트·배경·스티커는 정상, 사진만 빈 칸으로 나오는 것과 일치).
+    // 그래서 한 번 "예열용"으로 먼저 캡처해 버리고, 실제로 쓰는 건 그다음 캡처 결과다.
+    await toBlob(node, { pixelRatio }).catch(() => {})
     blob = await toBlob(node, { pixelRatio })
   } catch {
     throw new Error('이미지 생성에 실패했습니다. 사진이 너무 크거나 메모리가 부족할 수 있습니다.')
