@@ -165,8 +165,34 @@ function PanoramaDiary({
   }))
   const exportBoardContent = renderBoard(exportPhotos)
 
-  const exportRefs = useRef([])
-  const fullBoardRef = useRef(null)
+  // 내보내기용 숨김 노드는 splitCount(최대 4개)+전체보드까지 한꺼번에 계속 떠 있으면
+  // 사진이 있는 board 사본이 화면에 3~5장 동시에 존재하게 되어 모바일에서 메모리 부담이 크다.
+  // 그래서 실제로 저장 버튼을 누른 그 순간에만 필요한 조각 하나만 마운트하고, 캡처가 끝나면
+  // 바로 언마운트한다(captureRequest가 null이면 아무것도 렌더링하지 않음).
+  const [captureRequest, setCaptureRequest] = useState(null)
+  const captureNodeRef = useRef(null)
+  const captureResolversRef = useRef([])
+
+  function requestCaptureNode(request) {
+    return new Promise((resolve) => {
+      captureResolversRef.current.push(resolve)
+      setCaptureRequest(request)
+    })
+  }
+
+  function releaseCaptureNode() {
+    captureNodeRef.current = null
+    setCaptureRequest(null)
+  }
+
+  function handleCaptureRef(node) {
+    captureNodeRef.current = node
+    if (node && captureResolversRef.current.length > 0) {
+      const resolvers = captureResolversRef.current
+      captureResolversRef.current = []
+      resolvers.forEach((resolve) => resolve(node))
+    }
+  }
 
   const safeActiveIndex = Math.min(Math.max(activeViewportIndex, 0), layout.splitCount - 1)
 
@@ -240,42 +266,39 @@ function PanoramaDiary({
         onChangeActiveViewportIndex={onChangeActiveViewportIndex}
       />
 
-      {/* 내보내기 전용 숨김 노드: 검은 구분선·버튼 없이 1080×1350 원본 크기 뷰포트만 담는다.
-          크기 0(width:0/height:0) 또는 화면 밖 멀리(left:-99999px) 배치하는 방식은 모두
-          Safari(특히 iOS)가 "보이지 않는다"고 판단해 그 안의 <img> 사진 로딩·디코딩을
-          건너뛰는 경우가 보고되어 있다(텍스트·배경은 SVG로 직접 그려져 정상, 사진만 빈 칸으로
-          나오는 것과 일치). 그래서 실제 크기(1080×1350 등)는 그대로 유지한 채
-          opacity:0 + z-index로만 안 보이게 한다 — opacity:0인 요소는 시각적으로만 안 보일 뿐,
-          레이아웃·이미지 로딩은 다른 요소와 동일하게 진행된다. */}
-      {/* position:fixed를 쓴다(absolute 아님) — absolute면 조각 여러 개(최대 1080×1350짜리
-          5개)가 문서 흐름상 스크롤 가능한 영역을 만들어 화면 아래쪽에 보이지 않는 빈 여백이
-          생길 수 있다. fixed는 뷰포트 기준이라 문서 스크롤 영역에 영향을 주지 않는다. */}
+      {/* 내보내기 전용 숨김 노드: 저장 버튼을 누른 순간에만 필요한 조각 하나만 마운트한다
+          (바로 위 captureRequest 설명 참고). 크기 0(width:0/height:0) 또는 화면 밖 멀리
+          (left:-99999px) 배치하는 방식은 모두 Safari(특히 iOS)가 "보이지 않는다"고 판단해
+          그 안의 <img> 사진 로딩·디코딩을 건너뛰는 경우가 보고되어 있어(텍스트·배경은 SVG로
+          직접 그려져 정상, 사진만 빈 칸으로 나오는 것과 일치), 실제 크기(1080×1350 등)는
+          그대로 유지한 채 opacity:0 + z-index로만 안 보이게 한다. position:fixed를 쓰는 이유는
+          absolute면 문서 흐름상 스크롤 가능한 영역에 영향을 줄 수 있기 때문이다. */}
       <div
         style={{ position: 'fixed', top: 0, left: 0, opacity: 0, zIndex: -1, pointerEvents: 'none' }}
         aria-hidden="true"
       >
-        {Array.from({ length: layout.splitCount }, (_, segmentIndex) => (
+        {captureRequest?.kind === 'segment' && (
           <PanoramaViewport
-            key={segmentIndex}
-            segmentIndex={segmentIndex}
+            key={captureRequest.segmentIndex}
+            segmentIndex={captureRequest.segmentIndex}
             boardWidth={layout.boardWidth}
             displayScale={1}
-            viewportRef={(node) => {
-              exportRefs.current[segmentIndex] = node
-            }}
+            viewportRef={handleCaptureRef}
           >
             {exportBoardContent}
           </PanoramaViewport>
-        ))}
-        <div ref={fullBoardRef} style={{ width: layout.boardWidth, height: 1350, position: 'relative' }}>
-          {exportBoardContent}
-        </div>
+        )}
+        {captureRequest?.kind === 'full' && (
+          <div ref={handleCaptureRef} style={{ width: layout.boardWidth, height: 1350, position: 'relative' }}>
+            {exportBoardContent}
+          </div>
+        )}
       </div>
 
       <div className="mt-3">
         <PanoramaExportPanel
-          exportRefs={exportRefs}
-          fullBoardRef={fullBoardRef}
+          requestCaptureNode={requestCaptureNode}
+          releaseCaptureNode={releaseCaptureNode}
           splitCount={layout.splitCount}
           activeViewportIndex={safeActiveIndex}
           destination={destination}
