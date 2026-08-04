@@ -115,6 +115,7 @@ Ticket-to-Tale/
 │  │  ├─ App.jsx           # 전체 화면 흐름 및 공통 상태
 │  │  └─ main.jsx          # React 시작 파일
 │  ├─ public/              # 정적 이미지 및 공개 파일
+│  ├─ scripts/             # 순수 JS 로직 검증 스크립트 (node scripts/verify-*.mjs)
 │  ├─ package.json
 │  └─ .env.example
 │
@@ -148,6 +149,7 @@ Ticket-to-Tale/
 - AI 호출과 핵심 로직은 `backend/app/services/`에 작성합니다.
 - AI 프롬프트는 코드 안에 길게 넣지 않고 `backend/app/prompts/`에 분리합니다.
 - 관광지 샘플 데이터는 `backend/app/data/places.json`에서 관리합니다.
+- 브라우저 없이 확인 가능한 순수 로직(좌표 계산, 파일명 규칙, 공유 가능 여부 판단 등)은 `frontend/scripts/`의 검증 스크립트로 확인합니다. 실행 방법: `node scripts/verify-panorama-board.mjs` (파일명은 각 스크립트마다 다름)
 - 공통 데이터 구조와 API 필드명은 임의로 변경하지 않습니다.
 - 새로운 폴더나 구조가 필요하면 먼저 팀에 공유합니다.
 
@@ -356,12 +358,22 @@ cp frontend/.env.example frontend/.env
 
 Windows에서 `cp` 명령이 동작하지 않으면 파일을 직접 복사한 뒤 이름을 `.env`로 변경합니다.
 
-예시:
+`backend/.env` 예시:
 
 ```env
-ANTHROPIC_API_KEY=본인의_API_KEY
-VITE_API_BASE_URL=http://localhost:8000
+AI_PROVIDER=gemini
+GEMINI_API_KEY=본인의_API_KEY
+GEMINI_MODEL=gemini-3.6-flash
+FRONTEND_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 ```
+
+`frontend/.env` 예시:
+
+```env
+VITE_API_BASE_URL=
+```
+
+`VITE_API_BASE_URL`은 **비워둡니다.** 비워두면 frontend가 상대 경로(`/api/...`)로 요청하고 Vite dev server의 proxy(`vite.config.js`)가 backend로 전달하므로, `localhost`/`127.0.0.1`을 코드에 고정하지 않고도 Codespaces·LAN·ngrok 등 어떤 방식으로 접속해도 그대로 동작합니다. frontend와 backend가 서로 다른 주소에 배포된 프로덕션 환경에서만 실제 backend 주소를 지정합니다.
 
 ### Git에 올리면 안 되는 파일
 
@@ -383,8 +395,10 @@ API 키는 GitHub의 Codespaces Secrets에 등록합니다.
 2. `Codespaces` 선택
 3. `Secrets` 선택
 4. `New secret` 선택
-5. Secret 이름과 값을 입력
+5. Secret 이름은 `GEMINI_API_KEY`, 값은 본인의 Gemini API 키로 입력(`backend/.env`의 키 이름과 동일해야 합니다)
 6. 사용할 저장소 접근 권한 선택
+
+Codespace를 새로 만들면 이 Secret이 환경변수로 자동 주입되므로, Codespaces에서는 `backend/.env`에 `GEMINI_API_KEY`를 따로 적지 않아도 됩니다. 다만 `AI_PROVIDER`·`GEMINI_MODEL`·`FRONTEND_ORIGIN` 등 나머지 값은 여전히 `backend/.env`에 직접 설정해야 합니다.
 
 팀 채팅이나 README에 실제 API 키를 공유하지 않습니다.
 
@@ -777,17 +791,15 @@ git push --force
 
 ```text
 frontend/src/services/
+├─ apiClient.js     # 공통 fetch 래퍼(요청 주소·오류 처리 공통화)
 ├─ bookingApi.js
 ├─ placeApi.js
 ├─ timelineApi.js
-└─ diaryApi.js
+├─ diaryApi.js
+└─ healthApi.js
 ```
 
-프론트엔드에서 사용하는 백엔드 주소는 환경변수로 관리합니다.
-
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
+프론트엔드에서 사용하는 백엔드 주소는 환경변수(`VITE_API_BASE_URL`)로 관리합니다. 값을 비워두면 상대 경로로 요청하고 Vite dev server의 proxy가 backend로 전달하므로, 로컬 개발에서는 보통 비워둔 채로 둡니다(11번 참고). frontend와 backend가 다른 주소에 배포된 프로덕션에서만 실제 주소를 지정합니다.
 
 화면에서는 서비스 함수를 불러와 사용합니다.
 
@@ -970,67 +982,90 @@ git diff
 
 ---
 
-## 28. iPhone Safari 로컬 테스트
+## 28. iPhone Safari 테스트 (Codespaces + ngrok)
 
-같은 Wi-Fi에 있는 PC와 iPhone으로 실제 iPhone Safari에서 화면과 저장·공유 기능을 확인하는 방법입니다.
+실제 iPhone Safari에서 화면과 저장·공유 기능을 확인하는 방법입니다. **Codespaces + ngrok 방식을 기본으로 사용합니다** — Wi-Fi가 같지 않아도 되고, ngrok 터널은 HTTPS라서 `navigator.share`(공유 시트) 같은 보안 컨텍스트가 필요한 기능도 별도 설정 없이 동작합니다.
 
 ### 준비물
 
-- PC와 iPhone이 **같은 Wi-Fi**에 연결되어 있어야 합니다(공유기 게스트망 등 분리된 네트워크는 서로 통신이 안 될 수 있습니다).
-- frontend는 상대 경로(`/api/...`)로 요청하고 Vite dev server의 proxy가 backend(`127.0.0.1:8000`)로 전달하므로, `frontend/.env`의 `VITE_API_BASE_URL`은 비워둔 상태여야 합니다.
+- GitHub Codespace가 열려 있어야 합니다(8번 참고).
+- Codespace 터미널에서 [ngrok](https://ngrok.com)이 설치되어 있어야 합니다. 처음 사용한다면 ngrok 계정을 만들고 `ngrok config add-authtoken <본인 토큰>`을 먼저 실행합니다.
+- `frontend/.env`의 `VITE_API_BASE_URL`은 비워둔 상태여야 합니다(11번 참고).
 
-### 1. backend 실행
+### 1. backend 실행 (터미널 1)
 
 ```bash
-cd backend
+cd ~/Ticket-to-Tail/backend
+source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. frontend를 LAN에 열기
+### 2. frontend 실행 (터미널 2)
 
 ```bash
-cd frontend
-npm run dev:lan
+cd ~/Ticket-to-Tail/frontend
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-터미널에 `Local`과 함께 `Network` 주소가 표시됩니다. iPhone에서는 `Network`에 나온 주소가 아니라, 아래 방법으로 확인한 **Windows PC의 Wi-Fi IPv4 주소**로 접속합니다.
+### 3. ngrok으로 frontend 포트를 외부에 열기 (터미널 3)
 
-### 3. Windows Wi-Fi IPv4 주소 확인
-
-명령 프롬프트(cmd)에서:
-
-```text
-ipconfig
+```bash
+ngrok http --host-header=rewrite 5173
 ```
 
-"무선 LAN 어댑터 Wi-Fi" 항목의 **IPv4 주소**(예: `192.168.x.x` 형태)를 확인합니다. 이 문서에는 실제 IP 주소를 적지 않으니, 확인한 주소를 각자 기록해 사용하세요.
+`--host-header=rewrite`가 꼭 필요합니다. 이 옵션이 없으면 Vite dev server가 ngrok이 보낸 요청의 Host 헤더를 낯선 주소로 인식해 `Blocked request` 오류로 거부할 수 있습니다.
+
+실행하면 터미널에 `Forwarding https://xxxx.ngrok-free.app -> http://localhost:5173` 형태의 주소가 표시됩니다. 이 `https://` 주소가 iPhone에서 접속할 주소입니다(이 문서에는 실제 주소를 적지 않으니 각자 실행 결과를 확인하세요).
+
+API 요청(`/api/...`)은 frontend가 상대 경로로 보내고 Vite proxy가 backend(8000)로 그대로 전달하므로, iPhone은 이 ngrok 주소 하나에만 접속하면 됩니다.
 
 ### 4. iPhone Safari에서 접속
 
-iPhone Safari 주소창에 다음 형식으로 입력합니다.
-
-```text
-http://Windows_IP:5173
-```
-
-`Windows_IP`는 3번에서 확인한 주소로 바꿔 입력합니다. iPhone은 이 5173 포트(frontend)에만 접속하고, API 요청은 Vite proxy를 통해 자동으로 backend(8000)로 전달됩니다.
-
-### WSL2 환경에서 접속되지 않을 때
-
-이 프로젝트를 WSL2 안에서 실행 중이라면, WSL2는 자체 가상 네트워크를 쓰기 때문에 Windows의 Wi-Fi IP로 바로 접속해도 WSL2 안의 서버까지 도달하지 못할 수 있습니다. 이 경우 다음을 확인하세요.
-
-- Windows PowerShell(관리자 권한)에서 `netsh interface portproxy`로 5173/8000 포트를 WSL2 IP로 전달하는 설정이 되어 있는지
-- Windows 방화벽에서 해당 포트의 인바운드 연결이 허용되어 있는지(방화벽 설정은 자동으로 변경하지 않으므로 직접 확인·구성해야 합니다)
-- 위 설정이 익숙하지 않다면 여진에게 확인을 요청하세요.
+iPhone Safari 주소창에 3번에서 확인한 `https://xxxx.ngrok-free.app` 주소를 입력합니다. ngrok 무료 플랜은 처음 접속 시 경고 화면이 뜰 수 있는데, **Visit Site**를 눌러 진행합니다.
 
 ### 5. 결과 저장 확인
 
 - **네이티브 공유가 지원되는 경우**: "iPhone에서 저장·공유" 버튼을 누르면 공유 시트가 열립니다. 공유 시트에서 **이미지 저장**을 선택하면 사진 앱에 저장됩니다.
-- **HTTP 환경 등 공유가 지원되지 않는 경우**: "이미지 열기" 버튼을 누르면 화면 안에 이미지가 크게 표시됩니다. 이미지를 **길게 누르거나 Safari 공유 버튼**에서 이미지 저장을 선택하세요.
+- **공유가 지원되지 않는 경우**: "이미지 열기" 버튼을 누르면 화면 안에 이미지가 크게 표시됩니다. 이미지를 **길게 누르거나 Safari 공유 버튼**에서 이미지 저장을 선택하세요.
 - 데스크톱에서는 기존처럼 다운로드 버튼으로 파일을 저장할 수 있습니다.
 
 ### 테스트 종료 후 서버 종료
 
-- frontend: `npm run dev:lan`을 실행한 터미널에서 `Ctrl + C`
-- backend: `uvicorn`을 실행한 터미널에서 `Ctrl + C`
-- WSL2 포트 전달을 설정했다면, 더 이상 LAN 테스트가 필요 없을 때 `netsh interface portproxy delete v4tov4 ...` 명령으로 해당 규칙을 정리하는 것을 권장합니다(자동으로 삭제되지 않습니다).
+터미널 1·2·3에서 각각 `Ctrl + C`로 backend, frontend, ngrok을 종료합니다. ngrok 무료 플랜은 터널 주소가 매번 바뀌므로, 다시 테스트할 때는 3번부터 다시 실행하고 iPhone에서 새 주소로 접속합니다.
+
+### 로컬(WSL2 등)에서 같은 Wi-Fi로 직접 연결하는 경우
+
+Codespaces 없이 로컬 PC에서 같은 방식으로 테스트하려면, backend는 위 1번과 동일하게 `--host 0.0.0.0`으로 실행하고 frontend는 `npm run dev:lan`(`vite --host 0.0.0.0 --port 5173 --strictPort`와 동일)으로 실행한 뒤, PC의 Wi-Fi IPv4 주소(`ipconfig`로 확인)로 iPhone에서 접속합니다. WSL2 안에서 실행 중이라면 Windows의 Wi-Fi IP로 바로 접속해도 WSL2 내부까지 도달하지 못할 수 있어(자체 가상 네트워크 사용), `netsh interface portproxy`로 포트를 전달해야 할 수 있습니다 — 이 방식은 방화벽·포트 포워딩 설정이 번거로워서, 위 Codespaces + ngrok 방식을 우선 권장합니다.
+
+---
+
+## 29. 향후 개발 계획
+
+### 아직 구현하지 않은 기능
+
+1절의 "선택 기능"·"본선 확장 기능"과 같은 내용입니다. 예선 필수 기능(F-01~F-08)은 모두 구현되어 있습니다.
+
+**선택 기능 (예선 범위, 미구현)**
+
+- 타임라인 재생성 (`POST /api/timelines/regenerate`) — 화면에는 "다른 일정 추천받기"/"같은 정보로 다시 생성" 버튼이 있지만, 전용 재생성 API가 아니라 기존 생성 API(`/api/timelines/generate`, `/api/diaries/generate`)를 다시 호출하는 방식으로만 동작합니다.
+- 다이어리 재생성 (`POST /api/diaries/regenerate`) — 위와 동일합니다.
+- 결과 일부 편집 (예: 문단 하나만 다시 쓰기 등 세밀한 편집)
+
+**본선 확장 기능 (미구현)**
+
+- 항공권·승차권 OCR
+- 실시간 항공·철도 지연 정보 연동
+- 지연 시 타임라인 자동 재구성
+- 사용자 계정 및 DB 저장
+- 공동 편집 및 공유
+- 위치 기반 알림
+
+### feature-spec.md 대비 화면·입력 차이
+
+`docs/feature-spec.md`를 실제 구현과 대조했을 때 발견된 차이입니다. 기능이 빠진 것도 있고, 문서 자체가 최신 상태를 반영하지 못한 것도 있습니다. 새로 구현하기 전에 먼저 여진과 상의해주세요.
+
+1. **메인 화면(S-01) 없음** — 서비스 소개·핵심 기능 요약·"여행 만들기" 버튼이 있는 랜딩 화면이 없고, 앱 진입 시 바로 예매정보 입력 화면(1단계)이 나옵니다.
+2. **"여행 시작일·종료일 입력" 필드 없음(S-02)** — 예매정보 입력은 자유 텍스트 하나뿐이고, 항공편/철도/시작일/종료일을 구분한 입력 필드가 따로 없습니다.
+3. **동행 조건 "친구"·"연인" 통합(S-03)** — `docs/api-spec.md`에 "최종 서비스 기획에 맞춰 `friends_couple` 하나로 통합했다"는 기록이 있어, 코드는 이 최신 결정을 따르고 있습니다. `feature-spec.md`만 통합 이전 표현("혼자·친구·연인·유아·고령자·교통약자·반려동물")으로 남아 있어 문서 쪽 업데이트가 필요합니다.
+4. **다이어리 "분량 선택" UI 없음(S-06)** — 문체(tone) 선택만 있고 분량 선택이 없습니다. `docs/api-spec.md`의 `/api/diaries/generate` 요청 스키마 자체에도 분량 필드가 없어, API 명세와 feature-spec.md가 서로 다른 상태입니다. 분량 선택을 추가하려면 API 명세부터 먼저 정해야 합니다.
+5. **"장소별 메모"가 아니라 "사진별 메모"(F-07)** — 다이어리 입력 화면은 사진마다 메모를 다는 구조이고, 타임라인의 특정 장소와 직접 연결되는 메모 입력은 없습니다. 여행 전체 메모(자유 텍스트)는 별도로 있습니다.
