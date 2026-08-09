@@ -11,6 +11,7 @@ class BookingParseRequest(BaseModel):
 
 class Booking(BaseModel):
     type: BookingType
+    transitNumber: Optional[str] = None
     departureLocation: Optional[str] = None
     arrivalLocation: Optional[str] = None
     departureTime: Optional[str] = None

@@ -13,6 +13,11 @@ _DATE_PATTERN = re.compile(r"(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일")
 _TIME_PATTERN = re.compile(r"(오전|오후)?\s*(\d{1,2})시\s*(?:(\d{1,2})분)?")
 _LOCATION_PATTERN = re.compile(r"[가-힣0-9]+(?:공항|역)")
 
+# 앞뒤에 조사·"편"이 바로 붙는 경우가 많아(예: "OZ102편으로") \b(단어 경계)를 쓰면 매치가
+# 안 될 수 있다. 한글도 \w로 취급되는 유니코드 정규식 특성 때문. 그래서 경계 대신 문자
+# 클래스 형태(대문자 2개+숫자, 또는 KTX/SRT+숫자) 자체로만 구분한다.
+_TRANSIT_NUMBER_PATTERN = re.compile(r"(?:[A-Z]{2}\d{2,4}|(?:KTX|SRT)\s?\d{1,4})")
+
 _TRAIN_KEYWORDS = ("KTX", "SRT", "기차", "열차", "무궁화호", "새마을호")
 _FLIGHT_KEYWORDS = ("항공편", "비행기")
 
@@ -22,11 +27,12 @@ DateParts = Tuple[Optional[int], Optional[int], Optional[int]]
 
 
 class _Event:
-    __slots__ = ("direction", "type", "location", "year", "month", "day", "period", "hour", "minute")
+    __slots__ = ("direction", "type", "transit_number", "location", "year", "month", "day", "period", "hour", "minute")
 
     def __init__(self):
         self.direction: Optional[str] = None
         self.type: Optional[str] = None
+        self.transit_number: Optional[str] = None
         self.location: Optional[str] = None
         self.year: Optional[int] = None
         self.month: Optional[int] = None
@@ -58,6 +64,10 @@ def _parse_clause(clause: str, last_date: DateParts) -> _Event:
     location_match = _LOCATION_PATTERN.search(clause)
     if location_match:
         event.location = location_match.group(0)
+
+    transit_match = _TRANSIT_NUMBER_PATTERN.search(clause)
+    if transit_match:
+        event.transit_number = transit_match.group(0)
 
     if "도착" in clause:
         event.direction = "arrival"
@@ -100,8 +110,10 @@ def _events_from_text(text: str) -> List[_Event]:
 
 
 def _to_raw_booking(booking_type: str, departure: Optional[_Event], arrival: Optional[_Event]) -> RawBookingEvent:
+    transit_number = (departure.transit_number if departure else None) or (arrival.transit_number if arrival else None)
     return RawBookingEvent(
         type=booking_type,
+        transitNumber=transit_number,
         departureLocation=departure.location if departure else None,
         departureYear=departure.year if departure else None,
         departureMonth=departure.month if departure else None,

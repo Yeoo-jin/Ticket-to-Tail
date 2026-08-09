@@ -12,6 +12,7 @@ class RawBookingEvent(BaseModel):
     """
 
     type: Literal["flight", "train"]
+    transitNumber: Optional[str] = None
     departureLocation: Optional[str] = None
     arrivalLocation: Optional[str] = None
 
