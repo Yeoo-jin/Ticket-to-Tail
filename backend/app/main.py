@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routes import bookings, diaries, health, places, timelines
+from app.routes import bookings, diaries, health, places, timelines, weather
 from app.utils.errors import AppError
 
 load_dotenv()
@@ -62,3 +62,4 @@ app.include_router(bookings.router)
 app.include_router(places.router)
 app.include_router(timelines.router)
 app.include_router(diaries.router)
+app.include_router(weather.router)

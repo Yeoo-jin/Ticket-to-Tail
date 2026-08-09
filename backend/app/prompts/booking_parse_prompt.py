@@ -11,7 +11,8 @@ SYSTEM_PROMPT = """당신은 항공·철도 예매정보 텍스트에서 구조�
 4. 날짜의 연도가 텍스트에 없으면 해당 year 필드를 null로 남기십시오. 연도를 임의로 채우지 마십시오. 연도 보완은 이후 별도 로직에서 처리합니다.
 5. 시각은 "오전/오후" 표기를 period 필드(AM 또는 PM, 없으면 null)에 담고, hour는 텍스트에 쓰인 숫자를 그대로(예: "오후 4시" -> hour=4) 담으십시오. 12시간제를 24시간제로 직접 변환하지 마십시오. 그 변환은 이후 별도 로직에서 처리합니다.
 6. 시(hour)는 언급되었지만 "분" 표기가 없으면 minute은 0으로 채우십시오. 시각 자체가 전혀 언급되지 않았으면 hour와 minute을 모두 null로 남기십시오.
-7. 응답은 반드시 extract_bookings 도구 호출로만 반환하고, 그 외의 설명 텍스트를 추가하지 마십시오."""
+7. 항공편명(예: "OZ102", "대한항공 KE123") 또는 열차 편명·번호(예: "KTX 101", "SRT 401")가 텍스트에 있으면 transitNumber에 그대로 담으십시오. 없으면 반드시 null로 남기고 추측해서 만들어내지 마십시오.
+8. 응답은 반드시 extract_bookings 도구 호출로만 반환하고, 그 외의 설명 텍스트를 추가하지 마십시오."""
 
 
 EXTRACT_BOOKINGS_TOOL = {
@@ -30,6 +31,10 @@ EXTRACT_BOOKINGS_TOOL = {
                             "type": "string",
                             "enum": ["flight", "train"],
                             "description": "공항 관련 이동이면 flight, 역·열차 관련 이동이면 train",
+                        },
+                        "transitNumber": {
+                            "type": ["string", "null"],
+                            "description": "항공편명 또는 열차 편명·번호 (예: OZ102, KTX 101). 텍스트에 없으면 null",
                         },
                         "departureLocation": {"type": ["string", "null"], "description": "출발지 (예: 서울역, 인천공항). 없으면 null"},
                         "arrivalLocation": {"type": ["string", "null"], "description": "도착지. 없으면 null"},

@@ -45,8 +45,9 @@
 
 1. 입력된 텍스트에서 항공편과 열차 정보를 구분한다.
 2. 출발지·도착지·날짜·시간을 추출한다.
-3. 타임라인 생성에 사용할 수 있는 데이터 형태로 변환한다.
-4. 필수 정보가 부족한 경우 누락된 항목을 반환한다.
+3. 항공편명 또는 열차 편명·번호(`transitNumber`)가 텍스트에 있으면 함께 추출한다. 텍스트에 없으면 `null`.
+4. 타임라인 생성에 사용할 수 있는 데이터 형태로 변환한다.
+5. 필수 정보가 부족한 경우 누락된 항목을 반환한다.
 
 ### 성공 응답
 
@@ -57,6 +58,7 @@
     "bookings": [
       {
         "type":"flight",
+        "transitNumber":null,
         "departureLocation":null,
         "arrivalLocation":"인천공항",
         "departureTime":null,
@@ -64,6 +66,7 @@
       },
       {
         "type":"train",
+        "transitNumber":"KTX 101",
         "departureLocation":"서울역",
         "arrivalLocation":"부산역",
         "departureTime":"2026-08-12T13:20:00",
@@ -71,6 +74,7 @@
       },
       {
         "type":"flight",
+        "transitNumber":"OZ102",
         "departureLocation":"인천공항",
         "arrivalLocation":null,
         "departureTime":"2026-08-14T18:00:00",
@@ -91,6 +95,7 @@
     "bookings": [
       {
         "type":"train",
+        "transitNumber":null,
         "departureLocation":"서울역",
         "arrivalLocation":"부산역",
         "departureTime":null,
@@ -107,6 +112,127 @@
 
 - **백엔드·AI 로직:** 여진
 - **입력 화면:** 서영
+
+---
+
+## POST `/api/bookings/status`
+
+편명·열차번호를 기준으로 공공데이터포털(인천국제공항공사/한국철도공사) 실시간 운항 정보를 조회해
+지연 여부를 반환한다. 부가 정보 API이므로 외부 API 호출이 실패하거나 일치하는 데이터를 찾지 못해도
+오류를 내지 않고 `found:false`로 응답한다.
+
+### 요청
+
+```
+{
+  "type":"flight",
+  "transitNumber":"OZ102",
+  "departureLocation":"인천공항",
+  "arrivalLocation":null,
+  "departureTime":"2026-08-14T18:00:00",
+  "arrivalTime":null
+}
+```
+
+### 요청 필드
+
+| 필드 | 자료형 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `type` | string | O | `flight` 또는 `train` |
+| `transitNumber` | string | X | 편명 또는 열차번호. `/api/bookings/parse` 응답의 값을 그대로 전달 |
+| `departureLocation` | string | X | 출발지 |
+| `arrivalLocation` | string | X | 도착지 |
+| `departureTime` | string | X | 출발 시각 (ISO 8601) |
+| `arrivalTime` | string | X | 도착 시각 (ISO 8601) |
+
+항공편은 인천공항 도착·출발 구간만 조회 가능하다(인천국제공항공사 API 특성). 그 외 구간은
+`found:false`로 응답한다.
+
+### 성공 응답
+
+```
+{
+  "success":true,
+  "data": {
+    "found":true,
+    "delayed":true,
+    "delayMinutes":15,
+    "scheduledTime":"2026-08-14T18:00:00",
+    "actualTime":"2026-08-14T18:15:00",
+    "message":"15분 지연되었습니다."
+  }
+}
+```
+
+### 정보를 찾지 못한 경우
+
+```
+{
+  "success":true,
+  "data": {
+    "found":false,
+    "delayed":false,
+    "delayMinutes":null,
+    "scheduledTime":null,
+    "actualTime":null,
+    "message":"실시간 운항 정보를 찾을 수 없습니다."
+  }
+}
+```
+
+### 담당
+
+- **백엔드·API 연동:** 여진
+
+---
+
+## POST `/api/weather/forecast`
+
+여행 지역의 단기예보(하늘상태·강수여부·기온)를 조회한다. 참고용 부가 정보이며, 관광지
+추천 로직 자체를 바꾸지 않는다 — 화면에 안내로만 보여주고 실내/실외 선택은 사용자가 한다.
+현재 부산·서울·제주·경주만 지원하며, 그 외 지역은 `found:false`로 응답한다.
+
+### 요청
+
+```
+{
+  "destination":"부산"
+}
+```
+
+### 성공 응답
+
+```
+{
+  "success":true,
+  "data": {
+    "found":true,
+    "precipitationExpected":true,
+    "sky":"흐리고 가끔 비",
+    "temperature":26,
+    "message":"흐리고 가끔 비"
+  }
+}
+```
+
+### 지원하지 않는 지역
+
+```
+{
+  "success":true,
+  "data": {
+    "found":false,
+    "precipitationExpected":false,
+    "sky":null,
+    "temperature":null,
+    "message":"이 지역은 날씨 조회를 지원하지 않습니다."
+  }
+}
+```
+
+### 담당
+
+- **백엔드·API 연동:** 여진
 
 ---
 
@@ -245,6 +371,7 @@ Gemini(AI)는 호출하지 않는다.
   "bookings": [
     {
       "type":"flight",
+      "transitNumber":null,
       "departureLocation":null,
       "arrivalLocation":"인천공항",
       "departureTime":null,
@@ -252,6 +379,7 @@ Gemini(AI)는 호출하지 않는다.
     },
     {
       "type":"train",
+      "transitNumber":"KTX 101",
       "departureLocation":"서울역",
       "arrivalLocation":"부산역",
       "departureTime":"2026-08-12T13:20:00",
@@ -259,6 +387,7 @@ Gemini(AI)는 호출하지 않는다.
     },
     {
       "type":"flight",
+      "transitNumber":"OZ102",
       "departureLocation":"인천공항",
       "arrivalLocation":null,
       "departureTime":"2026-08-14T18:00:00",

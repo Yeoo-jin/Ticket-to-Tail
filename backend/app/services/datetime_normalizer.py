@@ -110,6 +110,7 @@ def normalize_bookings(raw_events: List[RawBookingEvent]) -> List[Booking]:
         bookings.append(
             Booking(
                 type=event.type,
+                transitNumber=event.transitNumber,
                 departureLocation=event.departureLocation,
                 arrivalLocation=event.arrivalLocation,
                 departureTime=departure_time,
