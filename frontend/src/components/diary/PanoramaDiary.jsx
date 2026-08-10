@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { autoTextColor, normalizeHexColor } from '../../utils/backgroundColor'
+import { backgroundPatternRotation, backgroundPatternStyle } from '../../utils/backgroundPattern'
 import { truncateAtWordBoundary } from '../../utils/memoDistribution'
 import {
   BACKGROUND_CAPTION_PRESETS,
+  BOARD_HEIGHT,
   MAX_PANORAMA_PHOTOS,
   SPLIT_COUNTS,
   getBackgroundCaptionX,
@@ -67,6 +69,11 @@ function PanoramaDiary({
   activeViewportIndex,
   onChangeActiveViewportIndex,
   backgroundColor,
+  backgroundPattern,
+  patternColor,
+  dotSize,
+  dotShape,
+  checkSpacing,
   font,
   polaroidCaptionSize,
   backgroundTextSize,
@@ -79,13 +86,41 @@ function PanoramaDiary({
   const resolvedBackgroundColor = normalizeHexColor(backgroundColor) || backgroundColor
   const textColor = autoTextColor(resolvedBackgroundColor)
   const fontFamily = posterFontStack(font)
+  const patternStyle = backgroundPatternStyle(backgroundPattern, patternColor, { dotSize, dotShape, checkSpacing })
+  const patternRotation = backgroundPatternRotation(backgroundPattern)
+  // 보드는 정사각형이 아니라 가로로 매우 긴 직사각형(너비 3240~4320 × 높이 1350)이라,
+  // "가로·세로 각각 2배"로 덮는 방식은 회전 시 특정 모서리(예: 오른쪽 위·왼쪽 아래)를
+  // 빈 채로 남길 수 있다. 대신 보드 대각선보다 한 변이 큰 "정사각형"을 중앙에 두면, 정사각형은
+  // 어떤 각도로 돌려도 자신의 내접원(반지름 = 한 변의 절반)을 항상 포함하므로, 그 내접원이
+  // 보드의 대각선 절반(= 가장 먼 모서리까지의 거리)보다 크기만 하면 회전 각도와 무관하게
+  // 네 모서리를 포함한 보드 전체를 항상 덮는다는 것이 보장된다.
+  const patternOverlaySize = Math.ceil(Math.sqrt(layout.boardWidth ** 2 + BOARD_HEIGHT ** 2)) + 40
+  const patternOverlayLeft = (layout.boardWidth - patternOverlaySize) / 2
+  const patternOverlayTop = (BOARD_HEIGHT - patternOverlaySize) / 2
 
   // photosForBoard만 다르고 나머지는 동일한 board를 만든다. 화면 미리보기(boardContent)는
   // 가벼운 blob: URL을 그대로 쓰고, 내보내기용(exportBoardContent)은 base64 data: URL을 쓴다
   // (아래 exportPhotos 설명 참고 — html-to-image가 사진을 못 읽어오는 문제를 근본적으로 피하기 위함).
   function renderBoard(photosForBoard) {
     return (
-      <div className="relative h-full w-full" style={{ backgroundColor: resolvedBackgroundColor }}>
+      <div className="relative h-full w-full overflow-hidden" style={{ backgroundColor: resolvedBackgroundColor }}>
+        {backgroundPattern && backgroundPattern !== 'solid' && (
+          // 회전은 이 레이어에만 적용되므로 사진·글귀 등 다른 내용은 그대로 수평을 유지한다.
+          <div className="absolute inset-0" style={{ overflow: 'hidden' }} aria-hidden="true">
+            <div
+              style={{
+                position: 'absolute',
+                left: patternOverlayLeft,
+                top: patternOverlayTop,
+                width: patternOverlaySize,
+                height: patternOverlaySize,
+                transform: patternRotation ? `rotate(${patternRotation}deg)` : undefined,
+                ...patternStyle,
+              }}
+            />
+          </div>
+        )}
+
         <div
           className="absolute inset-0"
           style={{ backgroundImage: 'radial-gradient(rgba(120,100,70,0.05) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
@@ -120,13 +155,6 @@ function PanoramaDiary({
             color={textColor}
           />
         ))}
-
-        <span className="pb-sticker" style={{ left: layout.boardWidth - 140, top: 55 }}>
-          ✈️
-        </span>
-        <span className="pb-sticker" style={{ left: 30, top: 1255 }}>
-          🌿
-        </span>
       </div>
     )
   }
@@ -202,6 +230,11 @@ function PanoramaDiary({
     () =>
       [
         resolvedBackgroundColor,
+        backgroundPattern,
+        patternColor,
+        dotSize,
+        dotShape,
+        checkSpacing,
         font,
         polaroidCaptionSize,
         backgroundTextSize,
@@ -210,7 +243,21 @@ function PanoramaDiary({
         JSON.stringify(photoStyles),
         photos.map((photo) => photo.previewUrl).join(','),
       ].join('|'),
-    [resolvedBackgroundColor, font, polaroidCaptionSize, backgroundTextSize, photoCaptions, backgroundCaptions, photoStyles, photos]
+    [
+      resolvedBackgroundColor,
+      backgroundPattern,
+      patternColor,
+      dotSize,
+      dotShape,
+      checkSpacing,
+      font,
+      polaroidCaptionSize,
+      backgroundTextSize,
+      photoCaptions,
+      backgroundCaptions,
+      photoStyles,
+      photos,
+    ]
   )
 
   return (

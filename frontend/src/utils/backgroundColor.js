@@ -18,13 +18,21 @@ export function normalizeHexColor(value) {
   return isValidHexColor(withHash) ? withHash.toUpperCase() : null
 }
 
-function hexToRgb(hex) {
+export function hexToRgb(hex) {
   const value = hex.replace('#', '')
   return {
     r: parseInt(value.slice(0, 2), 16),
     g: parseInt(value.slice(2, 4), 16),
     b: parseInt(value.slice(4, 6), 16),
   }
+}
+
+// 배경 패턴(도트·체크)의 선을 그릴 때 쓰는 반투명 색상 문자열. 유효하지 않은 HEX는
+// 기본 배경색으로 대체해 항상 렌더링 가능한 값을 반환한다.
+export function hexToRgba(hex, alpha) {
+  const normalized = normalizeHexColor(hex) || DEFAULT_BACKGROUND_COLOR
+  const { r, g, b } = hexToRgb(normalized)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 // WCAG 상대 휘도 근사치. 0(검정)~1(흰색).

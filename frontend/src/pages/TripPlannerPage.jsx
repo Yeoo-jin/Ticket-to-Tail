@@ -6,6 +6,7 @@ import { generateTimeline } from '../services/timelineApi'
 import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
 import { DEFAULT_BACKGROUND_COLOR } from '../utils/backgroundColor'
+import { DEFAULT_CHECK_SPACING, DEFAULT_DOT_SIZE, DEFAULT_PATTERN_COLOR } from '../utils/backgroundPattern'
 import { buildDefaultBackgroundCaptions } from '../utils/memoDistribution'
 import { DEFAULT_SPLIT_COUNT } from '../utils/panoramaLayouts'
 import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
@@ -85,6 +86,11 @@ function TripPlannerPage() {
   const [panoramaViewMode, setPanoramaViewMode] = useState(persisted?.panoramaViewMode ?? 'connected')
   const [activeViewportIndex, setActiveViewportIndex] = useState(persisted?.activeViewportIndex ?? 0)
   const [backgroundColor, setBackgroundColor] = useState(persisted?.backgroundColor ?? DEFAULT_BACKGROUND_COLOR)
+  const [backgroundPattern, setBackgroundPattern] = useState(persisted?.backgroundPattern ?? 'solid')
+  const [patternColor, setPatternColor] = useState(persisted?.patternColor ?? DEFAULT_PATTERN_COLOR)
+  const [dotSize, setDotSize] = useState(persisted?.dotSize ?? DEFAULT_DOT_SIZE)
+  const [dotShape, setDotShape] = useState(persisted?.dotShape ?? 'circle')
+  const [checkSpacing, setCheckSpacing] = useState(persisted?.checkSpacing ?? DEFAULT_CHECK_SPACING)
   const [font, setFont] = useState(persisted?.font ?? DEFAULT_POSTER_FONT)
   const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(persisted?.polaroidCaptionSize ?? 24)
   const [backgroundTextSize, setBackgroundTextSize] = useState(persisted?.backgroundTextSize ?? 40)
@@ -126,6 +132,11 @@ function TripPlannerPage() {
       panoramaViewMode,
       activeViewportIndex,
       backgroundColor,
+      backgroundPattern,
+      patternColor,
+      dotSize,
+      dotShape,
+      checkSpacing,
       font,
       polaroidCaptionSize,
       backgroundTextSize,
@@ -156,6 +167,11 @@ function TripPlannerPage() {
     panoramaViewMode,
     activeViewportIndex,
     backgroundColor,
+    backgroundPattern,
+    patternColor,
+    dotSize,
+    dotShape,
+    checkSpacing,
     font,
     polaroidCaptionSize,
     backgroundTextSize,
@@ -407,6 +423,11 @@ function TripPlannerPage() {
     setPanoramaViewMode('connected')
     setActiveViewportIndex(0)
     setBackgroundColor(DEFAULT_BACKGROUND_COLOR)
+    setBackgroundPattern('solid')
+    setPatternColor(DEFAULT_PATTERN_COLOR)
+    setDotSize(DEFAULT_DOT_SIZE)
+    setDotShape('circle')
+    setCheckSpacing(DEFAULT_CHECK_SPACING)
     setFont(DEFAULT_POSTER_FONT)
     setPolaroidCaptionSize(24)
     setBackgroundTextSize(40)
@@ -520,6 +541,16 @@ function TripPlannerPage() {
             onChangeActiveViewportIndex={setActiveViewportIndex}
             backgroundColor={backgroundColor}
             onChangeBackgroundColor={setBackgroundColor}
+            backgroundPattern={backgroundPattern}
+            onChangeBackgroundPattern={setBackgroundPattern}
+            patternColor={patternColor}
+            onChangePatternColor={setPatternColor}
+            dotSize={dotSize}
+            onChangeDotSize={setDotSize}
+            dotShape={dotShape}
+            onChangeDotShape={setDotShape}
+            checkSpacing={checkSpacing}
+            onChangeCheckSpacing={setCheckSpacing}
             font={font}
             onChangeFont={setFont}
             polaroidCaptionSize={polaroidCaptionSize}
