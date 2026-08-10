@@ -3,6 +3,7 @@ import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import BackgroundCaptionEditor from '../../components/diary/BackgroundCaptionEditor'
 import BackgroundColorPicker from '../../components/diary/BackgroundColorPicker'
+import BackgroundPatternPicker from '../../components/diary/BackgroundPatternPicker'
 import FontSelector from '../../components/diary/FontSelector'
 import PanoramaDiary from '../../components/diary/PanoramaDiary'
 import PhotoCaptionEditor from '../../components/diary/PhotoCaptionEditor'
@@ -53,6 +54,16 @@ function DiaryResultStep({
   onChangeActiveViewportIndex,
   backgroundColor,
   onChangeBackgroundColor,
+  backgroundPattern,
+  onChangeBackgroundPattern,
+  patternColor,
+  onChangePatternColor,
+  dotSize,
+  onChangeDotSize,
+  dotShape,
+  onChangeDotShape,
+  checkSpacing,
+  onChangeCheckSpacing,
   font,
   onChangeFont,
   polaroidCaptionSize,
@@ -119,6 +130,11 @@ function DiaryResultStep({
             activeViewportIndex={activeViewportIndex}
             onChangeActiveViewportIndex={onChangeActiveViewportIndex}
             backgroundColor={backgroundColor}
+            backgroundPattern={backgroundPattern}
+            patternColor={patternColor}
+            dotSize={dotSize}
+            dotShape={dotShape}
+            checkSpacing={checkSpacing}
             font={font}
             polaroidCaptionSize={polaroidCaptionSize}
             backgroundTextSize={backgroundTextSize}
@@ -161,6 +177,21 @@ function DiaryResultStep({
             <div>
               <p className="mb-1.5 text-[11px] text-gray-500">배경 색상</p>
               <BackgroundColorPicker color={backgroundColor} onChangeColor={onChangeBackgroundColor} />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] text-gray-500">배경 패턴</p>
+              <BackgroundPatternPicker
+                pattern={backgroundPattern}
+                onChangePattern={onChangeBackgroundPattern}
+                patternColor={patternColor}
+                onChangePatternColor={onChangePatternColor}
+                dotSize={dotSize}
+                onChangeDotSize={onChangeDotSize}
+                dotShape={dotShape}
+                onChangeDotShape={onChangeDotShape}
+                checkSpacing={checkSpacing}
+                onChangeCheckSpacing={onChangeCheckSpacing}
+              />
             </div>
           </div>
 
