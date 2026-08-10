@@ -1,0 +1,60 @@
+// 마이페이지에 보여줄 "여행 기록" 목록. 로그인이 없으므로 이번 브라우저 세션 동안만 유지된다.
+// 사진은 세션 저장소에 넣을 수 없어(직렬화 불가) 여기에는 제목·진행 상태 같은 텍스트 정보만 담는다.
+const HISTORY_KEY = 'ticketToTale:tripHistory:v1'
+const CURRENT_KEY = 'ticketToTale:currentTrip:v1'
+
+export function generateTripId() {
+  return `trip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+export function loadTripHistory() {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
+export function saveTripHistory(list) {
+  try {
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(list))
+  } catch {
+    // 저장소를 쓸 수 없어도 앱 동작에는 영향이 없어야 하므로 무시한다.
+  }
+}
+
+// id가 이미 목록에 있으면 해당 필드만 덮어써 병합하고, 없으면 새 항목으로 추가한다.
+export function upsertTrip(list, patch) {
+  const existingIndex = list.findIndex((trip) => trip.id === patch.id)
+  const base =
+    existingIndex >= 0
+      ? list[existingIndex]
+      : { id: patch.id, title: '', timelineDone: false, diaryDone: false }
+  const merged = { ...base, ...patch, updatedAt: new Date().toISOString() }
+
+  if (existingIndex >= 0) {
+    const next = [...list]
+    next[existingIndex] = merged
+    return next
+  }
+  return [...list, merged]
+}
+
+export function loadCurrentTrip() {
+  try {
+    const raw = sessionStorage.getItem(CURRENT_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveCurrentTrip(current) {
+  try {
+    sessionStorage.setItem(CURRENT_KEY, JSON.stringify(current))
+  } catch {
+    // 무시 — 다음 저장 시점에 다시 시도된다.
+  }
+}

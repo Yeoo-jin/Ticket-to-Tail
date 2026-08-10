@@ -47,7 +47,7 @@ function loadPersistedState() {
   }
 }
 
-function TripPlannerPage() {
+function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, onDiaryComplete }) {
   const [persisted] = useState(loadPersistedState)
 
   const [step, setStep] = useState(persisted?.step ?? STEP.BOOKING_INPUT)
@@ -206,6 +206,15 @@ function TripPlannerPage() {
     }
   }, [])
 
+  // 허브 화면에서 "다이어리 생성"을 눌러 들어온 경우, 타임라인이 이미 있으면
+  // 예매정보 입력부터가 아니라 사진 업로드(다이어리 입력) 단계로 바로 이동한다.
+  useEffect(() => {
+    if (entryMode === 'diary' && timelineData && step !== STEP.DIARY_RESULT) {
+      setStep(STEP.DIARY_INPUT)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleParseBooking() {
     setBookingLoading(true)
     setBookingError('')
@@ -293,7 +302,10 @@ function TripPlannerPage() {
 
   async function handleGenerateTimeline() {
     const ok = await requestTimeline()
-    if (ok) setStep(STEP.TIMELINE_RESULT)
+    if (ok) {
+      setStep(STEP.TIMELINE_RESULT)
+      onTimelineComplete?.()
+    }
   }
 
   async function handleRegenerateTimeline() {
@@ -383,7 +395,10 @@ function TripPlannerPage() {
 
   async function handleGenerateDiary() {
     const ok = await requestDiary()
-    if (ok) setStep(STEP.DIARY_RESULT)
+    if (ok) {
+      setStep(STEP.DIARY_RESULT)
+      onDiaryComplete?.()
+    }
   }
 
   async function handleRegenerateDiary() {
@@ -436,17 +451,36 @@ function TripPlannerPage() {
     setPhotoStyles({})
   }
 
+  const isDiaryPhase = step >= STEP.DIARY_INPUT
+  const phaseLabel = isDiaryPhase ? '다이어리 만들기' : '타임라인 만들기'
+  const phaseTotal = isDiaryPhase ? 2 : STEP.TIMELINE_RESULT
+  const phaseCurrent = isDiaryPhase ? step - STEP.TIMELINE_RESULT : step
+
   return (
-    <div className="min-h-app bg-gray-50 px-4 py-6">
-      <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <header className="mb-4">
-          <h1 className="text-lg font-bold text-gray-900">Ticket to Tale</h1>
-          <p className="text-xs text-gray-400">
-            단계 {step} / {TOTAL_STEPS}
-          </p>
+    <div className="notebook-page min-h-app px-4 py-6">
+      <div className="notebook-spine-holes" />
+      <div className="mx-auto w-full max-w-md pl-6">
+        <header className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-[#2c2420]">Ticket to Tale</h1>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="tape-label text-[11px]">{phaseLabel}</span>
+              <span className="flex items-center gap-1">
+                {Array.from({ length: phaseTotal }).map((_, index) => (
+                  <span key={index} className={`progress-dot ${index < phaseCurrent ? 'active' : ''}`} />
+                ))}
+              </span>
+            </div>
+          </div>
+          {onBack && (
+            <button type="button" onClick={onBack} className="mypage-back-tab px-3 py-1.5 text-xs">
+              ← 허브로
+            </button>
+          )}
         </header>
 
-        {step === STEP.BOOKING_INPUT && (
+        <div className="note-card-taped p-4 sm:p-6">
+          {step === STEP.BOOKING_INPUT && (
           <BookingInputStep
             bookingText={bookingText}
             onChangeText={setBookingText}
@@ -501,7 +535,6 @@ function TripPlannerPage() {
             timelineData={timelineData}
             onRegenerate={handleRegenerateTimeline}
             onReselectPlaces={() => setStep(STEP.PLACE_RECOMMEND)}
-            onGoToDiary={() => setStep(STEP.DIARY_INPUT)}
             loading={timelineLoading}
             error={timelineError}
           />
@@ -570,6 +603,7 @@ function TripPlannerPage() {
             error={diaryError}
           />
         )}
+        </div>
       </div>
     </div>
   )

@@ -39,7 +39,7 @@ function BookingResultStep({ bookingResult, onBack, onNext }) {
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">2. 구조화된 예매정보 확인</h2>
+      <h2 className="text-base font-semibold text-gray-900">📋 구조화된 예매정보 확인</h2>
       <p className="mt-1 text-sm text-gray-500">AI가 분석한 결과예요. 이상이 없는지 확인해주세요.</p>
 
       <ul className="mt-3 space-y-2">
@@ -49,7 +49,7 @@ function BookingResultStep({ bookingResult, onBack, onNext }) {
               {TYPE_LABEL[booking.type] || booking.type}
             </span>
             {booking.transitNumber && (
-              <span className="ml-1.5 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+              <span className="ml-1.5 inline-block rounded bg-[#f3ece2] px-2 py-0.5 text-xs text-[#7a6a55]">
                 {booking.transitNumber}
               </span>
             )}
@@ -85,7 +85,7 @@ function BookingResultStep({ bookingResult, onBack, onNext }) {
         <button
           type="button"
           onClick={onNext}
-          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm text-white"
+          className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-sm text-white"
         >
           다음 (동행 조건 선택)
         </button>

@@ -25,7 +25,7 @@ function DiaryInputStep({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">6. 사진·메모 입력</h2>
+      <h2 className="text-base font-semibold text-gray-900">📸 사진·메모 입력</h2>
       <p className="mt-1 text-sm text-gray-500">여행지: {destination}</p>
 
       {summary && (
@@ -88,7 +88,7 @@ function DiaryInputStep({
       <div className="mt-4">
         <p className="text-sm font-semibold text-gray-900">여행 전체 메모</p>
         <textarea
-          className="mt-2 h-28 w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none"
+          className="mt-2 h-28 w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-[#1a1a1a] focus:outline-none"
           value={memo}
           onChange={(event) => onChangeMemo(event.target.value)}
           placeholder={
@@ -107,7 +107,7 @@ function DiaryInputStep({
               type="button"
               onClick={() => onChangeTone(option.value)}
               className={`rounded-lg border p-2 text-left ${
-                tone === option.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'
+                tone === option.value ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-700'
               }`}
             >
               <p className="text-xs font-semibold">{option.label}</p>
@@ -126,7 +126,7 @@ function DiaryInputStep({
         type="button"
         onClick={onSubmit}
         disabled={loading || !canSubmit}
-        className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+        className="mt-4 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
       >
         {loading ? 'AI 다이어리 생성 중...' : 'AI 다이어리 생성하기'}
       </button>

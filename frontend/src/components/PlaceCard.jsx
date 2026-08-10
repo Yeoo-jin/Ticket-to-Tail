@@ -6,7 +6,7 @@ function PlaceCard({ place, selected, onToggle }) {
       type="button"
       onClick={() => onToggle(place.placeId)}
       className={`flex flex-col rounded-xl border p-3 text-left shadow-sm transition ${
-        selected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 bg-white'
+        selected ? 'border-[#1a1a1a] bg-[#f3ece2] ring-2 ring-[#ded6c8]' : 'border-gray-200 bg-white'
       }`}
     >
       <div className="flex h-20 items-center justify-center rounded-lg bg-gray-100 text-3xl sm:h-24">
@@ -20,7 +20,7 @@ function PlaceCard({ place, selected, onToggle }) {
       <div className="mt-2 flex items-start justify-between gap-1">
         <h3 className="text-sm font-semibold text-gray-900">{place.name}</h3>
         {selected && (
-          <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] text-white">선택됨</span>
+          <span className="shrink-0 rounded-full bg-[#1a1a1a] px-2 py-0.5 text-[10px] text-white">선택됨</span>
         )}
       </div>
 

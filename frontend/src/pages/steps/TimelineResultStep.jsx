@@ -11,7 +11,7 @@ const TYPE_STYLE = {
   departure: 'bg-sky-100 text-sky-700',
 }
 
-function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, onGoToDiary, loading, error }) {
+function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, loading, error }) {
   const timeline = timelineData?.timeline ?? []
   const summary = timelineData?.summary
   const warnings = timelineData?.warnings ?? []
@@ -20,7 +20,7 @@ function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, onGo
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">5. 맞춤 타임라인</h2>
+      <h2 className="text-base font-semibold text-gray-900">🗺️ 맞춤 타임라인</h2>
 
       {summary && (
         <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
@@ -87,20 +87,16 @@ function TimelineResultStep({ timelineData, onRegenerate, onReselectPlaces, onGo
       )}
 
       <div className="mt-4 space-y-2">
-        <button
-          type="button"
-          onClick={onGoToDiary}
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
-        >
-          여행 다이어리 만들기
-        </button>
+        <p className="tape-label text-center text-[11px]">🧳 타임라인 완성!</p>
+        <p className="text-center text-[11px] text-gray-400">
+          다이어리는 허브로 돌아가서 "다이어리 생성" 버튼으로 시작할 수 있어요.
+        </p>
 
         <button
           type="button"
           onClick={onRegenerate}
           disabled={loading}
-          className="w-full rounded-lg border border-blue-300 py-2.5 text-sm text-blue-700 disabled:opacity-40"
+          className="w-full rounded-lg border border-[#1a1a1a] py-2.5 text-sm text-[#1a1a1a] disabled:opacity-40"
         >
           다른 일정 추천받기
         </button>
