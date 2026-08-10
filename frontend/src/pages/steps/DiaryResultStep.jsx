@@ -97,7 +97,7 @@ function DiaryResultStep({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">7. AI 여행 포토 다이어리</h2>
+      <h2 className="text-base font-semibold text-gray-900">📔 AI 여행 포토 다이어리</h2>
 
       <ErrorMessage message={error} />
 
@@ -253,7 +253,7 @@ function DiaryResultStep({
           type="button"
           onClick={onRegenerate}
           disabled={loading}
-          className="w-full rounded-lg border border-blue-300 py-2.5 text-sm text-blue-700 disabled:opacity-40"
+          className="w-full rounded-lg border border-[#1a1a1a] py-2.5 text-sm text-[#1a1a1a] disabled:opacity-40"
         >
           같은 정보로 다시 생성
         </button>

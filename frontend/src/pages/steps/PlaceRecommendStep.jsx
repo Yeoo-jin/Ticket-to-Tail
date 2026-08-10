@@ -28,7 +28,7 @@ function PlaceRecommendStep({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">4. 관광지 후보 확인 및 선택</h2>
+      <h2 className="text-base font-semibold text-gray-900">📍 관광지 후보 확인 및 선택</h2>
       <p className="mt-1 text-xs text-gray-500">
         선택한 관광지 {selectedPlaceIds.length}/{MAX_SELECTABLE_PLACES} · 카드를 눌러 선택하거나 선택을 해제할 수
         있어요.
@@ -61,7 +61,7 @@ function PlaceRecommendStep({
           type="button"
           onClick={onAutoSelect}
           disabled={loading || isEmptyResult}
-          className="w-full rounded-lg border border-blue-300 py-2.5 text-sm text-blue-700 disabled:opacity-40"
+          className="w-full rounded-lg border border-[#1a1a1a] py-2.5 text-sm text-[#1a1a1a] disabled:opacity-40"
         >
           추천 관광지 자동 선택
         </button>
@@ -88,7 +88,7 @@ function PlaceRecommendStep({
               type="button"
               onClick={() => onChangePace(option.value)}
               className={`rounded-lg border px-3 py-2 text-sm ${
-                pace === option.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'
+                pace === option.value ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-700'
               }`}
             >
               {option.label}
@@ -102,7 +102,7 @@ function PlaceRecommendStep({
           type="button"
           onClick={onGenerateTimeline}
           disabled={timelineLoading || selectedPlaceIds.length === 0}
-          className="mt-3 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+          className="mt-3 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
         >
           {timelineLoading ? '타임라인 생성 중...' : '타임라인 생성하기'}
         </button>

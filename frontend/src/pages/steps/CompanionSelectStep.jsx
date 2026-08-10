@@ -52,13 +52,13 @@ function CompanionSelectStep({
 }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">3. 동행 조건 선택</h2>
+      <h2 className="text-base font-semibold text-gray-900">🧑‍🤝‍🧑 동행 조건 선택</h2>
       <p className="mt-1 text-sm text-gray-500">함께 여행하는 동행자의 특성을 선택해주세요. (복수 선택 가능)</p>
 
       <label className="mt-3 block text-sm text-gray-700">
         여행 목적지
         <input
-          className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-[#1a1a1a] focus:outline-none"
           value={destination}
           onChange={(event) => onChangeDestination(event.target.value)}
           placeholder="예: 부산"
@@ -78,7 +78,7 @@ function CompanionSelectStep({
               type="button"
               onClick={() => onToggleCompanionType(type.value)}
               className={`rounded-lg border px-3 py-2 text-sm ${
-                active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'
+                active ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-700'
               }`}
             >
               {type.label}
@@ -101,7 +101,7 @@ function CompanionSelectStep({
           type="button"
           onClick={onSubmit}
           disabled={loading || !destination.trim() || selectedCompanionTypes.length === 0}
-          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm text-white disabled:opacity-40"
+          className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-sm text-white disabled:opacity-40"
         >
           {loading ? '추천받는 중...' : '관광지 추천받기'}
         </button>
