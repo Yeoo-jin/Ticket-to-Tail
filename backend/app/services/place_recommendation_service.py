@@ -8,13 +8,19 @@ import random
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from app.schemas.common import CompanionType
-from app.schemas.place import Place, PlaceRecommendData, PlaceRecommendRequest, PlaceRecord
+from app.schemas.place import MealType, Place, PlaceRecommendData, PlaceRecommendRequest, PlaceRecord
 from app.services.place_data import load_places
 from app.utils.companion_validation import validate_companion_types
 from app.utils.errors import InvalidInputError
+from app.utils.meal_recommendation import recommend_meals
 
 DEFAULT_RECOMMEND_COUNT = 6
 MAX_AUTO_SELECT_COUNT = 3
+DEFAULT_RESTAURANT_COUNT_PER_MEAL = 3
+
+# 카페는 "관광지"로 취급해 places 후보 풀에 포함하되(2절 규칙 1), 음식점은 별도 취급한다(규칙 2).
+CAFE_CATEGORY = "카페"
+RESTAURANT_CATEGORY = "음식점"
 
 # 동행 조건별로 가점을 주는 태그 (요청사항 4절의 예시를 그대로 반영).
 _PREFERRED_TAGS: Dict[str, Sequence[str]] = {
@@ -88,6 +94,37 @@ def _weighted_sample_without_replacement(
     return [place for _, place in keyed[:k]]
 
 
+def _pick_guaranteed_cafe(
+    candidates: List[Tuple[PlaceRecord, int]],
+    kept: Sequence[PlaceRecord],
+    remaining_slots: int,
+    rng: random.Random,
+) -> Tuple[Optional[PlaceRecord], List[Tuple[PlaceRecord, int]]]:
+    """카페 후보 최소 1개 보장 (2절 규칙 1).
+
+    kept 안에 이미 카페가 있거나, 새로 채울 자리(remaining_slots)가 없거나,
+    candidates 안에 카페 후보가 없으면 아무것도 하지 않는다. 그 외에는
+    candidates(이미 지역·제외·유지·하드필터를 통과한 후보)의 카페 카테고리만
+    모아 가중 샘플링으로 1개를 확정하고, candidates에서 제외한 나머지를 함께 반환한다.
+    """
+    if remaining_slots <= 0:
+        return None, candidates
+    if any(place.category == CAFE_CATEGORY for place in kept):
+        return None, candidates
+
+    cafe_candidates = [(place, score) for place, score in candidates if place.category == CAFE_CATEGORY]
+    if not cafe_candidates:
+        return None, candidates
+
+    picked = _weighted_sample_without_replacement(cafe_candidates, 1, rng)
+    if not picked:
+        return None, candidates
+
+    guaranteed_cafe = picked[0]
+    remaining_candidates = [(place, score) for place, score in candidates if place.placeId != guaranteed_cafe.placeId]
+    return guaranteed_cafe, remaining_candidates
+
+
 def _build_reason(place: PlaceRecord, companion_types: Sequence[str]) -> str:
     for companion_type in companion_types:
         reason = place.recommendationReasons.get(companion_type)
@@ -159,19 +196,60 @@ def recommend_places(
         if place.region == destination
         and place.placeId not in exclude_ids
         and place.placeId not in kept_ids
+        # 음식점은 관광지 후보 풀에 넣지 않는다 - recommend_restaurants()에서 별도로 다룬다.
+        and place.category != RESTAURANT_CATEGORY
         and _passes_hard_filters(place, companion_types)
     ]
 
     scored: List[Tuple[PlaceRecord, int]] = [(place, _score(place, companion_types)) for place in candidates]
 
     remaining_slots = max(count - len(kept), 0)
+
+    guaranteed_cafe, scored = _pick_guaranteed_cafe(scored, kept, remaining_slots, rng)
+    if guaranteed_cafe is not None:
+        remaining_slots -= 1
+
     chosen = _weighted_sample_without_replacement(scored, remaining_slots, rng)
+    if guaranteed_cafe is not None:
+        chosen = [guaranteed_cafe] + chosen
 
     result_places = kept + chosen
     response_places = [_to_response_place(place, companion_types) for place in result_places]
     auto_selected_ids = _compute_auto_selected_ids(result_places, companion_types, rng)
 
     return response_places, auto_selected_ids
+
+
+def recommend_restaurants(
+    destination: str,
+    companion_types: Sequence[CompanionType],
+    meal_types: Sequence[MealType],
+    count_per_meal: int = DEFAULT_RESTAURANT_COUNT_PER_MEAL,
+    rng: Optional[random.Random] = None,
+) -> Dict[MealType, List[Place]]:
+    """식사 시간대별(점심/저녁) 음식점 후보 추천 (2절 규칙 2).
+
+    meal_types에 없는 버킷은 결과에 아예 포함하지 않는다
+    (예: 저녁만 추천 대상이면 결과는 {"dinner": [...]} 형태).
+    """
+    rng = rng or random.Random()
+    all_places = load_places()
+
+    result: Dict[MealType, List[Place]] = {}
+    for meal_type in meal_types:
+        candidates = [
+            place
+            for place in all_places
+            if place.region == destination
+            and place.category == RESTAURANT_CATEGORY
+            and place.mealType == meal_type
+            and _passes_hard_filters(place, companion_types)
+        ]
+        scored = [(place, _score(place, companion_types)) for place in candidates]
+        chosen = _weighted_sample_without_replacement(scored, count_per_meal, rng)
+        result[meal_type] = [_to_response_place(place, companion_types) for place in chosen]
+
+    return result
 
 
 def get_place_recommendations(
@@ -189,4 +267,15 @@ def get_place_recommendations(
         keep_place_ids=request.keepPlaceIds,
         rng=rng,
     )
-    return PlaceRecommendData(places=places, autoSelectedPlaceIds=auto_selected_ids)
+
+    restaurants: Dict[MealType, List[Place]] = {}
+    if request.arrivalTime:
+        meal_types = recommend_meals(request.arrivalTime)
+        restaurants = recommend_restaurants(
+            destination=destination,
+            companion_types=request.companionTypes,
+            meal_types=meal_types,
+            rng=rng,
+        )
+
+    return PlaceRecommendData(places=places, autoSelectedPlaceIds=auto_selected_ids, restaurants=restaurants)

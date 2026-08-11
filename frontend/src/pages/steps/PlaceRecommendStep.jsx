@@ -1,7 +1,6 @@
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
-import { MAX_SELECTABLE_PLACES } from '../../utils/placeSelection'
 
 const PACE_OPTIONS = [
   { value: 'normal', label: '보통' },
@@ -13,6 +12,7 @@ function PlaceRecommendStep({
   selectedPlaceIds,
   onToggleSelect,
   selectionLimitMessage,
+  maxSelectable,
   onAutoSelect,
   onRefresh,
   pace,
@@ -23,6 +23,7 @@ function PlaceRecommendStep({
   loading,
   error,
   onBack,
+  canGenerateTimeline,
 }) {
   const isEmptyResult = !loading && !error && places.length === 0
 
@@ -30,8 +31,8 @@ function PlaceRecommendStep({
     <section>
       <h2 className="text-base font-semibold text-gray-900">📍 관광지 후보 확인 및 선택</h2>
       <p className="mt-1 text-xs text-gray-500">
-        선택한 관광지 {selectedPlaceIds.length}/{MAX_SELECTABLE_PLACES} · 카드를 눌러 선택하거나 선택을 해제할 수
-        있어요.
+        선택한 관광지 {selectedPlaceIds.length}/{maxSelectable} · 카드를 눌러 선택하거나 선택을 해제할 수 있어요
+        (음식점 선택과 개수를 나눠 씁니다).
       </p>
 
       <ErrorMessage message={error} />
@@ -101,7 +102,7 @@ function PlaceRecommendStep({
         <button
           type="button"
           onClick={onGenerateTimeline}
-          disabled={timelineLoading || selectedPlaceIds.length === 0}
+          disabled={timelineLoading || !canGenerateTimeline}
           className="mt-3 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
         >
           {timelineLoading ? '타임라인 생성 중...' : '타임라인 생성하기'}
@@ -113,7 +114,7 @@ function PlaceRecommendStep({
         onClick={onBack}
         className="mt-3 w-full rounded-lg border border-gray-300 py-2.5 text-sm text-gray-700"
       >
-        이전 (동행 조건 다시 선택)
+        이전 (음식점 다시 선택)
       </button>
     </section>
   )

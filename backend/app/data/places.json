@@ -443,5 +443,195 @@
     "indoor": false,
     "address": "부산 사하구 몰운대1길 56",
     "imageUrl": null
+  },
+  {
+    "placeId": "place-015",
+    "name": "해운대 테라스 카페",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "카페",
+    "description": "해운대 바다 전망을 보며 쉬어갈 수 있는 실내 카페입니다.",
+    "tags": [
+      "실내",
+      "휴식 공간",
+      "유모차 접근성",
+      "저상 시설",
+      "카페"
+    ],
+    "companionTypes": [
+      "infant",
+      "senior",
+      "mobility_impaired",
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "infant": "실내 좌석이 넓고 유모차 이동이 편리해 유아 동반 여행 중 잠시 쉬어가기 좋습니다.",
+      "senior": "편안한 좌석에서 바다 전망을 보며 오래 쉴 수 있어 고령자 동반 여행에 적합합니다.",
+      "mobility_impaired": "저상 출입구와 넓은 통로가 있어 이동 부담이 적습니다.",
+      "solo": "혼자서도 창가 자리에 앉아 여유롭게 쉬어가기 좋은 카페입니다.",
+      "friends_couple": "바다 전망을 함께 즐기며 사진을 남기기 좋은 카페입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "08:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 해운대구 해운대해변로 280",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-016",
+    "name": "할매국밥",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "부산식 돼지국밥을 파는 오래된 식당입니다.",
+    "tags": [
+      "실내",
+      "저상 시설",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "mobility_impaired",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 부담 없이 한 끼를 든든하게 먹을 수 있는 식당입니다.",
+      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
+      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
+      "friends_couple": "빠르게 든든한 점심을 함께 먹기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "07:00",
+    "closeTime": "15:00",
+    "indoor": true,
+    "address": "부산 부산진구 중앙대로 692",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-017",
+    "name": "제일밀면",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "부산 대표 음식인 밀면을 파는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 먹기 좋은 부산 대표 음식점입니다.",
+      "senior": "메뉴가 간단하고 자리 회전이 빨라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "부산 명물 밀면을 함께 맛보기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "10:00",
+    "closeTime": "20:00",
+    "indoor": true,
+    "address": "부산 중구 중앙대로 33",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-018",
+    "name": "해운대 암소갈비집",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "숯불 갈비를 파는 저녁 식사에 어울리는 식당입니다.",
+    "tags": [
+      "실내",
+      "저상 시설",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "senior",
+      "mobility_impaired",
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "senior": "좌식이 아닌 테이블 좌석과 저상 출입구가 있어 고령자 동반 여행에 적합합니다.",
+      "mobility_impaired": "출입구와 매장 동선이 평탄해 이동 부담이 적습니다.",
+      "solo": "혼자서도 편하게 저녁 한 끼를 즐길 수 있는 식당입니다.",
+      "friends_couple": "숯불 갈비로 여행의 저녁을 든든하게 마무리하기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 해운대구 구남로 20",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-019",
+    "name": "광안리 조개구이거리",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "광안대교 야경을 보며 조개구이를 즐길 수 있는 거리입니다.",
+    "tags": [
+      "실외",
+      "음식",
+      "야경",
+      "체험"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 야경을 보며 가볍게 저녁을 즐길 수 있는 곳입니다.",
+      "friends_couple": "광안대교 야경을 보며 함께 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 70,
+    "openTime": "16:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 수영구 광안해변로 219",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-020",
+    "name": "동래할매파전",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "돼지고기와 해산물을 듬뿍 넣은 동래파전을 저녁 안주로 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 부담 없이 저녁 겸 안주를 즐기기 좋은 식당입니다.",
+      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "따뜻한 파전을 나눠 먹으며 저녁을 즐기기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "12:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 동래구 충렬대로 106",
+    "imageUrl": null
   }
 ]
