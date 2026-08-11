@@ -1,8 +1,10 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 from app.schemas.common import CompanionType
+
+MealType = Literal["lunch", "dinner"]
 
 
 class PlaceRecommendRequest(BaseModel):
@@ -10,6 +12,9 @@ class PlaceRecommendRequest(BaseModel):
     companionTypes: List[CompanionType]
     excludePlaceIds: List[str] = Field(default_factory=list)
     keepPlaceIds: List[str] = Field(default_factory=list)
+    # 있으면 도착 시각 기준으로 점심/저녁 음식점 추천(restaurants)을 함께 계산한다.
+    # 없으면 restaurants는 빈 객체로 반환한다 (app/utils/meal_recommendation.py 참고).
+    arrivalTime: Optional[str] = None
 
 
 class Place(BaseModel):
@@ -38,6 +43,10 @@ class PlaceRecommendData(BaseModel):
     # 내부 추천 점수 상위 항목(최대 3개)이다. 프론트는 점수를 직접 계산하지 않고 이 값만 사용한다.
     # 선택 필드가 아니라 항상 채워서 반환하는 정식 응답 필드이므로 기본값을 두지 않는다.
     autoSelectedPlaceIds: List[str]
+    # 식사 시간대별 음식점 후보. 키는 "lunch"/"dinner" (recommend_meals() 결과 기준).
+    # 요청에 arrivalTime이 없으면 빈 객체({})를 반환한다. places와 달리 카페(category:"카페")는
+    # 관광지로 취급해 여기 포함되지 않고 places 쪽에 들어간다.
+    restaurants: Dict[MealType, List[Place]] = Field(default_factory=dict)
 
 
 class PlaceRecommendResponse(BaseModel):
@@ -67,3 +76,5 @@ class PlaceRecord(BaseModel):
     indoor: bool
     address: str
     imageUrl: Optional[str] = None
+    # category가 "음식점"인 레코드에만 값이 있다("lunch"/"dinner"). 그 외(관광지, 카페)는 null.
+    mealType: Optional[MealType] = None

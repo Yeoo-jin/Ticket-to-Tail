@@ -249,7 +249,8 @@
   "destination":"부산",
   "companionTypes": ["infant"],
   "excludePlaceIds": [],
-  "keepPlaceIds": []
+  "keepPlaceIds": [],
+  "arrivalTime":"2026-08-12T10:30:00"
 }
 ```
 
@@ -261,8 +262,11 @@
 | `companionTypes` | string[] | O | 동행 조건 |
 | `excludePlaceIds` | string[] | X | 직전 추천에서 노출됐지만 사용자가 선택하지 않은 관광지 ID (다시 추천하지 않음) |
 | `keepPlaceIds` | string[] | X | 사용자가 이미 선택해 그대로 유지할 관광지 ID (응답 앞쪽에 그대로 포함됨). `places.json`에 없는 ID가 포함되면 공통 오류 응답(`INVALID_INPUT`)을 반환한다 |
+| `arrivalTime` | string | X | 도착 시각 (ISO 8601). `/api/bookings/parse` 응답의 도착 시각을 그대로 전달한다. 있으면 응답에 `restaurants`(음식점 추천)를 함께 계산하고, 없으면 `restaurants`는 빈 객체(`{}`)로 반환한다 |
 
 `keepPlaceIds` + 새로 추천되는 관광지를 합쳐 `places`는 항상 최대 6개이며(부족하면 6개 미만 가능), `keepPlaceIds`로 넘긴 관광지는 응답의 맨 앞쪽에, 나머지 새 후보가 그 뒤에 오는 순서로 반환된다. "다른 관광지 추천받기"를 호출할 때는 사용자가 선택한 관광지를 `keepPlaceIds`로, 선택하지 않은 관광지를 `excludePlaceIds`로 함께 전달한다.
+
+카페(`category:"카페"`)는 별도 카테고리가 아니라 "관광지"로 취급한다. `keepPlaceIds`에 이미 카페가 없고 새로 채울 자리가 남아 있으면, `places` 후보 안에 카페가 최소 1개는 포함되도록 보장한다(카페 후보 자체가 없는 지역이거나 채울 자리가 없으면 보장하지 않는다).
 
 ### 동행 조건 선택값 (`companionTypes`)
 
@@ -305,7 +309,37 @@ pet
         "closeTime":"18:00"
       }
     ],
-    "autoSelectedPlaceIds": ["place-001"]
+    "autoSelectedPlaceIds": ["place-001"],
+    "restaurants": {
+      "lunch": [
+        {
+          "placeId":"place-016",
+          "name":"할매국밥",
+          "description":"부산식 돼지국밥을 파는 오래된 식당입니다.",
+          "recommendationReason":"혼자서도 부담 없이 한 끼를 든든하게 먹을 수 있는 식당입니다.",
+          "estimatedDurationMinutes":45,
+          "tags": ["실내","저상 시설","음식","대중교통 접근"],
+          "imageUrl":null,
+          "category":"음식점",
+          "openTime":"07:00",
+          "closeTime":"15:00"
+        }
+      ],
+      "dinner": [
+        {
+          "placeId":"place-018",
+          "name":"해운대 암소갈비집",
+          "description":"숯불 갈비를 파는 저녁 식사에 어울리는 식당입니다.",
+          "recommendationReason":"혼자서도 편하게 저녁 한 끼를 즐길 수 있는 식당입니다.",
+          "estimatedDurationMinutes":60,
+          "tags": ["실내","저상 시설","음식","대중교통 접근"],
+          "imageUrl":null,
+          "category":"음식점",
+          "openTime":"11:00",
+          "closeTime":"22:00"
+        }
+      ]
+    }
   }
 }
 ```
@@ -321,6 +355,21 @@ pet
 | `autoSelectedPlaceIds` | string[] | O | 자동 선택 대상 placeId 목록. `places`의 부분집합이며 내부 추천 점수 상위 최대 3개. 후보가 3개 미만이면 존재하는 만큼만 포함, 지원하지 않는 지역 등으로 `places`가 빈 배열이면 `[]` |
 
 프론트엔드는 추천 점수를 직접 계산하거나 카드 순서만으로 자동 선택 대상을 판단하지 않고, 이 필드 값을 그대로 사용한다.
+
+### 응답 필드 - `restaurants`
+
+카페를 제외한 음식점 추천을 식사 시간대별로 묶어 반환하는 필드다. `places`와 별도 목록이며, `places`에는 음식점(`category:"음식점"`)이 포함되지 않는다.
+
+| 필드 | 자료형 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `restaurants` | object | O | 키는 `"lunch"` 또는 `"dinner"`, 값은 `places`와 동일한 구조의 관광지 카드 배열. 요청에 `arrivalTime`이 없으면 `{}` |
+
+`restaurants`의 키 구성은 요청의 `arrivalTime`을 기준으로 다음 규칙에 따라 결정된다 (`backend/app/utils/meal_recommendation.py`의 `recommend_meals()` 기준):
+
+- 13시 이전 도착: `{"lunch": [...], "dinner": [...]}` — 점심·저녁 모두 추천
+- 13시 이후(13시 정각 포함) 도착: `{"dinner": [...]}` — 저녁만 추천
+
+각 버킷의 후보 개수는 내부 기본값(현재 최대 3개)만큼 반환되며, 해당 지역·조건에 맞는 음식점이 없으면 빈 배열일 수 있다.
 
 ### 담당
 

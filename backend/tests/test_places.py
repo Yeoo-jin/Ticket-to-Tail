@@ -459,3 +459,121 @@ def test_health_still_ok_after_places_feature():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# 카페: "관광지" 카테고리로 취급하고, places 후보에 최소 1개는 포함되어야 한다.
+# 음식점은 반대로 places 후보 풀에서 아예 빠져야 한다.
+# ---------------------------------------------------------------------------
+
+CAFE_CATEGORY = "카페"
+RESTAURANT_CATEGORY = "음식점"
+
+
+def test_restaurants_never_appear_in_places_pool():
+    for seed in range(10):
+        places, _ = recommend_places("부산", ["friends_couple"], count=20, rng=random.Random(seed))
+        assert all(PLACES_BY_ID[p.placeId].category != RESTAURANT_CATEGORY for p in places)
+
+
+def test_cafe_is_guaranteed_when_room_and_candidates_available():
+    for seed in range(10):
+        places, _ = recommend_places("부산", ["friends_couple"], rng=random.Random(seed))
+        assert any(PLACES_BY_ID[p.placeId].category == CAFE_CATEGORY for p in places)
+
+
+def test_cafe_not_duplicated_when_already_kept():
+    cafe_id = next(p.placeId for p in PLACES_BY_ID.values() if p.category == CAFE_CATEGORY)
+    places, _ = recommend_places(
+        "부산",
+        ["friends_couple"],
+        keep_place_ids=[cafe_id],
+        rng=random.Random(1),
+    )
+    cafe_places = [p for p in places if PLACES_BY_ID[p.placeId].category == CAFE_CATEGORY]
+    assert len(cafe_places) == 1
+    assert cafe_places[0].placeId == cafe_id
+
+
+def test_cafe_not_forced_when_no_room_left():
+    # count와 kept 개수가 같으면 카페를 억지로 끼워 넣을 자리가 없다.
+    places, _ = recommend_places(
+        "부산",
+        ["friends_couple"],
+        keep_place_ids=["place-002"],
+        count=1,
+        rng=random.Random(1),
+    )
+    assert len(places) == 1
+    assert places[0].placeId == "place-002"
+
+
+# ---------------------------------------------------------------------------
+# 음식점(점심/저녁) 추천 - recommend_meals() 결과를 기준으로 버킷을 나눈다.
+# ---------------------------------------------------------------------------
+
+
+def test_restaurants_empty_when_no_arrival_time_given():
+    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"])
+    data = get_place_recommendations(request, rng=random.Random(1))
+    assert data.restaurants == {}
+
+
+def test_restaurants_include_lunch_and_dinner_when_arrival_before_13():
+    request = PlaceRecommendRequest(
+        destination="부산",
+        companionTypes=["friends_couple"],
+        arrivalTime="2026-08-12T10:30:00",
+    )
+    data = get_place_recommendations(request, rng=random.Random(1))
+    assert set(data.restaurants.keys()) == {"lunch", "dinner"}
+    assert len(data.restaurants["lunch"]) > 0
+    assert len(data.restaurants["dinner"]) > 0
+
+
+def test_restaurants_include_only_dinner_when_arrival_at_or_after_13():
+    request = PlaceRecommendRequest(
+        destination="부산",
+        companionTypes=["friends_couple"],
+        arrivalTime="2026-08-12T13:00:00",
+    )
+    data = get_place_recommendations(request, rng=random.Random(1))
+    assert set(data.restaurants.keys()) == {"dinner"}
+    assert len(data.restaurants["dinner"]) > 0
+
+
+def test_restaurant_results_only_contain_restaurant_category_with_matching_meal_type():
+    request = PlaceRecommendRequest(
+        destination="부산",
+        companionTypes=["friends_couple"],
+        arrivalTime="2026-08-12T08:00:00",
+    )
+    data = get_place_recommendations(request, rng=random.Random(1))
+    for meal_type, places in data.restaurants.items():
+        for place in places:
+            record = PLACES_BY_ID[place.placeId]
+            assert record.category == RESTAURANT_CATEGORY
+            assert record.mealType == meal_type
+
+
+def test_restaurants_via_api_endpoint_with_arrival_time():
+    response = client.post(
+        "/api/places/recommend",
+        json={
+            "destination": "부산",
+            "companionTypes": ["friends_couple"],
+            "arrivalTime": "2026-08-12T18:00:00",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body["data"]["restaurants"].keys()) == {"dinner"}
+
+
+def test_restaurants_via_api_endpoint_without_arrival_time_is_empty():
+    response = client.post(
+        "/api/places/recommend",
+        json={"destination": "부산", "companionTypes": ["friends_couple"]},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["restaurants"] == {}
