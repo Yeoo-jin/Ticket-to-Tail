@@ -23,3 +23,9 @@ export function resolveAutoSelection(autoSelectedPlaceIds, availablePlaceIds, ma
   const availableSet = new Set(availablePlaceIds)
   return (autoSelectedPlaceIds || []).filter((id) => availableSet.has(id)).slice(0, maxCount)
 }
+
+// 음식점 선택과 관광지 선택이 총 개수(MAX_SELECTABLE_PLACES)를 공유할 때, 한쪽에서 이미
+// 선택한 개수를 뺀 나머지 선택 가능 개수를 구한다 (음수가 되지 않게 0으로 바닥을 둔다).
+export function remainingSelectable(otherSelectedCount, maxCount = MAX_SELECTABLE_PLACES) {
+  return Math.max(maxCount - otherSelectedCount, 0)
+}

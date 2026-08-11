@@ -103,7 +103,7 @@ function CompanionSelectStep({
           disabled={loading || !destination.trim() || selectedCompanionTypes.length === 0}
           className="flex-1 rounded-lg bg-[#1a1a1a] py-2.5 text-sm text-white disabled:opacity-40"
         >
-          {loading ? '추천받는 중...' : '관광지 추천받기'}
+          {loading ? '추천받는 중...' : '음식점·관광지 추천받기'}
         </button>
       </div>
     </section>

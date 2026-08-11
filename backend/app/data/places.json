@@ -603,5 +603,35 @@
     "indoor": false,
     "address": "부산 수영구 광안해변로 219",
     "imageUrl": null
+  },
+  {
+    "placeId": "place-020",
+    "name": "동래할매파전",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "돼지고기와 해산물을 듬뿍 넣은 동래파전을 저녁 안주로 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 부담 없이 저녁 겸 안주를 즐기기 좋은 식당입니다.",
+      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "따뜻한 파전을 나눠 먹으며 저녁을 즐기기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "12:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 동래구 충렬대로 106",
+    "imageUrl": null
   }
 ]

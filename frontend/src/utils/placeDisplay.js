@@ -10,6 +10,8 @@ const CATEGORY_ICONS = {
   수족관: '🐠',
   산책로: '🚶',
   미술관: '🖼️',
+  카페: '☕',
+  음식점: '🍽️',
 }
 
 export function categoryIcon(category) {
