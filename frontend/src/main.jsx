@@ -10,6 +10,8 @@ import '@fontsource/noto-sans-kr/400.css'
 import '@fontsource/gaegu/400.css'
 import '@fontsource/noto-serif-kr/400.css'
 import '@fontsource/gowun-dodum/400.css'
+// 표지 제목("모두잇다") 손글씨 제목에도 Gaegu를 재사용한다. 제목만 굵게 써서 700 굵기를 추가로 가져온다.
+import '@fontsource/gaegu/700.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

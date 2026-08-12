@@ -128,7 +128,7 @@ function DiaryInputStep({
         disabled={loading || !canSubmit}
         className="mt-4 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
       >
-        {loading ? 'AI 다이어리 생성 중...' : 'AI 다이어리 생성하기'}
+        {loading ? '다이어리 생성 중...' : '다이어리 생성하기'}
       </button>
 
       {loading && <LoadingIndicator label="사진과 메모를 바탕으로 다이어리를 작성하는 중..." />}

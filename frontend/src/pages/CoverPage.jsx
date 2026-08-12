@@ -14,7 +14,8 @@ function CoverPage({ onSubmit }) {
     <div className="diary-cover min-h-app flex items-center justify-center px-6 py-10">
       <div className="diary-cover-spine" />
       <div className="mx-auto flex w-full max-w-xs flex-col items-center pl-4">
-        <img src={logo} alt="Ticket to Tale" className="h-40 w-48 object-contain" />
+        <h1 className="diary-cover-title text-4xl">모두잇다</h1>
+        <img src={logo} alt="Ticket to Tale" className="mt-2 h-40 w-48 object-contain" />
 
         <label className="diary-cover-title-box mt-10 flex w-full flex-col items-center px-4 py-5">
           <span className="mb-2 text-xs text-[#8a7c6f]">우리들의 여행 제목을 적어주세요</span>

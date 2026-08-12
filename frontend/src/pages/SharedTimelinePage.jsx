@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import TripMap from '../components/TripMap'
+import DoodleSticker from '../components/stickers/DoodleSticker'
 import { getSharedTimeline } from '../services/shareApi'
 import { companionTypeLabels } from '../utils/companionTypes'
 import { TIMELINE_TYPE_LABEL, dateKey, formatDateHeader, formatTime } from '../utils/timelineDisplay'
@@ -51,6 +52,18 @@ function SharedTimelinePage({ shareId }) {
   return (
     <div className="notebook-page min-h-app px-4 py-6">
       <div className="notebook-spine-holes" />
+      <DoodleSticker
+        icon="map"
+        className="pointer-events-none absolute z-10 right-1 top-1 h-9 w-9 rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="hotAirBalloon"
+        className="pointer-events-none absolute z-10 left-1 top-1 h-8 w-8 -rotate-3 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="suitcase"
+        className="pointer-events-none absolute z-10 bottom-3 left-8 h-10 w-10 -rotate-6 text-[#a38a6a] opacity-55"
+      />
       <div className="mx-auto w-full max-w-md pl-6">
         <p className="text-xs text-[#8a7c6f]">공유된 여행 타임라인</p>
         <h1 className="mt-1 text-xl font-bold text-[#2c2420]">{destination}</h1>
@@ -107,8 +120,6 @@ function SharedTimelinePage({ shareId }) {
             })}
           </ol>
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-[#a39c92]">Ticket to Tale로 만든 여행 일정이에요.</p>
       </div>
     </div>
   )

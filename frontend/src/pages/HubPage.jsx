@@ -1,9 +1,26 @@
 import ShareButton from '../components/ShareButton'
+import DoodleSticker from '../components/stickers/DoodleSticker'
 
 function HubPage({ title, timelineDone, diaryDone, onGenerateTimeline, onGenerateDiary, onOpenMyPage }) {
   return (
     <div className="notebook-page min-h-app relative px-6 py-10">
       <div className="notebook-spine-holes" />
+      <DoodleSticker
+        icon="airplane"
+        className="pointer-events-none absolute z-10 right-4 top-5 h-12 w-12 rotate-6 text-[#a38a6a] opacity-60"
+      />
+      <DoodleSticker
+        icon="globe"
+        className="pointer-events-none absolute z-10 left-2 top-[38%] h-8 w-8 -rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="compass"
+        className="pointer-events-none absolute z-10 right-1 top-[58%] h-8 w-8 rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="palmIsland"
+        className="pointer-events-none absolute z-10 bottom-5 left-8 h-11 w-11 rotate-3 text-[#a38a6a] opacity-60"
+      />
 
       <div className="mx-auto flex w-full max-w-xs flex-col pl-6">
         <p className="text-xs text-[#8a7c6f]">우리들의 여행</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSharedDiary } from '../services/shareApi'
 import { resolveAssetUrl } from '../services/apiClient'
+import DoodleSticker from '../components/stickers/DoodleSticker'
 
 function CenteredMessage({ children }) {
   return (
@@ -39,6 +40,18 @@ function SharedDiaryPage({ shareId }) {
   return (
     <div className="notebook-page min-h-app px-4 py-6">
       <div className="notebook-spine-holes" />
+      <DoodleSticker
+        icon="camera"
+        className="pointer-events-none absolute z-10 right-1 top-1 h-9 w-9 rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="sunglasses"
+        className="pointer-events-none absolute z-10 left-1 top-1 h-8 w-8 -rotate-3 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="iceCream"
+        className="pointer-events-none absolute z-10 bottom-3 left-8 h-9 w-9 -rotate-6 text-[#a38a6a] opacity-55"
+      />
       <div className="mx-auto w-full max-w-md pl-6">
         <p className="text-xs text-[#8a7c6f]">공유된 여행 다이어리 · {destination}</p>
         <h1 className="mt-1 text-xl font-bold text-[#2c2420]">{title}</h1>
@@ -63,8 +76,6 @@ function SharedDiaryPage({ shareId }) {
             <p className="break-words text-xs text-blue-700">{hashtags.join(' ')}</p>
           )}
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-[#a39c92]">Ticket to Tale로 만든 여행 다이어리예요.</p>
       </div>
     </div>
   )
