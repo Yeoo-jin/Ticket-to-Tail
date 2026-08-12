@@ -5,7 +5,6 @@ import { recommendPlaces } from '../services/placeApi'
 import { generateTimeline } from '../services/timelineApi'
 import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
-import { deriveLatestArrivalTime } from '../utils/deriveArrival'
 import { DEFAULT_BACKGROUND_COLOR } from '../utils/backgroundColor'
 import { DEFAULT_CHECK_SPACING, DEFAULT_DOT_SIZE, DEFAULT_PATTERN_COLOR } from '../utils/backgroundPattern'
 import { buildDefaultBackgroundCaptions } from '../utils/memoDistribution'
@@ -13,9 +12,11 @@ import { DEFAULT_SPLIT_COUNT } from '../utils/panoramaLayouts'
 import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
 import { setPhotoStyleField } from '../utils/photoStyle'
 import {
+  REQUIRED_DAILY_PLACE_COUNT,
   SELECTION_LIMIT_MESSAGE,
-  remainingSelectable,
+  generateCustomPlaceId,
   resolveAutoSelection,
+  toggleRestaurantSelection,
   toggleSelection,
 } from '../utils/placeSelection'
 import { DEFAULT_POSTER_FONT } from '../utils/posterFonts'
@@ -40,11 +41,17 @@ const STEP = {
 }
 const TOTAL_STEPS = 8
 
+// 날짜 문자열(YYYY-MM-DD)을 "N일차 · M월 D일" 형태로 보여준다.
+function formatDayLabel(date, index) {
+  const [, month, day] = date.split('-')
+  return `${index + 1}일차 · ${Number(month)}월 ${Number(day)}일`
+}
+
 // 진행 상태를 sessionStorage에 저장해, 브라우저(특히 iPhone Safari)가 탭을 새로고침해도
 // 처음(1단계)으로 돌아가지 않고 하던 화면으로 복원되게 한다. 업로드한 사진(File)은
 // sessionStorage에 저장할 수 없어(직렬화 불가) 복원 대상에서 제외한다 — 사진이 필요한
-// 화면(6·7단계)으로 복원되더라도 사진 슬롯만 비어 보일 뿐 화면 자체가 깨지지는 않는다.
-const STORAGE_KEY = 'ticketToTale:tripPlannerState:v1'
+// 화면(7·8단계)으로 복원되더라도 사진 슬롯만 비어 보일 뿐 화면 자체가 깨지지는 않는다.
+const STORAGE_KEY = 'ticketToTale:tripPlannerState:v2'
 
 function loadPersistedState() {
   try {
@@ -68,17 +75,28 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const [destination, setDestination] = useState(persisted?.destination ?? '')
   const [companionTypes, setCompanionTypes] = useState(persisted?.companionTypes ?? [])
 
-  const [places, setPlaces] = useState(persisted?.places ?? [])
-  const [autoSelectedPlaceIds, setAutoSelectedPlaceIds] = useState(persisted?.autoSelectedPlaceIds ?? [])
-  const [selectedPlaceIds, setSelectedPlaceIds] = useState(persisted?.selectedPlaceIds ?? [])
+  // 여행 날짜별 관광지·음식점 후보와 선택 결과. 관광지는 하루 3개 필수이며, 음식점과
+  // 슬롯을 나눠 쓰지 않는다(요청사항 기준). 날짜 목록(tripDays)은 최초 추천 응답의
+  // placesByDay 키에서 얻는다.
+  const [tripDays, setTripDays] = useState(persisted?.tripDays ?? [])
+  const [currentDayIndex, setCurrentDayIndex] = useState(persisted?.currentDayIndex ?? 0)
+  const [placesByDay, setPlacesByDay] = useState(persisted?.placesByDay ?? {})
+  const [autoSelectedPlaceIdsByDay, setAutoSelectedPlaceIdsByDay] = useState(
+    persisted?.autoSelectedPlaceIdsByDay ?? {}
+  )
+  const [restaurantsByDay, setRestaurantsByDay] = useState(persisted?.restaurantsByDay ?? {})
+  const [selectedPlaceIdsByDay, setSelectedPlaceIdsByDay] = useState(persisted?.selectedPlaceIdsByDay ?? {})
+  const [selectedRestaurantIdsByDay, setSelectedRestaurantIdsByDay] = useState(
+    persisted?.selectedRestaurantIdsByDay ?? {}
+  )
+  // 추천 후보 대신 사용자가 직접 입력한 장소: { [placeId]: {name, address, lat, lng} }.
+  // 키는 generateCustomPlaceId()로 만든 임시 ID이며, selectedPlaceIdsByDay/
+  // selectedRestaurantIdsByDay 안에서 이 ID로 참조된다. 카카오 장소검색으로 고르면
+  // address/lat/lng가 채워지고, 이름만 입력하면 그 값들은 null이다.
+  const [customPlaces, setCustomPlaces] = useState(persisted?.customPlaces ?? {})
   const [selectionLimitMessage, setSelectionLimitMessage] = useState('')
   const [placesLoading, setPlacesLoading] = useState(false)
   const [placesError, setPlacesError] = useState('')
-
-  // 음식점(점심용/저녁용) 추천 - places와 같은 /api/places/recommend 응답에서 함께 받는다.
-  // 관광지 선택과 총 개수(MAX_SELECTABLE_PLACES)를 공유한다.
-  const [restaurants, setRestaurants] = useState(persisted?.restaurants ?? {})
-  const [selectedRestaurantIds, setSelectedRestaurantIds] = useState(persisted?.selectedRestaurantIds ?? [])
 
   const [pace, setPace] = useState(persisted?.pace ?? 'normal')
   const [timelineData, setTimelineData] = useState(persisted?.timelineData ?? null)
@@ -133,11 +151,14 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
       bookingResult,
       destination,
       companionTypes,
-      places,
-      autoSelectedPlaceIds,
-      selectedPlaceIds,
-      restaurants,
-      selectedRestaurantIds,
+      tripDays,
+      currentDayIndex,
+      placesByDay,
+      autoSelectedPlaceIdsByDay,
+      restaurantsByDay,
+      selectedPlaceIdsByDay,
+      selectedRestaurantIdsByDay,
+      customPlaces,
       pace,
       timelineData,
       diaryMemo,
@@ -170,11 +191,14 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     bookingResult,
     destination,
     companionTypes,
-    places,
-    autoSelectedPlaceIds,
-    selectedPlaceIds,
-    restaurants,
-    selectedRestaurantIds,
+    tripDays,
+    currentDayIndex,
+    placesByDay,
+    autoSelectedPlaceIdsByDay,
+    restaurantsByDay,
+    selectedPlaceIdsByDay,
+    selectedRestaurantIdsByDay,
+    customPlaces,
     pace,
     timelineData,
     diaryMemo,
@@ -251,32 +275,42 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setCompanionTypes((prev) => toggleCompanionSelection(prev, value))
   }
 
-  async function fetchPlaces({ excludePlaceIds = [], keepPlaceIds = [], arrivalTime }) {
+  // 예매정보 기준 여행 전체 날짜에 대해 관광지·음식점 후보를 한 번에 받아온다.
+  async function handleRequestPlaces() {
     setPlacesLoading(true)
     setPlacesError('')
     try {
-      const data = await recommendPlaces({ destination, companionTypes, excludePlaceIds, keepPlaceIds, arrivalTime })
-      setPlaces(data.places)
-      setAutoSelectedPlaceIds(data.autoSelectedPlaceIds)
-      // restaurants는 arrivalTime을 보낸 최초 요청에서만 채워진다("다른 관광지 추천받기"에서는
-      // arrivalTime을 안 보내므로 응답이 {}다 - 이미 고른 음식점 선택을 건드리지 않기 위해 덮어쓰지 않는다).
-      if (arrivalTime) setRestaurants(data.restaurants)
-      return true
+      const data = await recommendPlaces({ destination, companionTypes, bookings: bookingResult.bookings })
+      const days = Object.keys(data.placesByDay).sort()
+      setTripDays(days)
+      setCurrentDayIndex(0)
+      setPlacesByDay(data.placesByDay)
+      setAutoSelectedPlaceIdsByDay(data.autoSelectedPlaceIdsByDay)
+      setRestaurantsByDay(data.restaurantsByDay)
+      setSelectedPlaceIdsByDay({})
+      setSelectedRestaurantIdsByDay({})
+      setSelectionLimitMessage('')
+      setStep(STEP.RESTAURANT_RECOMMEND)
     } catch (error) {
       setPlacesError(error.message)
-      return false
     } finally {
       setPlacesLoading(false)
     }
   }
 
-  async function handleRequestPlaces() {
-    setSelectedPlaceIds([])
-    setSelectedRestaurantIds([])
-    setSelectionLimitMessage('')
-    const arrivalTime = deriveLatestArrivalTime(bookingResult?.bookings)
-    const ok = await fetchPlaces({ arrivalTime })
-    if (ok) setStep(STEP.RESTAURANT_RECOMMEND)
+  function handleToggleRestaurant(mealType, placeId) {
+    const currentDate = tripDays[currentDayIndex]
+    setSelectedRestaurantIdsByDay((prev) => {
+      const current = prev[currentDate] || {}
+      let next
+      if (placeId === null) {
+        next = { ...current }
+        delete next[mealType]
+      } else {
+        next = toggleRestaurantSelection(current, mealType, placeId)
+      }
+      return { ...prev, [currentDate]: next }
+    })
   }
 
   function handleContinueToPlaces() {
@@ -284,35 +318,114 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setStep(STEP.PLACE_RECOMMEND)
   }
 
-  function handleToggleRestaurant(placeId) {
-    const maxCount = remainingSelectable(selectedPlaceIds.length)
-    const { selectedIds, limitReached } = toggleSelection(selectedRestaurantIds, placeId, maxCount)
-    setSelectedRestaurantIds(selectedIds)
-    setSelectionLimitMessage(limitReached ? SELECTION_LIMIT_MESSAGE : '')
+  function handleBackFromRestaurant() {
+    if (currentDayIndex === 0) {
+      setStep(STEP.COMPANION_SELECT)
+    } else {
+      setCurrentDayIndex((prev) => prev - 1)
+      setStep(STEP.PLACE_RECOMMEND)
+    }
   }
 
   function handleToggleSelect(placeId) {
-    const maxCount = remainingSelectable(selectedRestaurantIds.length)
-    const { selectedIds, limitReached } = toggleSelection(selectedPlaceIds, placeId, maxCount)
-    setSelectedPlaceIds(selectedIds)
+    const currentDate = tripDays[currentDayIndex]
+    const current = selectedPlaceIdsByDay[currentDate] || []
+    const { selectedIds, limitReached } = toggleSelection(current, placeId)
+    setSelectedPlaceIdsByDay((prev) => ({ ...prev, [currentDate]: selectedIds }))
     setSelectionLimitMessage(limitReached ? SELECTION_LIMIT_MESSAGE : '')
   }
 
   function handleAutoSelect() {
-    const availableIds = places.map((place) => place.placeId)
-    const maxCount = remainingSelectable(selectedRestaurantIds.length)
-    setSelectedPlaceIds(resolveAutoSelection(autoSelectedPlaceIds, availableIds, maxCount))
+    const currentDate = tripDays[currentDayIndex]
+    const availableIds = (placesByDay[currentDate] || []).map((place) => place.placeId)
+    const autoIds = resolveAutoSelection(autoSelectedPlaceIdsByDay[currentDate] || [], availableIds)
+    setSelectedPlaceIdsByDay((prev) => ({ ...prev, [currentDate]: autoIds }))
     setSelectionLimitMessage('')
   }
 
-  async function handleRefreshPlaces() {
-    // 선택한 관광지(keepPlaceIds)는 그대로 유지하고, 선택하지 않은 현재 후보(excludePlaceIds)만 교체한다.
-    const keepPlaceIds = selectedPlaceIds
-    const excludePlaceIds = places
-      .filter((place) => !selectedPlaceIds.includes(place.placeId))
-      .map((place) => place.placeId)
+  function handleAddCustomPlace(place) {
+    const currentDate = tripDays[currentDayIndex]
+    const current = selectedPlaceIdsByDay[currentDate] || []
+    if (current.length >= REQUIRED_DAILY_PLACE_COUNT) {
+      setSelectionLimitMessage(SELECTION_LIMIT_MESSAGE)
+      return
+    }
+    const id = generateCustomPlaceId()
+    setCustomPlaces((prev) => ({ ...prev, [id]: place }))
+    setSelectedPlaceIdsByDay((prev) => ({ ...prev, [currentDate]: [...current, id] }))
     setSelectionLimitMessage('')
-    await fetchPlaces({ excludePlaceIds, keepPlaceIds })
+  }
+
+  function handleRemoveCustomPlace(placeId) {
+    const currentDate = tripDays[currentDayIndex]
+    setSelectedPlaceIdsByDay((prev) => ({
+      ...prev,
+      [currentDate]: (prev[currentDate] || []).filter((id) => id !== placeId),
+    }))
+    setSelectionLimitMessage('')
+  }
+
+  function handleAddCustomRestaurant(mealType, place) {
+    const currentDate = tripDays[currentDayIndex]
+    const id = generateCustomPlaceId()
+    setCustomPlaces((prev) => ({ ...prev, [id]: place }))
+    setSelectedRestaurantIdsByDay((prev) => {
+      const current = prev[currentDate] || {}
+      return { ...prev, [currentDate]: { ...current, [mealType]: id } }
+    })
+  }
+
+  async function handleRefreshPlaces() {
+    const currentDate = tripDays[currentDayIndex]
+    const currentPlaces = placesByDay[currentDate] || []
+    const selectedIds = selectedPlaceIdsByDay[currentDate] || []
+    // 오늘 후보 중 선택 안 한 것 + 다른 날짜에 이미 나온 관광지·음식점 전부를 제외해,
+    // 같은 곳이 다시 나오거나 다른 날짜와 겹치지 않게 한다. 선택한 관광지(keepPlaceIds)는 유지한다.
+    const excludeFromToday = currentPlaces.filter((place) => !selectedIds.includes(place.placeId)).map((p) => p.placeId)
+    const excludeFromOtherDays = Object.entries(placesByDay)
+      .filter(([date]) => date !== currentDate)
+      .flatMap(([, list]) => list.map((place) => place.placeId))
+    const excludeFromRestaurants = Object.values(restaurantsByDay).flatMap((dayMeals) =>
+      Object.values(dayMeals).flatMap((list) => list.map((place) => place.placeId))
+    )
+    const excludePlaceIds = [...excludeFromToday, ...excludeFromOtherDays, ...excludeFromRestaurants]
+
+    setPlacesLoading(true)
+    setPlacesError('')
+    setSelectionLimitMessage('')
+    try {
+      const data = await recommendPlaces({
+        destination,
+        companionTypes,
+        bookings: bookingResult.bookings,
+        targetDate: currentDate,
+        keepPlaceIds: selectedIds,
+        excludePlaceIds,
+      })
+      setPlacesByDay((prev) => ({ ...prev, [currentDate]: data.placesByDay[currentDate] || [] }))
+      setAutoSelectedPlaceIdsByDay((prev) => ({
+        ...prev,
+        [currentDate]: data.autoSelectedPlaceIdsByDay[currentDate] || [],
+      }))
+    } catch (error) {
+      setPlacesError(error.message)
+    } finally {
+      setPlacesLoading(false)
+    }
+  }
+
+  function handleNextDay() {
+    setCurrentDayIndex((prev) => prev + 1)
+    setSelectionLimitMessage('')
+    setStep(STEP.RESTAURANT_RECOMMEND)
+  }
+
+  function buildDaysPayload() {
+    return tripDays.map((date) => ({
+      date,
+      placeIds: selectedPlaceIdsByDay[date] || [],
+      restaurantIds: selectedRestaurantIdsByDay[date] || {},
+    }))
   }
 
   async function requestTimeline() {
@@ -322,11 +435,10 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
       const data = await generateTimeline({
         bookings: bookingResult.bookings,
         companionTypes,
-        // 음식점 선택 + 관광지 선택을 합쳐 하나의 방문 목록으로 넘긴다. 백엔드는 카테고리와
-        // 무관하게 placeId 기준으로 운영시간·체류시간을 반영해 배치하므로 별도 처리가 필요 없다.
-        selectedPlaceIds: [...selectedRestaurantIds, ...selectedPlaceIds],
+        days: buildDaysPayload(),
         destination,
         pace,
+        customPlaces,
       })
       setTimelineData(data)
       return true
@@ -347,7 +459,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   }
 
   async function handleRegenerateTimeline() {
-    // selectedPlaceIds는 그대로 두고, 방문 순서·휴식 배치만 다시 계산되도록 동일 조건으로 재요청한다.
+    // 날짜별 선택은 그대로 두고, 그날 관광지 방문 순서만 다시 계산되도록 동일 조건으로 재요청한다.
     await requestTimeline()
   }
 
@@ -395,6 +507,12 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     )
   }
 
+  function allSelectedPlaceIds() {
+    const placeIds = Object.values(selectedPlaceIdsByDay).flat()
+    const restaurantIds = Object.values(selectedRestaurantIdsByDay).flatMap((meals) => Object.values(meals))
+    return [...placeIds, ...restaurantIds]
+  }
+
   async function requestDiary() {
     setDiaryLoading(true)
     setDiaryError('')
@@ -405,7 +523,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
         memo: diaryMemo,
         companionTypes,
         timeline: timelineData,
-        selectedPlaceIds,
+        selectedPlaceIds: allSelectedPlaceIds(),
         photoMemos: photos.map((photo) => photo.memo),
         photos,
       })
@@ -458,11 +576,14 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setBookingError('')
     setDestination('')
     setCompanionTypes([])
-    setPlaces([])
-    setAutoSelectedPlaceIds([])
-    setSelectedPlaceIds([])
-    setRestaurants({})
-    setSelectedRestaurantIds([])
+    setTripDays([])
+    setCurrentDayIndex(0)
+    setPlacesByDay({})
+    setAutoSelectedPlaceIdsByDay({})
+    setRestaurantsByDay({})
+    setSelectedPlaceIdsByDay({})
+    setSelectedRestaurantIdsByDay({})
+    setCustomPlaces({})
     setSelectionLimitMessage('')
     setPlacesError('')
     setPace('normal')
@@ -496,6 +617,29 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const phaseTotal = isDiaryPhase ? 2 : STEP.TIMELINE_RESULT
   const phaseCurrent = isDiaryPhase ? step - STEP.TIMELINE_RESULT : step
 
+  const currentDate = tripDays[currentDayIndex]
+  const isLastDay = currentDayIndex === tripDays.length - 1
+
+  // 지도(동선 직선 표시)용: placeId -> {lat, lng, name}. 좌표가 없는 장소(사용자 직접 입력
+  // 등)는 빠지고, 그런 장소는 지도에 그냥 표시되지 않는다.
+  const placeCoordinates = {}
+  Object.values(placesByDay).forEach((places) => {
+    places.forEach((place) => {
+      if (place.lat != null && place.lng != null) {
+        placeCoordinates[place.placeId] = { lat: place.lat, lng: place.lng, name: place.name }
+      }
+    })
+  })
+  Object.values(restaurantsByDay).forEach((mealBuckets) => {
+    Object.values(mealBuckets).forEach((places) => {
+      places.forEach((place) => {
+        if (place.lat != null && place.lng != null) {
+          placeCoordinates[place.placeId] = { lat: place.lat, lng: place.lng, name: place.name }
+        }
+      })
+    })
+  })
+
   return (
     <div className="notebook-page min-h-app px-4 py-6">
       <div className="notebook-spine-holes" />
@@ -521,144 +665,154 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
 
         <div className="note-card-taped p-4 sm:p-6">
           {step === STEP.BOOKING_INPUT && (
-          <BookingInputStep
-            bookingText={bookingText}
-            onChangeText={setBookingText}
-            onSubmit={handleParseBooking}
-            loading={bookingLoading}
-            error={bookingError}
-          />
-        )}
+            <BookingInputStep
+              bookingText={bookingText}
+              onChangeText={setBookingText}
+              onSubmit={handleParseBooking}
+              loading={bookingLoading}
+              error={bookingError}
+            />
+          )}
 
-        {step === STEP.BOOKING_RESULT && bookingResult && (
-          <BookingResultStep
-            bookingResult={bookingResult}
-            onBack={() => setStep(STEP.BOOKING_INPUT)}
-            onNext={() => setStep(STEP.COMPANION_SELECT)}
-          />
-        )}
+          {step === STEP.BOOKING_RESULT && bookingResult && (
+            <BookingResultStep
+              bookingResult={bookingResult}
+              onBack={() => setStep(STEP.BOOKING_INPUT)}
+              onNext={() => setStep(STEP.COMPANION_SELECT)}
+            />
+          )}
 
-        {step === STEP.COMPANION_SELECT && (
-          <CompanionSelectStep
-            destination={destination}
-            onChangeDestination={setDestination}
-            selectedCompanionTypes={companionTypes}
-            onToggleCompanionType={toggleCompanionType}
-            onSubmit={handleRequestPlaces}
-            loading={placesLoading}
-            error={placesError}
-            onBack={() => setStep(STEP.BOOKING_RESULT)}
-          />
-        )}
+          {step === STEP.COMPANION_SELECT && (
+            <CompanionSelectStep
+              destination={destination}
+              onChangeDestination={setDestination}
+              selectedCompanionTypes={companionTypes}
+              onToggleCompanionType={toggleCompanionType}
+              onSubmit={handleRequestPlaces}
+              loading={placesLoading}
+              error={placesError}
+              onBack={() => setStep(STEP.BOOKING_RESULT)}
+            />
+          )}
 
-        {step === STEP.RESTAURANT_RECOMMEND && (
-          <RestaurantRecommendStep
-            restaurants={restaurants}
-            selectedRestaurantIds={selectedRestaurantIds}
-            onToggleSelect={handleToggleRestaurant}
-            selectionLimitMessage={selectionLimitMessage}
-            maxSelectable={remainingSelectable(selectedPlaceIds.length)}
-            loading={placesLoading}
-            error={placesError}
-            onNext={handleContinueToPlaces}
-            onBack={() => setStep(STEP.COMPANION_SELECT)}
-          />
-        )}
+          {step === STEP.RESTAURANT_RECOMMEND && currentDate && (
+            <RestaurantRecommendStep
+              dayLabel={formatDayLabel(currentDate, currentDayIndex)}
+              restaurantsForDay={restaurantsByDay[currentDate] || {}}
+              selectedRestaurantIds={selectedRestaurantIdsByDay[currentDate] || {}}
+              onToggleSelect={handleToggleRestaurant}
+              loading={placesLoading}
+              error={placesError}
+              onNext={handleContinueToPlaces}
+              onBack={handleBackFromRestaurant}
+              customPlaces={customPlaces}
+              onAddCustomRestaurant={handleAddCustomRestaurant}
+            />
+          )}
 
-        {step === STEP.PLACE_RECOMMEND && (
-          <PlaceRecommendStep
-            places={places}
-            selectedPlaceIds={selectedPlaceIds}
-            onToggleSelect={handleToggleSelect}
-            selectionLimitMessage={selectionLimitMessage}
-            maxSelectable={remainingSelectable(selectedRestaurantIds.length)}
-            onAutoSelect={handleAutoSelect}
-            onRefresh={handleRefreshPlaces}
-            pace={pace}
-            onChangePace={setPace}
-            onGenerateTimeline={handleGenerateTimeline}
-            timelineLoading={timelineLoading}
-            timelineError={timelineError}
-            canGenerateTimeline={selectedRestaurantIds.length + selectedPlaceIds.length > 0}
-            loading={placesLoading}
-            error={placesError}
-            onBack={() => setStep(STEP.RESTAURANT_RECOMMEND)}
-          />
-        )}
+          {step === STEP.PLACE_RECOMMEND && currentDate && (
+            <PlaceRecommendStep
+              dayLabel={formatDayLabel(currentDate, currentDayIndex)}
+              places={placesByDay[currentDate] || []}
+              selectedPlaceIds={selectedPlaceIdsByDay[currentDate] || []}
+              onToggleSelect={handleToggleSelect}
+              selectionLimitMessage={selectionLimitMessage}
+              onAutoSelect={handleAutoSelect}
+              onRefresh={handleRefreshPlaces}
+              loading={placesLoading}
+              error={placesError}
+              onBack={() => setStep(STEP.RESTAURANT_RECOMMEND)}
+              customPlaces={customPlaces}
+              onAddCustomPlace={handleAddCustomPlace}
+              onRemoveCustomPlace={handleRemoveCustomPlace}
+              isLastDay={isLastDay}
+              pace={pace}
+              onChangePace={setPace}
+              onNext={handleNextDay}
+              onGenerateTimeline={handleGenerateTimeline}
+              timelineLoading={timelineLoading}
+              timelineError={timelineError}
+            />
+          )}
 
-        {step === STEP.TIMELINE_RESULT && (
-          <TimelineResultStep
-            timelineData={timelineData}
-            onRegenerate={handleRegenerateTimeline}
-            onReselectPlaces={() => setStep(STEP.PLACE_RECOMMEND)}
-            loading={timelineLoading}
-            error={timelineError}
-          />
-        )}
+          {step === STEP.TIMELINE_RESULT && (
+            <TimelineResultStep
+              timelineData={timelineData}
+              destination={destination}
+              onRegenerate={handleRegenerateTimeline}
+              onReselectPlaces={() => {
+                setCurrentDayIndex(tripDays.length - 1)
+                setStep(STEP.PLACE_RECOMMEND)
+              }}
+              placeCoordinates={placeCoordinates}
+              loading={timelineLoading}
+              error={timelineError}
+            />
+          )}
 
-        {step === STEP.DIARY_INPUT && (
-          <DiaryInputStep
-            destination={destination}
-            timelineData={timelineData}
-            photos={photos}
-            photoError={photoError}
-            onAddPhotos={handleAddPhotos}
-            onRemovePhoto={handleRemovePhoto}
-            onChangePhotoMemo={handleChangePhotoMemo}
-            memo={diaryMemo}
-            onChangeMemo={setDiaryMemo}
-            tone={diaryTone}
-            onChangeTone={setDiaryTone}
-            onSubmit={handleGenerateDiary}
-            canSubmit={canGenerateDiary({ memo: diaryMemo, photoCount: photos.length })}
-            loading={diaryLoading}
-            error={diaryError}
-            onBack={() => setStep(STEP.TIMELINE_RESULT)}
-          />
-        )}
+          {step === STEP.DIARY_INPUT && (
+            <DiaryInputStep
+              destination={destination}
+              timelineData={timelineData}
+              photos={photos}
+              photoError={photoError}
+              onAddPhotos={handleAddPhotos}
+              onRemovePhoto={handleRemovePhoto}
+              onChangePhotoMemo={handleChangePhotoMemo}
+              memo={diaryMemo}
+              onChangeMemo={setDiaryMemo}
+              tone={diaryTone}
+              onChangeTone={setDiaryTone}
+              onSubmit={handleGenerateDiary}
+              canSubmit={canGenerateDiary({ memo: diaryMemo, photoCount: photos.length })}
+              loading={diaryLoading}
+              error={diaryError}
+              onBack={() => setStep(STEP.TIMELINE_RESULT)}
+            />
+          )}
 
-        {step === STEP.DIARY_RESULT && (
-          <DiaryResultStep
-            diaryData={diaryData}
-            photos={photos}
-            destination={destination}
-            splitCount={splitCount}
-            onChangeSplitCount={setSplitCount}
-            panoramaViewMode={panoramaViewMode}
-            onChangePanoramaViewMode={setPanoramaViewMode}
-            activeViewportIndex={activeViewportIndex}
-            onChangeActiveViewportIndex={setActiveViewportIndex}
-            backgroundColor={backgroundColor}
-            onChangeBackgroundColor={setBackgroundColor}
-            backgroundPattern={backgroundPattern}
-            onChangeBackgroundPattern={setBackgroundPattern}
-            patternColor={patternColor}
-            onChangePatternColor={setPatternColor}
-            dotSize={dotSize}
-            onChangeDotSize={setDotSize}
-            dotShape={dotShape}
-            onChangeDotShape={setDotShape}
-            checkSpacing={checkSpacing}
-            onChangeCheckSpacing={setCheckSpacing}
-            font={font}
-            onChangeFont={setFont}
-            polaroidCaptionSize={polaroidCaptionSize}
-            onChangePolaroidCaptionSize={setPolaroidCaptionSize}
-            backgroundTextSize={backgroundTextSize}
-            onChangeBackgroundTextSize={setBackgroundTextSize}
-            photoCaptions={photoCaptions || []}
-            onChangePhotoCaption={handleChangePhotoCaption}
-            backgroundCaptions={backgroundCaptions || []}
-            onChangeBackgroundCaption={handleChangeBackgroundCaption}
-            photoStyles={photoStyles}
-            onChangePhotoStyle={handleChangePhotoStyle}
-            onRegenerate={handleRegenerateDiary}
-            onEditInput={() => setStep(STEP.DIARY_INPUT)}
-            onStartOver={handleStartOver}
-            loading={diaryLoading}
-            error={diaryError}
-          />
-        )}
+          {step === STEP.DIARY_RESULT && (
+            <DiaryResultStep
+              diaryData={diaryData}
+              photos={photos}
+              destination={destination}
+              splitCount={splitCount}
+              onChangeSplitCount={setSplitCount}
+              panoramaViewMode={panoramaViewMode}
+              onChangePanoramaViewMode={setPanoramaViewMode}
+              activeViewportIndex={activeViewportIndex}
+              onChangeActiveViewportIndex={setActiveViewportIndex}
+              backgroundColor={backgroundColor}
+              onChangeBackgroundColor={setBackgroundColor}
+              backgroundPattern={backgroundPattern}
+              onChangeBackgroundPattern={setBackgroundPattern}
+              patternColor={patternColor}
+              onChangePatternColor={setPatternColor}
+              dotSize={dotSize}
+              onChangeDotSize={setDotSize}
+              dotShape={dotShape}
+              onChangeDotShape={setDotShape}
+              checkSpacing={checkSpacing}
+              onChangeCheckSpacing={setCheckSpacing}
+              font={font}
+              onChangeFont={setFont}
+              polaroidCaptionSize={polaroidCaptionSize}
+              onChangePolaroidCaptionSize={setPolaroidCaptionSize}
+              backgroundTextSize={backgroundTextSize}
+              onChangeBackgroundTextSize={setBackgroundTextSize}
+              photoCaptions={photoCaptions || []}
+              onChangePhotoCaption={handleChangePhotoCaption}
+              backgroundCaptions={backgroundCaptions || []}
+              onChangeBackgroundCaption={handleChangeBackgroundCaption}
+              photoStyles={photoStyles}
+              onChangePhotoStyle={handleChangePhotoStyle}
+              onRegenerate={handleRegenerateDiary}
+              onEditInput={() => setStep(STEP.DIARY_INPUT)}
+              onStartOver={handleStartOver}
+              loading={diaryLoading}
+              error={diaryError}
+            />
+          )}
         </div>
       </div>
     </div>

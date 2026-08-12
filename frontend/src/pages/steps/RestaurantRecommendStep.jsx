@@ -1,60 +1,93 @@
+import CustomPlaceInput from '../../components/CustomPlaceInput'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
-import { MAX_SELECTABLE_PLACES } from '../../utils/placeSelection'
 
 const MEAL_LABELS = {
+  breakfast: '아침',
   lunch: '점심',
   dinner: '저녁',
 }
+const MEAL_ORDER = ['breakfast', 'lunch', 'dinner']
 
 function RestaurantRecommendStep({
-  restaurants,
+  dayLabel,
+  restaurantsForDay,
   selectedRestaurantIds,
   onToggleSelect,
-  selectionLimitMessage,
-  maxSelectable,
   loading,
   error,
   onNext,
   onBack,
+  customPlaces,
+  onAddCustomRestaurant,
 }) {
-  const mealBuckets = Object.entries(restaurants || {}).filter(([, places]) => places?.length > 0)
-  const isEmptyResult = !loading && !error && mealBuckets.length === 0
+  const mealTypes = MEAL_ORDER.filter((mealType) => restaurantsForDay && mealType in restaurantsForDay)
+  const isEmptyResult = !loading && !error && mealTypes.length === 0
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">🍴 음식점 후보 확인 및 선택</h2>
-      <p className="mt-1 text-xs text-gray-500">
-        선택한 음식점 {selectedRestaurantIds.length}/{maxSelectable} · 관광지 선택과 개수를 나눠 씁니다(총{' '}
-        {MAX_SELECTABLE_PLACES}개까지).
-      </p>
+      <h2 className="text-base font-semibold text-gray-900">🍴 {dayLabel} 음식점 선택</h2>
+      <p className="mt-1 text-xs text-gray-500">끼니마다 한 곳만 고를 수 있어요. 안 골라도 괜찮아요(선택 안 함).</p>
 
       <ErrorMessage message={error} />
-      {selectionLimitMessage && <ErrorMessage message={selectionLimitMessage} />}
 
       {loading ? (
         <LoadingIndicator label="음식점을 추천받는 중..." />
       ) : isEmptyResult ? (
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600">
-          추천할 음식점 정보가 없습니다. 선택하지 않고 다음으로 진행할 수 있어요.
+          이 날짜에는 추천할 음식점이 없습니다. 선택하지 않고 다음으로 진행할 수 있어요.
         </div>
       ) : (
-        mealBuckets.map(([mealType, places]) => (
-          <div key={mealType} className="mt-3">
-            <p className="text-sm font-semibold text-gray-900">{MEAL_LABELS[mealType] || mealType}</p>
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {places.map((place) => (
-                <PlaceCard
-                  key={place.placeId}
-                  place={place}
-                  selected={selectedRestaurantIds.includes(place.placeId)}
-                  onToggle={onToggleSelect}
-                />
-              ))}
+        mealTypes.map((mealType) => {
+          const places = restaurantsForDay[mealType] || []
+          const selectedId = selectedRestaurantIds?.[mealType]
+          const selectedCustomName = selectedId ? customPlaces?.[selectedId]?.name : null
+
+          return (
+            <div key={mealType} className="mt-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-900">{MEAL_LABELS[mealType]}</p>
+                <button
+                  type="button"
+                  onClick={() => onToggleSelect(mealType, null)}
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    !selectedId ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-500'
+                  }`}
+                >
+                  선택 안 함
+                </button>
+              </div>
+
+              {places.length > 0 && (
+                <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {places.map((place) => (
+                    <PlaceCard
+                      key={place.placeId}
+                      place={place}
+                      selected={selectedId === place.placeId}
+                      onToggle={(placeId) => onToggleSelect(mealType, placeId)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {selectedCustomName && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#1a1a1a] bg-[#f3ece2] px-3 py-1 text-xs text-[#1a1a1a]">
+                  {selectedCustomName}
+                  <button type="button" onClick={() => onToggleSelect(mealType, null)} aria-label="직접 입력한 식당 삭제">
+                    ×
+                  </button>
+                </span>
+              )}
+
+              <CustomPlaceInput
+                placeholder={`${MEAL_LABELS[mealType]} 식당 이름으로 검색하세요`}
+                onAdd={(place) => onAddCustomRestaurant(mealType, place)}
+              />
             </div>
-          </div>
-        ))
+          )
+        })
       )}
 
       <div className="mt-5 space-y-2">
@@ -66,13 +99,15 @@ function RestaurantRecommendStep({
         >
           다음 (관광지 선택하기)
         </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="w-full rounded-lg border border-gray-300 py-2.5 text-sm text-gray-700"
-        >
-          이전 (동행 조건 다시 선택)
-        </button>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full rounded-lg border border-gray-300 py-2.5 text-sm text-gray-700"
+          >
+            이전
+          </button>
+        )}
       </div>
     </section>
   )

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
+import ShareButton from '../../components/ShareButton'
 import BackgroundCaptionEditor from '../../components/diary/BackgroundCaptionEditor'
 import BackgroundColorPicker from '../../components/diary/BackgroundColorPicker'
 import BackgroundPatternPicker from '../../components/diary/BackgroundPatternPicker'
@@ -8,6 +9,8 @@ import FontSelector from '../../components/diary/FontSelector'
 import PanoramaDiary from '../../components/diary/PanoramaDiary'
 import PhotoCaptionEditor from '../../components/diary/PhotoCaptionEditor'
 import PhotoStyleControls from '../../components/diary/PhotoStyleControls'
+import { resolveAssetUrl } from '../../services/apiClient'
+import { createDiaryShare, getSharedDiary } from '../../services/shareApi'
 
 async function copyText(text) {
   if (!navigator.clipboard) {
@@ -95,9 +98,33 @@ function DiaryResultStep({
   const hashtagText = hashtags.join(' ')
   const otherWarnings = warnings.filter((warning) => !warning.includes('AI 호출에 실패'))
 
+  async function handleCreateShare() {
+    const { shareId } = await createDiaryShare({
+      destination,
+      title,
+      diary,
+      summary,
+      snsPost,
+      hashtags,
+      photoCaptions: photos.map((photo, index) => (photoCaptions && photoCaptions[index]) || photo.memo || ''),
+      photos,
+    })
+    const shared = await getSharedDiary(shareId)
+    const firstPhoto = shared.photos[0]
+    return {
+      url: `${window.location.origin}/share/diary/${shareId}`,
+      title,
+      description: summary,
+      imageUrl: firstPhoto ? resolveAssetUrl(firstPhoto.url) : undefined,
+    }
+  }
+
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">📔 AI 여행 포토 다이어리</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-gray-900">📔 AI 여행 포토 다이어리</h2>
+        <ShareButton label="공유" onCreateShare={handleCreateShare} />
+      </div>
 
       <ErrorMessage message={error} />
 

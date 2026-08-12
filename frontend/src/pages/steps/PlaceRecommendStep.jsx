@@ -1,6 +1,8 @@
+import CustomPlaceInput from '../../components/CustomPlaceInput'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
+import { REQUIRED_DAILY_PLACE_COUNT } from '../../utils/placeSelection'
 
 const PACE_OPTIONS = [
   { value: 'normal', label: '보통' },
@@ -8,31 +10,38 @@ const PACE_OPTIONS = [
 ]
 
 function PlaceRecommendStep({
+  dayLabel,
   places,
   selectedPlaceIds,
   onToggleSelect,
   selectionLimitMessage,
-  maxSelectable,
   onAutoSelect,
   onRefresh,
-  pace,
-  onChangePace,
-  onGenerateTimeline,
-  timelineLoading,
-  timelineError,
   loading,
   error,
   onBack,
-  canGenerateTimeline,
+  isLastDay,
+  pace,
+  onChangePace,
+  onNext,
+  onGenerateTimeline,
+  timelineLoading,
+  timelineError,
+  customPlaces,
+  onAddCustomPlace,
+  onRemoveCustomPlace,
 }) {
   const isEmptyResult = !loading && !error && places.length === 0
+  const canProceed = selectedPlaceIds.length === REQUIRED_DAILY_PLACE_COUNT
+  const customSelectedIds = selectedPlaceIds.filter((id) => customPlaces[id])
+  const canAddMore = selectedPlaceIds.length < REQUIRED_DAILY_PLACE_COUNT
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">📍 관광지 후보 확인 및 선택</h2>
+      <h2 className="text-base font-semibold text-gray-900">📍 {dayLabel} 관광지 선택</h2>
       <p className="mt-1 text-xs text-gray-500">
-        선택한 관광지 {selectedPlaceIds.length}/{maxSelectable} · 카드를 눌러 선택하거나 선택을 해제할 수 있어요
-        (음식점 선택과 개수를 나눠 씁니다).
+        선택한 관광지 {selectedPlaceIds.length}/{REQUIRED_DAILY_PLACE_COUNT} · 정확히{' '}
+        {REQUIRED_DAILY_PLACE_COUNT}개를 선택해야 다음으로 진행할 수 있어요.
       </p>
 
       <ErrorMessage message={error} />
@@ -57,6 +66,32 @@ function PlaceRecommendStep({
         </div>
       )}
 
+      <div className="mt-4">
+        <p className="text-sm font-semibold text-gray-900">직접 입력한 장소</p>
+        {customSelectedIds.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {customSelectedIds.map((id) => (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#1a1a1a] bg-[#f3ece2] px-3 py-1 text-xs text-[#1a1a1a]"
+              >
+                {customPlaces[id]?.name}
+                <button type="button" onClick={() => onRemoveCustomPlace(id)} aria-label="직접 입력한 장소 삭제">
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {canAddMore ? (
+          <CustomPlaceInput placeholder="관광지 이름으로 검색하세요" onAdd={onAddCustomPlace} />
+        ) : (
+          <p className="mt-2 text-xs text-gray-400">
+            이미 {REQUIRED_DAILY_PLACE_COUNT}개를 선택해서 더 추가할 수 없어요.
+          </p>
+        )}
+      </div>
+
       <div className="mt-4 space-y-2">
         <button
           type="button"
@@ -80,34 +115,45 @@ function PlaceRecommendStep({
         </p>
       </div>
 
-      <div className="mt-5 rounded-lg border border-gray-200 p-3">
-        <p className="text-sm font-semibold text-gray-900">일정 여유</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {PACE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChangePace(option.value)}
-              className={`rounded-lg border px-3 py-2 text-sm ${
-                pace === option.value ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-700'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+      {isLastDay ? (
+        <div className="mt-5 rounded-lg border border-gray-200 p-3">
+          <p className="text-sm font-semibold text-gray-900">일정 여유</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {PACE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChangePace(option.value)}
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  pace === option.value ? 'border-[#1a1a1a] bg-[#f3ece2] text-[#1a1a1a]' : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <ErrorMessage message={timelineError} />
+
+          <button
+            type="button"
+            onClick={onGenerateTimeline}
+            disabled={timelineLoading || !canProceed}
+            className="mt-3 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
+          >
+            {timelineLoading ? '타임라인 생성 중...' : '타임라인 생성하기'}
+          </button>
         </div>
-
-        <ErrorMessage message={timelineError} />
-
+      ) : (
         <button
           type="button"
-          onClick={onGenerateTimeline}
-          disabled={timelineLoading || !canGenerateTimeline}
-          className="mt-3 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
+          onClick={onNext}
+          disabled={loading || !canProceed}
+          className="mt-5 w-full rounded-lg bg-[#1a1a1a] py-2.5 text-sm font-medium text-white disabled:opacity-40"
         >
-          {timelineLoading ? '타임라인 생성 중...' : '타임라인 생성하기'}
+          다음 날짜로
         </button>
-      </div>
+      )}
 
       <button
         type="button"

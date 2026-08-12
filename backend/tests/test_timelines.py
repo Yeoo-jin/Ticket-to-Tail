@@ -40,12 +40,29 @@ DEMO_BOOKINGS = [
 LATEST_ARRIVAL = datetime.fromisoformat("2026-08-12T16:05:00")
 RETURN_DEPARTURE = datetime.fromisoformat("2026-08-14T18:00:00")
 
+# 여행 기간은 8/12(도착)~8/14(출발)이다. 도착·출발일은 관광 가능 시간이 좁으므로,
+# 대부분의 테스트는 하루가 온전히 열려 있는 중간일(8/13)에 관광지를 배정한다.
+MIDDLE_DAY = "2026-08-13"
+
+
+def _days_payload(place_ids, date=MIDDLE_DAY, restaurant_ids=None):
+    return [{"date": date, "placeIds": place_ids, "restaurantIds": restaurant_ids or {}}]
+
 
 def _request(**overrides):
+    days = overrides.pop("days", None)
+    if days is None:
+        place_ids = overrides.pop("selectedPlaceIds", ["place-001"])
+        date = overrides.pop("date", MIDDLE_DAY)
+        days = _days_payload(place_ids, date=date)
+    else:
+        overrides.pop("selectedPlaceIds", None)
+        overrides.pop("date", None)
+
     payload = {
         "bookings": DEMO_BOOKINGS,
         "companionTypes": ["infant"],
-        "selectedPlaceIds": ["place-001"],
+        "days": days,
         "destination": "부산",
         "pace": "normal",
         "seed": 1,
@@ -56,6 +73,18 @@ def _request(**overrides):
 
 def _dt(item_time: str) -> datetime:
     return datetime.fromisoformat(item_time)
+
+
+def _api_payload(place_ids, date=MIDDLE_DAY, **overrides):
+    payload = {
+        "bookings": DEMO_BOOKINGS,
+        "companionTypes": ["infant"],
+        "days": _days_payload(place_ids, date=date),
+        "destination": "부산",
+        "pace": "normal",
+    }
+    payload.update(overrides)
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +106,19 @@ def test_generates_timeline_with_three_selected_places():
     assert data.summary.placeCount == 3
 
 
+def test_generates_timeline_with_selected_restaurant():
+    data = generate_timeline(
+        _request(
+            days=_days_payload(["place-001"], restaurant_ids={"lunch": "place-016"}),
+            companionTypes=["infant"],
+        )
+    )
+    meal_place_ids = [i.placeId for i in data.timeline if i.type == "meal"]
+    assert meal_place_ids == ["place-016"]
+
+
 # ---------------------------------------------------------------------------
-# 0개 또는 4개 선택 시 400 / 존재하지 않는 placeId 거부
+# 하루 0개 또는 4개 선택 시 400 / 존재하지 않는 placeId 거부
 # ---------------------------------------------------------------------------
 
 
@@ -99,17 +139,20 @@ def test_unknown_place_id_raises_invalid_input():
         generate_timeline(_request(selectedPlaceIds=["place-does-not-exist"]))
 
 
+def test_unknown_restaurant_id_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        generate_timeline(
+            _request(days=_days_payload(["place-001"], restaurant_ids={"lunch": "place-does-not-exist"}))
+        )
+
+
+def test_no_days_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        generate_timeline(_request(days=[]))
+
+
 def test_api_rejects_zero_places_with_400():
-    response = client.post(
-        "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["infant"],
-            "selectedPlaceIds": [],
-            "destination": "부산",
-            "pace": "normal",
-        },
-    )
+    response = client.post("/api/timelines/generate", json=_api_payload([]))
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
 
@@ -117,29 +160,14 @@ def test_api_rejects_zero_places_with_400():
 def test_api_rejects_four_places_with_400():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["infant"],
-            "selectedPlaceIds": ["place-001", "place-006", "place-008", "place-009"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-001", "place-006", "place-008", "place-009"]),
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
 
 
 def test_api_rejects_unknown_place_id_with_400():
-    response = client.post(
-        "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["infant"],
-            "selectedPlaceIds": ["place-unknown"],
-            "destination": "부산",
-            "pace": "normal",
-        },
-    )
+    response = client.post("/api/timelines/generate", json=_api_payload(["place-unknown"]))
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
 
@@ -154,7 +182,9 @@ def test_no_estimated_items_before_arrival_or_after_return_departure():
         _request(selectedPlaceIds=["place-001", "place-009", "place-013"], companionTypes=["infant"])
     )
     for item in data.timeline:
-        if item.estimated:
+        # 환승 이동은 최종 목적지 도착 전(공항→기차역 등) 여정의 일부라 관광 가능 구간
+        # 밖에 있는 게 정상이라 이 검사에서 제외한다.
+        if item.estimated and "환승" not in item.title:
             assert _dt(item.startTime) >= LATEST_ARRIVAL
             assert _dt(item.endTime) <= RETURN_DEPARTURE
 
@@ -169,7 +199,7 @@ def test_attractions_respect_place_operating_hours():
         _request(selectedPlaceIds=["place-001", "place-009", "place-013"], companionTypes=["infant"])
     )
     for item in data.timeline:
-        if item.type != "attraction":
+        if item.type not in ("attraction", "meal"):
             continue
         place = PLACES_BY_ID[item.placeId]
         if place.closeTime == "24:00":
@@ -341,13 +371,7 @@ def test_solo_combined_with_other_condition_raises_invalid_input():
 def test_api_rejects_duplicate_companion_type_with_400():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["pet", "pet"],
-            "selectedPlaceIds": ["place-001"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-001"], companionTypes=["pet", "pet"]),
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
@@ -356,13 +380,7 @@ def test_api_rejects_duplicate_companion_type_with_400():
 def test_api_rejects_empty_companion_types_with_400():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": [],
-            "selectedPlaceIds": ["place-001"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-001"], companionTypes=[]),
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
@@ -371,13 +389,7 @@ def test_api_rejects_empty_companion_types_with_400():
 def test_api_rejects_solo_combined_with_other_condition_with_400():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["solo", "friends_couple", "senior"],
-            "selectedPlaceIds": ["place-001"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-001"], companionTypes=["solo", "friends_couple", "senior"]),
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_INPUT"
@@ -386,13 +398,7 @@ def test_api_rejects_solo_combined_with_other_condition_with_400():
 def test_api_accepts_solo_alone():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["solo"],
-            "selectedPlaceIds": ["place-001"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-001"], companionTypes=["solo"]),
     )
     assert response.status_code == 200
     assert response.json()["data"]["summary"]["companionTypes"] == ["solo"]
@@ -401,13 +407,7 @@ def test_api_accepts_solo_alone():
 def test_api_accepts_multiple_different_companion_types():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["friends_couple", "mobility_impaired", "pet"],
-            "selectedPlaceIds": ["place-006"],
-            "destination": "부산",
-            "pace": "normal",
-        },
+        json=_api_payload(["place-006"], companionTypes=["friends_couple", "mobility_impaired", "pet"]),
     )
     assert response.status_code == 200
     body = response.json()
@@ -438,6 +438,149 @@ def test_pet_combined_with_other_condition_still_excludes_non_pet_places():
 
 
 # ---------------------------------------------------------------------------
+# 자율 관광지·음식점 직접 입력 (customPlaces)
+# ---------------------------------------------------------------------------
+
+
+def test_custom_place_is_scheduled_with_default_duration_and_no_operating_hours():
+    data = generate_timeline(
+        _request(
+            days=_days_payload(["custom-1"]),
+            customPlaces={"custom-1": {"name": "우리 가족 단골 산책로"}},
+        )
+    )
+    attraction_items = [i for i in data.timeline if i.type == "attraction"]
+    assert len(attraction_items) == 1
+    assert attraction_items[0].placeId == "custom-1"
+    assert attraction_items[0].title == "우리 가족 단골 산책로"
+    start = _dt(attraction_items[0].startTime)
+    end = _dt(attraction_items[0].endTime)
+    assert int((end - start).total_seconds() // 60) == 60
+
+
+def test_custom_place_with_coordinates_appears_on_map_and_uses_distance_travel_time():
+    data = generate_timeline(
+        _request(
+            days=_days_payload(["custom-1"]),
+            customPlaces={
+                "custom-1": {"name": "카카오로 찾은 카페", "address": "부산 해운대구", "lat": 35.1591, "lng": 129.1602}
+            },
+        )
+    )
+    attraction_items = [i for i in data.timeline if i.placeId == "custom-1"]
+    assert len(attraction_items) == 1
+    assert attraction_items[0].lat == 35.1591
+    assert attraction_items[0].lng == 129.1602
+
+
+def test_custom_restaurant_is_scheduled_within_its_meal_window():
+    data = generate_timeline(
+        _request(
+            days=_days_payload(["place-001"], restaurant_ids={"lunch": "custom-lunch"}),
+            customPlaces={"custom-lunch": {"name": "동네 아는 식당"}},
+        )
+    )
+    meal_items = [i for i in data.timeline if i.type == "meal"]
+    assert len(meal_items) == 1
+    assert meal_items[0].placeId == "custom-lunch"
+    start = _dt(meal_items[0].startTime)
+    assert start.hour >= 11
+
+
+def test_custom_place_id_not_listed_in_custom_places_raises_invalid_input():
+    with pytest.raises(InvalidInputError):
+        generate_timeline(_request(selectedPlaceIds=["custom-unregistered"]))
+
+
+# ---------------------------------------------------------------------------
+# 끼니 시간대 고정(아침 08~10시, 점심 11~13시, 저녁 18~20시)
+# ---------------------------------------------------------------------------
+
+
+def test_meal_items_stay_within_fixed_time_windows():
+    data = generate_timeline(
+        _request(
+            days=_days_payload(
+                ["place-006", "place-008", "place-015"],
+                restaurant_ids={"breakfast": "place-021", "lunch": "place-016", "dinner": "place-018"},
+            ),
+            companionTypes=["friends_couple"],
+            seed=3,
+        )
+    )
+    windows = {"place-021": (8, 10), "place-016": (11, 13), "place-018": (18, 20)}
+    meal_items = [i for i in data.timeline if i.type == "meal"]
+    assert meal_items  # 최소 하나는 창 안에 배치돼야 의미 있는 검증이 된다
+    for item in meal_items:
+        start_hour, end_hour = windows[item.placeId]
+        start_dt = _dt(item.startTime)
+        end_dt = _dt(item.endTime)
+        assert start_dt.hour >= start_hour
+        assert (end_dt.hour, end_dt.minute) <= (end_hour, 0)
+
+
+def test_new_day_does_not_carry_previous_day_last_place_for_travel_time():
+    # 첫날 마지막 장소(해운대구)가 둘째 날 첫 이동시간 계산에 영향을 주면 안 된다 —
+    # 전날 마지막 관광지에서 바로 이동하는 게 아니라, 매일 거점에서 새로 출발하는 것으로
+    # 취급해야 한다(STATION_TO_FIRST_PLACE_MINUTES=30분). 만약 전날 장소가 그대로
+    # last_place로 넘어간다면(버그), 부산진구는 다른 구라 이동시간이 40분이 되어
+    # 도착 시각이 10분 늦어진다.
+    data = generate_timeline(
+        _request(
+            days=[
+                {"date": "2026-08-12", "placeIds": ["place-002"], "restaurantIds": {}},
+                {
+                    "date": MIDDLE_DAY,
+                    "placeIds": ["place-001"],
+                    "restaurantIds": {"lunch": "place-016"},
+                },
+            ],
+            companionTypes=["friends_couple"],
+        )
+    )
+    lunch_items = [i for i in data.timeline if i.placeId == "place-016"]
+    assert len(lunch_items) == 1
+    lunch_start = _dt(lunch_items[0].startTime)
+    assert (lunch_start.hour, lunch_start.minute) == (11, 30)
+
+
+# ---------------------------------------------------------------------------
+# 항공↔철도 환승 이동 항목
+# ---------------------------------------------------------------------------
+
+
+def test_transfer_item_added_between_flight_and_train():
+    data = generate_timeline(_request(selectedPlaceIds=["place-001"]))
+    transfer_items = [
+        item for item in data.timeline if item.type == "transport" and "환승" in item.title
+    ]
+    assert len(transfer_items) == 1
+    assert transfer_items[0].title == "인천공항 → 서울역 환승 이동"
+
+
+def test_no_transfer_item_when_same_transit_mode():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "김해공항",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T10:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "김해공항",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T18:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    data = generate_timeline(_request(bookings=bookings, selectedPlaceIds=["place-001"]))
+    transfer_items = [item for item in data.timeline if "환승" in item.title]
+    assert transfer_items == []
+
+
+# ---------------------------------------------------------------------------
 # API 레벨 정상 흐름 (200)
 # ---------------------------------------------------------------------------
 
@@ -445,14 +588,7 @@ def test_pet_combined_with_other_condition_still_excludes_non_pet_places():
 def test_api_generates_timeline_successfully():
     response = client.post(
         "/api/timelines/generate",
-        json={
-            "bookings": DEMO_BOOKINGS,
-            "companionTypes": ["infant"],
-            "selectedPlaceIds": ["place-001", "place-009"],
-            "destination": "부산",
-            "pace": "normal",
-            "seed": 1,
-        },
+        json=_api_payload(["place-001", "place-009"], seed=1),
     )
     assert response.status_code == 200
     body = response.json()
@@ -460,7 +596,7 @@ def test_api_generates_timeline_successfully():
     assert body["data"]["summary"]["placeCount"] == 2
     assert body["data"]["warnings"] == []
     types = {item["type"] for item in body["data"]["timeline"]}
-    assert types <= {"arrival", "transport", "attraction", "rest", "departure"}
+    assert types <= {"arrival", "transport", "attraction", "meal", "rest", "departure"}
 
 
 # ---------------------------------------------------------------------------

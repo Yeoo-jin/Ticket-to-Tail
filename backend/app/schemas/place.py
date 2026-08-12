@@ -2,19 +2,25 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from app.schemas.booking import Booking
 from app.schemas.common import CompanionType
 
-MealType = Literal["lunch", "dinner"]
+MealType = Literal["breakfast", "lunch", "dinner"]
 
 
 class PlaceRecommendRequest(BaseModel):
     destination: str
     companionTypes: List[CompanionType]
+    # 여행 날짜·끼니 종류 계산에 쓴다 (app/utils/trip_dates.py, app/utils/meal_recommendation.py 참고).
+    # 없으면 날짜별 추천을 계산할 수 없어 restaurants/places 모두 날짜별로 빈 값이 된다.
+    bookings: List[Booking] = Field(default_factory=list)
     excludePlaceIds: List[str] = Field(default_factory=list)
+    # targetDate가 있는 요청에서만 사용한다 (해당 날짜의 관광지 후보만 다시 뽑을 때,
+    # 이미 선택한 관광지를 유지하기 위함). 음식점은 끼니당 1곳만 고르므로 keep 대상이 아니다.
     keepPlaceIds: List[str] = Field(default_factory=list)
-    # 있으면 도착 시각 기준으로 점심/저녁 음식점 추천(restaurants)을 함께 계산한다.
-    # 없으면 restaurants는 빈 객체로 반환한다 (app/utils/meal_recommendation.py 참고).
-    arrivalTime: Optional[str] = None
+    # 있으면 이 날짜(YYYY-MM-DD) 하나만 다시 계산한다 ("다른 후보 추천받기" 새로고침용).
+    # 없으면 bookings 기준 여행 전체 날짜를 한 번에 계산한다.
+    targetDate: Optional[str] = None
 
 
 class Place(BaseModel):
@@ -35,18 +41,22 @@ class Place(BaseModel):
     category: Optional[str] = None
     openTime: Optional[str] = None
     closeTime: Optional[str] = None
+    # 지도(동선 직선 표시)용 좌표. scripts/geocode_places.py로 주소를 한 번 변환해
+    # places.json에 미리 채워둔다. 좌표가 없는 장소(예: 사용자가 직접 입력한 장소)는 null.
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class PlaceRecommendData(BaseModel):
-    places: List[Place]
-    # 자동 선택("추천 관광지 자동 선택") 대상으로 추천하는 placeId 목록. places의 부분집합이며,
-    # 내부 추천 점수 상위 항목(최대 3개)이다. 프론트는 점수를 직접 계산하지 않고 이 값만 사용한다.
-    # 선택 필드가 아니라 항상 채워서 반환하는 정식 응답 필드이므로 기본값을 두지 않는다.
-    autoSelectedPlaceIds: List[str]
-    # 식사 시간대별 음식점 후보. 키는 "lunch"/"dinner" (recommend_meals() 결과 기준).
-    # 요청에 arrivalTime이 없으면 빈 객체({})를 반환한다. places와 달리 카페(category:"카페")는
-    # 관광지로 취급해 여기 포함되지 않고 places 쪽에 들어간다.
-    restaurants: Dict[MealType, List[Place]] = Field(default_factory=dict)
+    # 키는 날짜(YYYY-MM-DD). 요청에 targetDate가 있으면 그 날짜 하나만 채워지고,
+    # 없으면 bookings 기준 여행 전체 날짜가 채워진다. 하루당 정확히 3개(가능한 경우)를 담는다.
+    placesByDay: Dict[str, List[Place]] = Field(default_factory=dict)
+    # 날짜별 자동 선택("추천 관광지 자동 선택") 대상 placeId 목록. placesByDay의 부분집합.
+    autoSelectedPlaceIdsByDay: Dict[str, List[str]] = Field(default_factory=dict)
+    # 날짜별 식사 시간대별 음식점 후보. 안쪽 키는 "breakfast"/"lunch"/"dinner"
+    # (recommend_daily_meals() 결과 기준, 그날 해당하지 않는 끼니는 키 자체가 없다).
+    # placesByDay와 달리 카페(category:"카페")는 관광지로 취급해 여기 포함되지 않는다.
+    restaurantsByDay: Dict[str, Dict[MealType, List[Place]]] = Field(default_factory=dict)
 
 
 class PlaceRecommendResponse(BaseModel):
@@ -78,3 +88,7 @@ class PlaceRecord(BaseModel):
     imageUrl: Optional[str] = None
     # category가 "음식점"인 레코드에만 값이 있다("lunch"/"dinner"). 그 외(관광지, 카페)는 null.
     mealType: Optional[MealType] = None
+    # scripts/geocode_places.py가 address를 카카오 로컬 API로 변환해 채워 넣는다.
+    # 아직 변환 전이거나 지오코딩에 실패한 레코드는 null일 수 있다.
+    lat: Optional[float] = None
+    lng: Optional[float] = None

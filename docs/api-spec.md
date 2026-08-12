@@ -240,7 +240,10 @@
 
 ### POST `/api/places/recommend`
 
-여행 지역과 동행 조건을 바탕으로 적합한 관광지 후보를 추천한다. 이전에 노출된 관광지를 전달하면 해당 장소를 제외하고 새로운 후보를 반환한다.
+여행 지역과 동행 조건, 예매정보(`bookings`)를 바탕으로 **여행 날짜별로** 관광지·음식점 후보를 추천한다.
+예매정보의 도착~출발 시각으로 여행이 며칠짜리인지 계산해, 날짜마다 관광지 후보와 그날 해당하는
+끼니(아침/점심/저녁)별 음식점 후보를 함께 반환한다. 관광지와 음식점은 서로 다른 후보 풀이며 개수를
+나눠 쓰지 않는다(관광지 선택 개수가 음식점 선택 개수에 영향을 주지 않는다).
 
 ### 요청
 
@@ -248,9 +251,27 @@
 {
   "destination":"부산",
   "companionTypes": ["infant"],
+  "bookings": [
+    {
+      "type":"flight",
+      "transitNumber":null,
+      "departureLocation":null,
+      "arrivalLocation":"인천공항",
+      "departureTime":null,
+      "arrivalTime":"2026-08-12T10:30:00"
+    },
+    {
+      "type":"flight",
+      "transitNumber":"OZ102",
+      "departureLocation":"인천공항",
+      "arrivalLocation":null,
+      "departureTime":"2026-08-14T18:00:00",
+      "arrivalTime":null
+    }
+  ],
   "excludePlaceIds": [],
   "keepPlaceIds": [],
-  "arrivalTime":"2026-08-12T10:30:00"
+  "targetDate": null
 }
 ```
 
@@ -260,13 +281,14 @@
 | --- | --- | --- | --- |
 | `destination` | string | O | 여행 목적 지역 |
 | `companionTypes` | string[] | O | 동행 조건 |
-| `excludePlaceIds` | string[] | X | 직전 추천에서 노출됐지만 사용자가 선택하지 않은 관광지 ID (다시 추천하지 않음) |
-| `keepPlaceIds` | string[] | X | 사용자가 이미 선택해 그대로 유지할 관광지 ID (응답 앞쪽에 그대로 포함됨). `places.json`에 없는 ID가 포함되면 공통 오류 응답(`INVALID_INPUT`)을 반환한다 |
-| `arrivalTime` | string | X | 도착 시각 (ISO 8601). `/api/bookings/parse` 응답의 도착 시각을 그대로 전달한다. 있으면 응답에 `restaurants`(음식점 추천)를 함께 계산하고, 없으면 `restaurants`는 빈 객체(`{}`)로 반환한다 |
+| `bookings` | object[] | O | `/api/bookings/parse` 응답의 `bookings`를 그대로 전달. 여행 날짜(며칠인지)와 도착일·출발일 판단에 쓰인다. 비어 있으면(도착 시각을 알 수 없으면) `placesByDay`/`restaurantsByDay` 모두 빈 객체(`{}`)로 반환한다 |
+| `excludePlaceIds` | string[] | X | 이미 다른 날짜에 추천됐거나, 같은 날짜에서 노출됐지만 선택하지 않아 다시 추천하지 않을 관광지·음식점 ID |
+| `keepPlaceIds` | string[] | X | `targetDate`로 지정한 날짜에서, 사용자가 이미 선택해 그대로 유지할 관광지 ID(그날 응답의 맨 앞쪽에 포함됨). `places.json`에 없는 ID가 포함되면 공통 오류 응답(`INVALID_INPUT`). 음식점은 끼니당 1곳만 고르므로 keep 대상이 아니다 |
+| `targetDate` | string | X | `YYYY-MM-DD`. 있으면 이 날짜 하나만 다시 계산한다("다른 후보 추천받기" 새로고침용). 없으면 `bookings` 기준 여행 전체 날짜를 한 번에 계산한다. 여행 기간 밖의 날짜면 공통 오류 응답(`INVALID_INPUT`) |
 
-`keepPlaceIds` + 새로 추천되는 관광지를 합쳐 `places`는 항상 최대 6개이며(부족하면 6개 미만 가능), `keepPlaceIds`로 넘긴 관광지는 응답의 맨 앞쪽에, 나머지 새 후보가 그 뒤에 오는 순서로 반환된다. "다른 관광지 추천받기"를 호출할 때는 사용자가 선택한 관광지를 `keepPlaceIds`로, 선택하지 않은 관광지를 `excludePlaceIds`로 함께 전달한다.
+날짜를 넘어가며 이미 추천된 관광지·음식점은 계속 제외 목록에 누적돼, 같은 곳이 다른 날짜에 중복 추천되지 않는다. "다른 관광지 추천받기"를 호출할 때는 `targetDate`에 그 날짜를, 사용자가 선택한 관광지를 `keepPlaceIds`로, 선택하지 않은 관광지 + 다른 날짜에서 이미 나온 후보 전체를 `excludePlaceIds`로 함께 전달한다.
 
-카페(`category:"카페"`)는 별도 카테고리가 아니라 "관광지"로 취급한다. `keepPlaceIds`에 이미 카페가 없고 새로 채울 자리가 남아 있으면, `places` 후보 안에 카페가 최소 1개는 포함되도록 보장한다(카페 후보 자체가 없는 지역이거나 채울 자리가 없으면 보장하지 않는다).
+카페(`category:"카페"`)는 별도 카테고리가 아니라 "관광지"로 취급한다. 하루 안에 이미 카페가 없고(그날 `keepPlaceIds`에도 없고) 새로 채울 자리가 남아 있으면, 그날의 관광지 후보 안에 카페가 최소 1개는 포함되도록 보장한다(카페 후보 자체가 없거나 채울 자리가 없으면 보장하지 않는다).
 
 ### 동행 조건 선택값 (`companionTypes`)
 
@@ -295,50 +317,56 @@ pet
 {
   "success":true,
   "data": {
-    "places": [
-      {
-        "placeId":"place-001",
-        "name":"국립해양박물관",
-        "description":"부산의 해양 문화를 체험할 수 있는 실내 관광지입니다.",
-        "recommendationReason":"실내 이동이 가능하고 유아 편의시설이 있어 유아 동반 여행에 적합합니다.",
-        "estimatedDurationMinutes":90,
-        "tags": ["실내","유아 동반","휴식 공간"],
-        "imageUrl":"/images/places/place-001.jpg",
-        "category":"박물관",
-        "openTime":"09:00",
-        "closeTime":"18:00"
-      }
-    ],
-    "autoSelectedPlaceIds": ["place-001"],
-    "restaurants": {
-      "lunch": [
+    "placesByDay": {
+      "2026-08-12": [
         {
-          "placeId":"place-016",
-          "name":"할매국밥",
-          "description":"부산식 돼지국밥을 파는 오래된 식당입니다.",
-          "recommendationReason":"혼자서도 부담 없이 한 끼를 든든하게 먹을 수 있는 식당입니다.",
-          "estimatedDurationMinutes":45,
-          "tags": ["실내","저상 시설","음식","대중교통 접근"],
-          "imageUrl":null,
-          "category":"음식점",
-          "openTime":"07:00",
-          "closeTime":"15:00"
+          "placeId":"place-001",
+          "name":"국립해양박물관",
+          "description":"부산의 해양 문화를 체험할 수 있는 실내 관광지입니다.",
+          "recommendationReason":"실내 이동이 가능하고 유아 편의시설이 있어 유아 동반 여행에 적합합니다.",
+          "estimatedDurationMinutes":90,
+          "tags": ["실내","유아 동반","휴식 공간"],
+          "imageUrl":"/images/places/place-001.jpg",
+          "category":"박물관",
+          "openTime":"09:00",
+          "closeTime":"18:00",
+          "lat":35.0785634152872,
+          "lng":129.080244864532
         }
       ],
-      "dinner": [
-        {
-          "placeId":"place-018",
-          "name":"해운대 암소갈비집",
-          "description":"숯불 갈비를 파는 저녁 식사에 어울리는 식당입니다.",
-          "recommendationReason":"혼자서도 편하게 저녁 한 끼를 즐길 수 있는 식당입니다.",
-          "estimatedDurationMinutes":60,
-          "tags": ["실내","저상 시설","음식","대중교통 접근"],
-          "imageUrl":null,
-          "category":"음식점",
-          "openTime":"11:00",
-          "closeTime":"22:00"
-        }
-      ]
+      "2026-08-13": ["... 2026-08-12와 동일한 구조, 관광지 카드 배열 ..."],
+      "2026-08-14": ["... 2026-08-12와 동일한 구조, 관광지 카드 배열 ..."]
+    },
+    "autoSelectedPlaceIdsByDay": {
+      "2026-08-12": ["place-001"],
+      "2026-08-13": ["..."],
+      "2026-08-14": ["..."]
+    },
+    "restaurantsByDay": {
+      "2026-08-12": {
+        "dinner": [
+          {
+            "placeId":"place-018",
+            "name":"해운대 암소갈비집",
+            "description":"숯불 갈비를 파는 저녁 식사에 어울리는 식당입니다.",
+            "recommendationReason":"혼자서도 편하게 저녁 한 끼를 즐길 수 있는 식당입니다.",
+            "estimatedDurationMinutes":60,
+            "tags": ["실내","저상 시설","음식","대중교통 접근"],
+            "imageUrl":null,
+            "category":"음식점",
+            "openTime":"11:00",
+            "closeTime":"22:00"
+          }
+        ]
+      },
+      "2026-08-13": {
+        "breakfast": ["... 관광지 카드와 동일한 구조 ..."],
+        "lunch": ["..."],
+        "dinner": ["..."]
+      },
+      "2026-08-14": {
+        "breakfast": ["..."]
+      }
     }
   }
 }
@@ -346,30 +374,33 @@ pet
 
 `category`, `openTime`, `closeTime`은 카드 UI 표시를 위해 추가된 선택 필드다. 값은 실시간 운영 정보가 아니라 예선 데모용 샘플 데이터다(본선에서 실제 관광 공공데이터로 대체 예정, `docs/idea.md` 5절 참고).
 
-### 응답 필드 - `autoSelectedPlaceIds`
+`lat`/`lng`는 지도(동선 직선 표시)에 마커를 찍기 위한 좌표다. `backend/scripts/geocode_places.py`가 `places.json`의 `address`를 카카오 로컬 API로 미리 변환해 채워 넣으며, 매 요청마다 실시간으로 조회하지 않는다. 지오코딩에 실패한 레코드는 `null`일 수 있고, 그런 장소는 지도에 표시되지 않는다.
 
-`places` 응답에 포함된 관광지 중, "추천 관광지 자동 선택"에 사용할 대상을 서버가 미리 계산해 알려주는 **정식 응답 필드**다 (선택 필드가 아님).
-
-| 필드 | 자료형 | 필수 | 설명 |
-| --- | --- | --- | --- |
-| `autoSelectedPlaceIds` | string[] | O | 자동 선택 대상 placeId 목록. `places`의 부분집합이며 내부 추천 점수 상위 최대 3개. 후보가 3개 미만이면 존재하는 만큼만 포함, 지원하지 않는 지역 등으로 `places`가 빈 배열이면 `[]` |
-
-프론트엔드는 추천 점수를 직접 계산하거나 카드 순서만으로 자동 선택 대상을 판단하지 않고, 이 필드 값을 그대로 사용한다.
-
-### 응답 필드 - `restaurants`
-
-카페를 제외한 음식점 추천을 식사 시간대별로 묶어 반환하는 필드다. `places`와 별도 목록이며, `places`에는 음식점(`category:"음식점"`)이 포함되지 않는다.
+### 응답 필드 - `placesByDay` / `autoSelectedPlaceIdsByDay`
 
 | 필드 | 자료형 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `restaurants` | object | O | 키는 `"lunch"` 또는 `"dinner"`, 값은 `places`와 동일한 구조의 관광지 카드 배열. 요청에 `arrivalTime`이 없으면 `{}` |
+| `placesByDay` | object | O | 키는 날짜(`YYYY-MM-DD`). 값은 그날의 관광지 카드 배열이며, 하루 기본 추천 개수는 6개다(후보가 부족하면 6개 미만 가능). `targetDate` 요청이면 그 날짜 하나만, 아니면 여행 전체 날짜가 채워진다. `bookings`가 없어 날짜를 계산할 수 없으면 `{}` |
+| `autoSelectedPlaceIdsByDay` | object | O | 키는 날짜. 값은 "추천 관광지 자동 선택"에 쓸 placeId 목록 — 그날 `placesByDay`의 부분집합이며 내부 추천 점수 상위 최대 3개 |
 
-`restaurants`의 키 구성은 요청의 `arrivalTime`을 기준으로 다음 규칙에 따라 결정된다 (`backend/app/utils/meal_recommendation.py`의 `recommend_meals()` 기준):
+프론트엔드는 추천 점수를 직접 계산하거나 카드 순서만으로 자동 선택 대상을 판단하지 않고, 이 필드 값을 그대로 사용한다. 관광지는 하루 3개를 선택해야 하며(요청사항 기준), 이 선택 개수 제한은 화면에서 검증한다 — 음식점 선택 개수와는 서로 슬롯을 나누지 않는다.
 
-- 13시 이전 도착: `{"lunch": [...], "dinner": [...]}` — 점심·저녁 모두 추천
-- 13시 이후(13시 정각 포함) 도착: `{"dinner": [...]}` — 저녁만 추천
+### 응답 필드 - `restaurantsByDay`
 
-각 버킷의 후보 개수는 내부 기본값(현재 최대 3개)만큼 반환되며, 해당 지역·조건에 맞는 음식점이 없으면 빈 배열일 수 있다.
+카페를 제외한 음식점 추천을 날짜별·식사 시간대별로 묶어 반환하는 필드다. `placesByDay`와 별도 목록이며, `placesByDay`에는 음식점(`category:"음식점"`)이 포함되지 않는다.
+
+| 필드 | 자료형 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `restaurantsByDay` | object | O | 키는 날짜(`YYYY-MM-DD`). 값의 키는 `"breakfast"`/`"lunch"`/`"dinner"` 중 그날 해당하는 것만, 값은 관광지 카드와 동일한 구조의 배열(기본 최대 3개). `bookings`가 없으면 `{}` |
+
+각 날짜에 어떤 끼니가 포함되는지는 `backend/app/utils/meal_recommendation.py`의 `recommend_daily_meals()` 기준으로 다음과 같이 결정된다:
+
+- **도착일**: 도착 시각 "이후"에 아직 먹을 수 있는 끼니만. 09시 이전 도착 → 아침+점심+저녁, 09~13시 도착 → 점심+저녁, 13시 이후 도착 → 저녁만
+- **출발일(도착일과 다른, 여행 마지막 날)**: 출발 시각 "이전"에 이미 먹을 시간이 있었던 끼니만(도착일 규칙의 대칭). 09시 이전 출발 → 없음, 09~13시 출발 → 아침만, 13~19시 출발 → 아침+점심, 19시 이후 출발 → 아침+점심+저녁
+- **도착일이자 동시에 출발일(당일치기)**: 위 두 규칙의 교집합
+- **그 외 중간 날짜**: 항상 아침+점심+저녁 모두
+
+프론트엔드는 끼니마다 음식점을 최대 1곳만 선택할 수 있게 하고(라디오 형태), "선택 안 함"을 허용한다. 각 버킷의 후보 개수는 해당 지역·조건·날짜에 맞는 음식점이 없으면 빈 배열일 수 있다.
 
 ### 담당
 
@@ -409,9 +440,9 @@ pet
 
 ## POST `/api/timelines/generate`
 
-구조화된 예매정보와 선택한 관광지(1~3개)를 바탕으로, 운영시간·예상 이동시간·휴식시간을 고려한
-여행 타임라인을 생성한다. 시간·제약조건 계산은 전부 백엔드 코드에서 결정적으로 처리하며
-Gemini(AI)는 호출하지 않는다.
+구조화된 예매정보와 날짜별로 선택한 관광지(하루 1~3개)·음식점(끼니당 최대 1곳)을 바탕으로,
+운영시간·예상 이동시간·휴식시간을 고려한 여행 타임라인을 생성한다. 시간·제약조건 계산은 전부
+백엔드 코드에서 결정적으로 처리하며 Gemini(AI)는 호출하지 않는다.
 
 ### 요청
 
@@ -444,10 +475,29 @@ Gemini(AI)는 호출하지 않는다.
     }
   ],
   "companionTypes": ["infant","mobility_impaired"],
-  "selectedPlaceIds": ["place-001","place-009","place-013"],
+  "days": [
+    {
+      "date":"2026-08-12",
+      "placeIds": ["place-001","place-009","place-013"],
+      "restaurantIds": { "dinner":"place-018" }
+    },
+    {
+      "date":"2026-08-13",
+      "placeIds": ["place-006","place-008","place-015"],
+      "restaurantIds": { "breakfast":"place-021", "lunch":"place-016", "dinner":"place-020" }
+    },
+    {
+      "date":"2026-08-14",
+      "placeIds": ["place-004","custom-171234"],
+      "restaurantIds": { "breakfast":"place-022" }
+    }
+  ],
   "destination":"부산",
   "pace":"normal",
-  "seed":42
+  "seed":42,
+  "customPlaces": {
+    "custom-171234": { "name":"우리 가족 단골 산책로", "address":null, "lat":null, "lng":null }
+  }
 }
 ```
 
@@ -457,10 +507,21 @@ Gemini(AI)는 호출하지 않는다.
 | --- | --- | --- | --- |
 | `bookings` | object[] | O | `/api/bookings/parse` 응답의 `bookings`를 그대로 전달 |
 | `companionTypes` | string[] | O | 동행 조건. `/api/places/recommend`의 `companionTypes`와 같은 enum, 같은 필드명, 같은 공통 검증 규칙(위 2절 참고: 최소 1개, `solo`는 다른 값과 함께 선택 불가)을 그대로 사용한다. 서로 다른 값을 여러 개 선택할 수 있으며, **동일한 값의 중복만 금지**(예: `["infant","infant"]`는 오류) — 배열 순서는 결과에 영향을 주지 않는다 |
-| `selectedPlaceIds` | string[] | O | 사용자가 선택한 관광지 ID, 1개 이상 3개 이하. `places.json`에 존재하는 ID만 허용하며, 존재하지 않으면 공통 오류(`INVALID_INPUT`) 응답 |
+| `days` | object[] | O | 날짜별 선택 결과. `/api/places/recommend`가 날짜별로 준 후보 중에서 고른 것을 그대로 다시 보낸다 |
+| `days[].date` | string | O | `YYYY-MM-DD` |
+| `days[].placeIds` | string[] | O | 그날 방문할 관광지(카페 포함) ID, 1개 이상 3개 이하. `places.json`에 존재하는 ID만 허용 |
+| `days[].restaurantIds` | object | X | 그날 끼니별로 선택한 음식점 ID. 키는 `"breakfast"`/`"lunch"`/`"dinner"` 중 그날 추천된 것만, "선택 안 함"을 고른 끼니는 키 자체를 넣지 않는다(끼니당 최대 1곳) |
 | `destination` | string | O | 여행 목적 지역 (표시·검증용) |
 | `pace` | string | O | 일정 여유 정도: `normal` 또는 `relaxed`. `relaxed`는 이동·휴식 여유를 더 크게 반영 |
 | `seed` | integer | X | 같은 seed로 요청하면 동일한 결과를 재현한다. "다른 일정 추천받기" 시 새 seed(또는 생략)로 재요청 |
+| `customPlaces` | object | X | 추천 후보 대신 사용자가 직접 입력한 장소. 키는 프론트가 만든 임시 ID이며 `days[].placeIds`/`restaurantIds`에서 이 ID로 참조한다. `places.json`에서 찾을 수 없는 ID를 만나면 여기서 찾는다. 여기에도 없는 ID면 공통 오류(`INVALID_INPUT`) |
+| `customPlaces{}.name` | string | O | 장소 이름 |
+| `customPlaces{}.address` | string | X | 카카오 장소검색으로 골랐을 때의 주소. 없으면 `name`을 주소처럼 표시에 대신 쓴다 |
+| `customPlaces{}.lat`/`lng` | number | X | 카카오 장소검색으로 좌표까지 받았으면 채운다. 있으면 다른 장소와의 이동시간이 직선거리 기반으로 계산되고 지도에도 표시되며, 없으면 거점 기준 기본 이동시간으로 대체되고 지도에는 표시되지 않는다 |
+
+직접 입력한 장소는 운영시간 제약 없이 하루 중 아무 때나 배치 가능한 것으로 보고, 체류시간은 항상 60분 고정이다.
+
+"다른 일정 추천받기"(재생성)를 호출하면 `days`의 `placeIds`/`restaurantIds`는 그대로 유지한 채 새 `seed`로 다시 요청한다 — 그날 관광지의 방문 순서만 다시 계산되고, 끼니는 이미 아침/점심/저녁 시간대에 고정 배치되므로(끼니당 1곳뿐이라 순서 개념이 없음) 순서가 바뀌지 않는다.
 
 ### 동행 조건별 반영 방식 (복수 선택 시 모두 반영)
 
@@ -483,12 +544,14 @@ Gemini(AI)는 호출하지 않는다.
 
 1. `bookings`에서 가장 늦은 도착 시각 이후부터 관광 가능 시간이 시작된다(그 이전에는 일정을 넣지 않음).
 2. 도착 이후에 남은 출발 예매가 있으면, 그 출발 시각 전까지 이동 여유를 남기고 관광 가능 시간을 끝낸다.
-3. 관광 가능 시간을 하루 09:00~21:00 단위로 나눠 `selectedPlaceIds`를 순서대로 배치한다.
-4. 각 관광지는 `places.json`의 `openTime`~`closeTime` 안에서만 방문하고, `estimatedDurationMinutes`만큼 체류한다.
-5. 관광지 사이·역/공항에서 첫 관광지까지는 데모 규칙으로 예상 이동시간을 계산해 별도 `transport` 항목으로 넣는다(실시간 지도 API 미사용).
-6. 동행 조건·`pace`에 따라 이동 여유·휴식시간을 가감한다.
-7. 시간이 부족하거나 운영시간과 맞지 않아 배치하지 못한 관광지는 조용히 빼지 않고 `warnings`에 사유를 남긴다.
-8. 모든 항목은 겹치지 않게, 시간순으로 정렬해 반환한다.
+3. `days`의 각 날짜마다 그날 09:00~22:00(도착일·출발일은 도착/출발 시각으로 더 좁혀짐) 안에서만 그날의 `placeIds`·`restaurantIds`를 배치한다 — 다른 날짜로 넘어가 배치하지 않는다.
+4. **끼니(아침/점심/저녁)를 관광지보다 먼저, 우선적으로 배치한다.** 각각 아침 08~10시, 점심 11~13시, 저녁 18~20시 시간대에 고정 배치하며, 이 시간대를 넘겨서까지 밀어 배치하지 않는다(관광지 일정이 밀려도 끼니는 영향받지 않음). 그다음 그날의 관광지를, 끼니 시간대 사이사이 남는 시간에 그 여유 길이에 비례해 나눠 배치한다. 그래도 시간이 부족하면 `warnings`에 남기고 그 관광지·끼니는 제외한다(끼니를 우선 배치하므로 관광지 쪽에서만 주로 발생한다).
+5. 각 관광지·음식점은 `places.json`의 `openTime`~`closeTime` 안에서만 방문하고, `estimatedDurationMinutes`만큼 체류한다.
+6. 관광지·음식점 사이·역/공항에서 첫 일정까지는 데모 규칙으로 예상 이동시간을 계산해 별도 `transport` 항목으로 넣는다(실시간 지도 API 미사용). 두 장소 모두 좌표(`lat`/`lng`)가 있으면 직선거리 기반으로 계산하고, 없으면 같은 구(區)인지 여부로 대략 구분한다.
+7. 서로 다른 교통수단(항공↔철도)으로 짧은 간격 안에 이어지는 예매편 사이에는 공항·역 환승 이동을 별도 `transport` 항목으로 추가한다(같은 교통수단이 이어지거나 간격이 크면 추가하지 않음).
+8. 동행 조건·`pace`에 따라 이동 여유·휴식시간을 가감한다.
+9. 시간이 부족하거나 운영시간과 맞지 않아 배치하지 못한 관광지·음식점은 조용히 빼지 않고 `warnings`에 사유를 남긴다.
+10. 모든 항목은 겹치지 않게, 시간순으로 정렬해 반환한다.
 
 ### 성공 응답
 
@@ -543,9 +606,20 @@ Gemini(AI)는 호출하지 않는다.
       },
       {
         "id":"item-005",
+        "type":"meal",
+        "startTime":"2026-08-12T19:00:00",
+        "endTime":"2026-08-12T20:00:00",
+        "title":"해운대 암소갈비집",
+        "placeId":"place-018",
+        "location":"부산 해운대구 구남로 20",
+        "description":"숯불 갈비를 파는 저녁 식사에 어울리는 식당입니다.",
+        "estimated":true
+      },
+      {
+        "id":"item-006",
         "type":"rest",
         "startTime":"2026-08-12T18:44:00",
-        "endTime":"2026-08-12T19:19:00",
+        "endTime":"2026-08-12T19:00:00",
         "title":"휴식",
         "placeId":null,
         "location":"부산 해운대구 해운대해변로 266",
@@ -571,12 +645,15 @@ Gemini(AI)는 호출하지 않는다.
 arrival
 transport
 attraction
+meal
 rest
 departure
 ```
 
+`meal`은 날짜별로 선택한 음식점 방문 항목이다(`attraction`과 필드 구조는 동일하고 타입만 다르다).
+
 `estimated`는 해당 항목의 시각이 예매정보 그대로의 정확한 값(`false`: `arrival`/`departure`/예매편 `transport`)인지,
-백엔드가 데모 규칙으로 계산한 추정값(`true`: 관광지 사이 `transport`, `attraction`, `rest`)인지 구분한다.
+백엔드가 데모 규칙으로 계산한 추정값(`true`: 관광지·음식점 사이 `transport`(환승 이동 포함), `attraction`, `meal`, `rest`)인지 구분한다.
 화면에는 `estimated:true` 항목을 "예상 이동시간"처럼 추정값임을 알 수 있게 표시한다.
 
 ### `warnings`
@@ -834,3 +911,106 @@ concise     간결한 - 짧고 명료한 문장으로 핵심만
 | `POST /api/diaries/generate` | 여행 다이어리 생성 | 필수 |
 | `POST /api/timelines/regenerate` | 타임라인 재생성 | 선택 |
 | `POST /api/diaries/regenerate` | 다이어리 재생성 | 선택 |
+| `POST /api/share/timeline`, `POST /api/share/diary` | 결과 공유 링크 생성 | 선택 |
+| `GET /api/share/timeline/{id}`, `GET /api/share/diary/{id}` | 공유 링크로 결과 열람(로그인 불필요) | 선택 |
+
+---
+
+# 8. 공유 (카카오톡 공유용 읽기 전용 링크)
+
+타임라인 결과 화면·다이어리 결과 화면에만 있는 "공유" 버튼을 누르면, 그 결과를 서버에
+저장하고 로그인 없이 누구나 열람할 수 있는 링크를 발급한다. 프론트는 이 링크로
+카카오톡 공유하기(Kakao.Share.sendDefault)를 호출한다.
+
+DB 없이 `backend/app/data/shares/`에 공유 하나당 파일 하나로 저장하며(관광지 데이터와
+같은 방식), 다이어리 사진은 `backend/app/static/shares/{shareId}/`에 저장돼
+`/static/shares/...` 경로로 서빙된다. 이 프로젝트의 "업로드 사진을 서버에 저장하지
+않는다"는 원칙과 부딪히는 유일한 예외이며, 그 대신 **7일이 지난 공유는 다음 접근 시점에
+자동으로 삭제**된다(별도 배치 작업 없이, 조회/생성 시점에 만료된 파일을 정리).
+
+## POST `/api/share/timeline`
+
+### 요청
+
+```
+{
+  "destination":"부산",
+  "timeline": ["... /api/timelines/generate 응답의 timeline 배열 그대로 ..."],
+  "summary": { "placeCount":3, "sightseeingMinutes":260, "estimatedTravelMinutes":143, "companionTypes":["infant"], "pace":"normal" }
+}
+```
+
+### 성공 응답
+
+```
+{ "success":true, "data": { "shareId":"AbC123xy" } }
+```
+
+## GET `/api/share/timeline/{shareId}`
+
+### 성공 응답
+
+```
+{
+  "success":true,
+  "data": {
+    "destination":"부산",
+    "timeline": ["... 저장된 timeline 배열 그대로 ..."],
+    "summary": { "placeCount":3, "sightseeingMinutes":260, "estimatedTravelMinutes":143, "companionTypes":["infant"], "pace":"normal" },
+    "createdAt":"2026-08-12T10:30:00+00:00"
+  }
+}
+```
+
+존재하지 않거나 만료된 `shareId`면 공통 오류 응답 형식으로 404(`NOT_FOUND`)를 반환한다.
+
+## POST `/api/share/diary` (`multipart/form-data`)
+
+| 필드 | 자료형 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `destination` | string | O | 여행 목적 지역 |
+| `title` | string | O | `/api/diaries/generate` 응답의 `title` |
+| `diary` | string | O | `/api/diaries/generate` 응답의 `diary` |
+| `summary` | string | O | `/api/diaries/generate` 응답의 `summary` |
+| `snsPost` | string | O | `/api/diaries/generate` 응답의 `snsPost` |
+| `hashtagsJson` | JSON string | X | 해시태그 배열(문자열[]) |
+| `photoCaptionsJson` | JSON string | X | 사진별 캡션 배열. 사진 순서와 일치해야 한다 |
+| `photos` | File[] | X | 공유할 사진. 최대 5장, `/api/diaries/generate`와 동일한 형식·용량 제한 |
+
+### 성공 응답
+
+```
+{ "success":true, "data": { "shareId":"XyZ789ab" } }
+```
+
+## GET `/api/share/diary/{shareId}`
+
+### 성공 응답
+
+```
+{
+  "success":true,
+  "data": {
+    "destination":"부산",
+    "title":"부산에서 보낸 하루",
+    "diary":"...",
+    "summary":"...",
+    "snsPost":"...",
+    "hashtags": ["#부산여행"],
+    "photos": [
+      { "url":"/static/shares/XyZ789ab/0.jpg", "caption":"광안대교 야경" }
+    ],
+    "createdAt":"2026-08-12T10:30:00+00:00"
+  }
+}
+```
+
+`photos[].url`은 백엔드 기준 상대 경로다. 카카오톡 공유처럼 외부에서 접근해야 하는
+곳에 쓸 때는 프론트가 API 베이스 URL을 붙여 절대 URL로 만들어 사용한다.
+
+존재하지 않거나 만료된 `shareId`면 공통 오류 응답 형식으로 404(`NOT_FOUND`)를 반환한다.
+
+### 담당
+
+- **백엔드·라우팅:** 여진
+- **공유 버튼·결과 화면:** 서영
