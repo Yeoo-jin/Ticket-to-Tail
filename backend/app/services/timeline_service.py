@@ -325,8 +325,11 @@ def _schedule_day(
             # 끼니는 "무조건 포함"이 원칙이므로, 정해진 시간대(MEAL_WINDOWS)에 못 들어가도
             # 그 시간대 제약만 풀고 하루 안(day_start~day_end) 아무 데나 들어갈 수 있으면
             # 거기에 배치한다 — 가게 영업시간 자체를 벗어나는 경우만 어쩔 수 없이 제외된다.
+            # 이전 끼니가 바로 이날 배치돼 있으면(meal_results가 비어있지 않으면), 끼니끼리
+            # 붙어버리지 않도록 최소 휴식 시간만큼은 띄운다.
+            fallback_cursor = meal_cursor + timedelta(minutes=rest_base) if meal_results else meal_cursor
             placement, _ = _try_place_on_day(
-                meal_cursor, day_end, meal_place, meal_last_place, multiplier, extra_dwell, None, None
+                fallback_cursor, day_end, meal_place, meal_last_place, multiplier, extra_dwell, None, None
             )
             if placement is None:
                 placement, _ = _try_place_on_day(
@@ -621,6 +624,12 @@ def generate_timeline(
         # 우선한다(places.json을 덮어쓰는 게 아니라 이번 요청 안에서만 쓰는 임시 조회용이므로).
         by_id[custom_id] = _build_custom_place_record(custom_id, custom_place, request.destination)
 
+    accommodation_record: Optional[PlaceRecord] = None
+    if request.accommodation is not None:
+        accommodation_record = _build_custom_place_record(
+            "accommodation", request.accommodation, request.destination
+        )
+
     unknown_ids: List[str] = []
     resolved_days: List[Tuple[date, List[PlaceRecord], Dict[MealType, PlaceRecord]]] = []
     for day in request.days:
@@ -657,14 +666,45 @@ def generate_timeline(
 
     touring_items: List[dict] = []
     cursor = touring_start
+    # 숙소를 입력하지 않았으면 전날 마지막으로 어디에 있었는지 알 수 없으므로(숙소로
+    # 돌아갔다고 "가정"만 하고), 매일 역/거점에서 새로 출발하는 것으로 취급한다.
+    # 숙소를 입력했으면 실제로 그 좌표에서 다음날을 시작하는 것으로 계산한다.
+    day_start_place: Optional[PlaceRecord] = None
+    last_trip_date = resolved_days[-1][0] if resolved_days else None
     for day_date, places, meals in resolved_days:
-        # 날짜가 바뀌면 전날 마지막으로 어디에 있었는지 알 수 없으므로(숙소로 돌아갔다고
-        # 본다), 매일 역/거점에서 새로 출발하는 것으로 취급한다(last_place=None).
-        day_items, cursor, _, day_warnings = _schedule_day(
-            places, meals, day_date, touring_start, touring_end, companion_types, pace, rng, cursor, None
+        day_items, cursor, day_last_place, day_warnings = _schedule_day(
+            places, meals, day_date, touring_start, touring_end, companion_types, pace, rng, cursor, day_start_place
         )
         touring_items.extend(day_items)
         warnings.extend(day_warnings)
+
+        day_start_place = None
+        # 여행 마지막 날은 그 다음 날 아침이 없으므로(귀가/출발만 남음) 숙소로 돌아갈
+        # 필요가 없다 — 마지막 날을 제외한 날짜에만 숙소 이동 항목을 추가한다.
+        # 숙소는 관광지가 아니라 그날 일정의 "마무리"이므로, 관광지·끼니와 달리 시간이
+        # 빠듯해도 제외하지 않고 무조건 그날의 마지막 항목으로 넣는다.
+        is_last_trip_day = day_date == last_trip_date
+        if accommodation_record is not None and day_last_place is not None and not is_last_trip_day:
+            multiplier = travel_multiplier(companion_types, pace)
+            travel_minutes = estimate_travel_minutes(day_last_place, accommodation_record, multiplier)
+            travel_start = cursor
+            travel_end = travel_start + timedelta(minutes=travel_minutes)
+            touring_items.append(
+                {
+                    "type": "accommodation",
+                    "start": travel_start,
+                    "end": travel_end,
+                    "title": f"{_ro(accommodation_record.name)} 이동",
+                    "placeId": None,
+                    "location": accommodation_record.name,
+                    "description": "숙소로 돌아가는 이동입니다.",
+                    "estimated": True,
+                    "lat": accommodation_record.lat,
+                    "lng": accommodation_record.lng,
+                }
+            )
+            cursor = travel_end
+            day_start_place = accommodation_record
 
     booking_items = _build_booking_items(request.bookings, buffer_minutes)
     booking_items.extend(_build_transfer_items(request.bookings, buffer_minutes))
@@ -697,7 +737,9 @@ def generate_timeline(
         if raw["type"] in ("attraction", "meal")
     )
     estimated_travel_minutes = sum(
-        int((raw["end"] - raw["start"]).total_seconds() // 60) for raw in touring_items if raw["type"] == "transport"
+        int((raw["end"] - raw["start"]).total_seconds() // 60)
+        for raw in touring_items
+        if raw["type"] in ("transport", "accommodation")
     )
 
     summary = TimelineSummary(

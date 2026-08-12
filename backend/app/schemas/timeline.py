@@ -6,7 +6,7 @@ from app.schemas.booking import Booking
 from app.schemas.common import CompanionType
 from app.schemas.place import MealType
 
-TimelineItemType = Literal["arrival", "transport", "attraction", "meal", "rest", "departure"]
+TimelineItemType = Literal["arrival", "transport", "attraction", "meal", "rest", "departure", "accommodation"]
 Pace = Literal["normal", "relaxed"]
 
 
@@ -44,6 +44,9 @@ class TimelineGenerateRequest(BaseModel):
     # places.json에서 찾을 수 없는 ID를 만나면 여기서 찾아, 운영시간 제약 없이 기본
     # 체류시간(60분)으로 다룬다.
     customPlaces: Dict[str, CustomPlaceInput] = Field(default_factory=dict)
+    # 입력하면 매일 마지막 일정 뒤에 숙소로 이동하는 항목이 추가되고, 다음날은 숙소에서
+    # 출발하는 것으로 이동시간을 계산한다. 입력하지 않으면 기존과 동일하게(거점 기준) 동작한다.
+    accommodation: Optional[CustomPlaceInput] = None
 
 
 class TimelineItem(BaseModel):
