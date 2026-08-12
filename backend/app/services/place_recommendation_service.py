@@ -5,6 +5,7 @@
 """
 
 import random
+from datetime import date
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from app.schemas.common import CompanionType
@@ -12,7 +13,8 @@ from app.schemas.place import MealType, Place, PlaceRecommendData, PlaceRecommen
 from app.services.place_data import load_places
 from app.utils.companion_validation import validate_companion_types
 from app.utils.errors import InvalidInputError
-from app.utils.meal_recommendation import recommend_meals
+from app.utils.meal_recommendation import recommend_daily_meals
+from app.utils.trip_dates import compute_trip_boundary, compute_trip_dates
 
 DEFAULT_RECOMMEND_COUNT = 6
 MAX_AUTO_SELECT_COUNT = 3
@@ -145,6 +147,8 @@ def _to_response_place(place: PlaceRecord, companion_types: Sequence[str]) -> Pl
         category=place.category,
         openTime=place.openTime,
         closeTime=place.closeTime,
+        lat=place.lat,
+        lng=place.lng,
     )
 
 
@@ -224,15 +228,18 @@ def recommend_restaurants(
     destination: str,
     companion_types: Sequence[CompanionType],
     meal_types: Sequence[MealType],
+    exclude_place_ids: Optional[Sequence[str]] = None,
     count_per_meal: int = DEFAULT_RESTAURANT_COUNT_PER_MEAL,
     rng: Optional[random.Random] = None,
 ) -> Dict[MealType, List[Place]]:
-    """식사 시간대별(점심/저녁) 음식점 후보 추천 (2절 규칙 2).
+    """식사 시간대별(아침/점심/저녁) 음식점 후보 추천.
 
     meal_types에 없는 버킷은 결과에 아예 포함하지 않는다
-    (예: 저녁만 추천 대상이면 결과는 {"dinner": [...]} 형태).
+    (예: 저녁만 추천 대상이면 결과는 {"dinner": [...]} 형태). exclude_place_ids는
+    다른 날짜·다른 끼니에서 이미 추천된 음식점을 다시 추천하지 않기 위한 것이다.
     """
     rng = rng or random.Random()
+    exclude_ids = set(exclude_place_ids or [])
     all_places = load_places()
 
     result: Dict[MealType, List[Place]] = {}
@@ -243,6 +250,7 @@ def recommend_restaurants(
             if place.region == destination
             and place.category == RESTAURANT_CATEGORY
             and place.mealType == meal_type
+            and place.placeId not in exclude_ids
             and _passes_hard_filters(place, companion_types)
         ]
         scored = [(place, _score(place, companion_types)) for place in candidates]
@@ -255,27 +263,69 @@ def recommend_restaurants(
 def get_place_recommendations(
     request: PlaceRecommendRequest, rng: Optional[random.Random] = None
 ) -> PlaceRecommendData:
+    """여행 날짜별로 관광지(하루 3개)·끼니별 음식점 후보를 계산한다.
+
+    request.targetDate가 있으면 그 날짜 하나만 다시 계산하고(관광지/음식점 "다른 후보
+    추천받기" 새로고침용), 없으면 bookings 기준 여행 전체 날짜를 한 번에 계산한다.
+    날짜를 넘어가며 이미 나온 후보(관광지·음식점 모두)는 계속 exclude에 누적해
+    같은 곳이 여러 날짜에 중복 추천되지 않게 한다.
+    """
     destination = request.destination.strip()
     if not destination:
         raise InvalidInputError("여행 목적지(destination)를 입력해주세요.")
     validate_companion_types(request.companionTypes)
 
-    places, auto_selected_ids = recommend_places(
-        destination=destination,
-        companion_types=request.companionTypes,
-        exclude_place_ids=request.excludePlaceIds,
-        keep_place_ids=request.keepPlaceIds,
-        rng=rng,
-    )
+    trip_dates = compute_trip_dates(request.bookings)
+    if not trip_dates:
+        return PlaceRecommendData()
 
-    restaurants: Dict[MealType, List[Place]] = {}
-    if request.arrivalTime:
-        meal_types = recommend_meals(request.arrivalTime)
+    if request.targetDate:
+        try:
+            target = date.fromisoformat(request.targetDate)
+        except ValueError as exc:
+            raise InvalidInputError("targetDate는 YYYY-MM-DD 형식이어야 합니다.") from exc
+        if target not in trip_dates:
+            raise InvalidInputError("targetDate가 여행 기간에 포함되지 않습니다.")
+        dates_to_compute = [target]
+    else:
+        dates_to_compute = trip_dates
+
+    arrival_time, departure_time = compute_trip_boundary(request.bookings)
+    daily_meals = recommend_daily_meals(trip_dates, arrival_time, departure_time)
+
+    accumulated_exclude = set(request.excludePlaceIds)
+    places_by_day: Dict[str, List[Place]] = {}
+    auto_selected_by_day: Dict[str, List[str]] = {}
+    restaurants_by_day: Dict[str, Dict[MealType, List[Place]]] = {}
+
+    for current_date in dates_to_compute:
+        keep_ids = request.keepPlaceIds if current_date == dates_to_compute[0] else []
+
+        places, auto_selected_ids = recommend_places(
+            destination=destination,
+            companion_types=request.companionTypes,
+            exclude_place_ids=accumulated_exclude,
+            keep_place_ids=keep_ids,
+            rng=rng,
+        )
+        key = current_date.isoformat()
+        places_by_day[key] = places
+        auto_selected_by_day[key] = auto_selected_ids
+        accumulated_exclude |= {place.placeId for place in places}
+
         restaurants = recommend_restaurants(
             destination=destination,
             companion_types=request.companionTypes,
-            meal_types=meal_types,
+            meal_types=daily_meals.get(current_date, []),
+            exclude_place_ids=accumulated_exclude,
             rng=rng,
         )
+        restaurants_by_day[key] = restaurants
+        for bucket in restaurants.values():
+            accumulated_exclude |= {place.placeId for place in bucket}
 
-    return PlaceRecommendData(places=places, autoSelectedPlaceIds=auto_selected_ids, restaurants=restaurants)
+    return PlaceRecommendData(
+        placesByDay=places_by_day,
+        autoSelectedPlaceIdsByDay=auto_selected_by_day,
+        restaurantsByDay=restaurants_by_day,
+    )

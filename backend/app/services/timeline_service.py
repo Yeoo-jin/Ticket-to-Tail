@@ -1,4 +1,4 @@
-"""선택 관광지 기반 맞춤 타임라인 생성.
+"""선택 관광지·음식점(날짜별) 기반 맞춤 타임라인 생성.
 
 시간·제약조건 계산은 전부 이 모듈(코드)에서 결정적으로 처리하며, AI(Gemini)는
 호출하지 않는다. 관광지 운영시간·이동시간·휴식시간은 데모 데이터/데모 규칙을
@@ -7,11 +7,13 @@
 
 import random
 from datetime import date, datetime, time, timedelta
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, get_args
 
 from app.schemas.common import CompanionType
-from app.schemas.place import PlaceRecord
+from app.schemas.place import MealType, PlaceRecord
 from app.schemas.timeline import (
+    CustomPlaceInput,
+    DaySelection,
     Pace,
     TimelineGenerateData,
     TimelineGenerateRequest,
@@ -25,21 +27,62 @@ from app.services.timeline_companion_policy import (
     travel_buffer_minutes,
     travel_multiplier,
 )
-from app.services.travel_time_service import estimate_travel_minutes
+from app.services.travel_time_service import estimate_transfer_minutes, estimate_travel_minutes
 from app.utils.companion_validation import validate_companion_types
 from app.utils.errors import InvalidInputError
 
-MIN_SELECTED_PLACES = 1
-MAX_SELECTED_PLACES = 3
+MIN_DAILY_PLACES = 1
+MAX_DAILY_PLACES = 3
 
 # 하루 중 관광 일정을 배치할 수 있는 시간대 (데모용 고정값).
 DAY_START_HOUR = 9
-DAY_END_HOUR = 21
+DAY_END_HOUR = 22
+
+# 끼니별로 방문을 고정하는 시간대(데모용 고정값, 요청사항 기준). 이 창 밖에서는
+# 배치하지 않고(창을 넘기지 않음), 관광지는 창과 창 사이 남는 시간에 나눠 배치한다.
+MEAL_WINDOWS: Dict[MealType, Tuple[int, int]] = {
+    "breakfast": (8, 10),
+    "lunch": (11, 13),
+    "dinner": (18, 20),
+}
 
 # 이 시간(분) 이상 비면 "개장 대기" 휴식 항목으로 표시하고, 그보다 짧으면 표시하지 않는다.
 MIN_WAIT_GAP_MINUTES = 10
 
 BOOKING_TYPE_LABEL = {"flight": "항공편", "train": "열차"}
+
+# 사용자가 추천 후보 대신 직접 입력한 장소를 다룰 때 쓰는 기본 체류시간(분).
+# 운영시간 제약이 없어 24시간 아무 때나 배치 가능한 것으로 취급한다.
+CUSTOM_PLACE_DURATION_MINUTES = 60
+_ALL_COMPANION_TYPES: List[CompanionType] = list(get_args(CompanionType))
+
+
+def _build_custom_place_record(place_id: str, custom_place: CustomPlaceInput, destination: str) -> PlaceRecord:
+    """사용자가 추천 후보 대신 직접 입력한 장소를 위한 임시 레코드를 만든다.
+    places.json에는 저장하지 않고, 이 요청을 처리하는 동안만 메모리에 존재한다.
+    카카오 장소검색으로 좌표(lat/lng)까지 받았으면 그대로 써서, 다른 장소와의 이동시간도
+    거리 기반으로 계산되고 지도에도 표시된다. 좌표가 없으면(이름만 직접 입력) 거점 기준
+    기본 이동시간으로 대체되고 지도에는 표시되지 않는다."""
+    return PlaceRecord(
+        placeId=place_id,
+        name=custom_place.name,
+        region=destination,
+        district=destination,
+        category="직접 입력",
+        description="사용자가 직접 추가한 장소입니다.",
+        tags=[],
+        companionTypes=_ALL_COMPANION_TYPES,
+        recommendationReasons={},
+        estimatedDurationMinutes=CUSTOM_PLACE_DURATION_MINUTES,
+        openTime="00:00",
+        closeTime="24:00",
+        indoor=False,
+        address=custom_place.address or custom_place.name,
+        imageUrl=None,
+        mealType=None,
+        lat=custom_place.lat,
+        lng=custom_place.lng,
+    )
 
 
 def _has_final_consonant(text: str) -> bool:
@@ -119,94 +162,216 @@ def _compute_touring_window(bookings, buffer_minutes: int) -> Tuple[datetime, da
     return touring_start, touring_end, warnings
 
 
-def _try_place_attraction(
+def _split_evenly(items: Sequence[PlaceRecord], bucket_count: int) -> List[List[PlaceRecord]]:
+    """items를 bucket_count개의 구간에 앞에서부터 최대한 고르게 나눠 담는다."""
+    if bucket_count <= 0:
+        return [list(items)]
+    base, extra = divmod(len(items), bucket_count)
+    buckets: List[List[PlaceRecord]] = []
+    index = 0
+    for i in range(bucket_count):
+        size = base + (1 if i < extra else 0)
+        buckets.append(list(items[index : index + size]))
+        index += size
+    return buckets
+
+
+def _distribute_by_weight(items: Sequence[PlaceRecord], weights: Sequence[int]) -> List[List[PlaceRecord]]:
+    """items를 weights(구간별 여유 분(分)) 비율에 최대한 맞춰 나눠 담는다.
+
+    끼니 시간대가 고정(MEAL_WINDOWS)이라, 관광지를 구간별로 그냥 균등하게 나누면
+    끼니 사이 여유가 짧은 구간에 너무 많은 관광지가 몰려 그 다음 끼니를 창 안에
+    배치하지 못하는 경우가 생긴다. 그래서 구간이 넓을수록(=시간 여유가 클수록)
+    더 많은 관광지를 배정한다.
+    """
+    total_weight = sum(weights)
+    if not items or total_weight <= 0:
+        return _split_evenly(items, len(weights))
+
+    n = len(items)
+    raw = [n * weight / total_weight for weight in weights]
+    counts = [int(value) for value in raw]
+    remainder = n - sum(counts)
+    fractional_order = sorted(range(len(weights)), key=lambda i: raw[i] - counts[i], reverse=True)
+    for i in fractional_order[:remainder]:
+        counts[i] += 1
+
+    buckets: List[List[PlaceRecord]] = []
+    index = 0
+    for count in counts:
+        buckets.append(list(items[index : index + count]))
+        index += count
+    return buckets
+
+
+def _try_place_on_day(
     cursor: datetime,
+    day_end: datetime,
     place: PlaceRecord,
     last_place: Optional[PlaceRecord],
-    touring_start: datetime,
-    touring_end: datetime,
     multiplier: float,
     extra_dwell: int,
+    earliest_start: Optional[datetime],
+    latest_end: Optional[datetime] = None,
 ) -> Tuple[Optional[dict], datetime]:
-    """cursor 이후로 place를 배치할 수 있는 첫 번째 위치를 찾는다.
+    """cursor 이후, 그리고 이 날짜 안(day_end 전, latest_end가 있으면 그 전)에 place를
+    배치할 수 있으면 배치하고, 그렇지 않으면 (None, cursor)를 반환한다. 다른 날짜로는
+    넘어가지 않는다(요청상 각 항목이 이미 특정 날짜에 배정돼 있으므로 날짜를 넘겨
+    배치하면 안 된다). latest_end는 끼니 시간대(MEAL_WINDOWS)처럼 창 끝이 고정된
+    항목에만 쓰이며, 그 시각을 넘겨서까지 밀어 배치하지 않는다."""
+    if cursor >= day_end:
+        return None, cursor
+    if earliest_start is not None and earliest_start > cursor:
+        cursor = min(earliest_start, day_end)
 
-    운영시간·하루 시간대·touring_end를 넘으면 다음 날로 넘어가며 재시도하고,
-    끝까지 자리가 없으면 (None, cursor)를 반환한다.
-    """
-    while True:
-        if cursor.date() > touring_end.date():
-            return None, cursor
+    travel_minutes = estimate_travel_minutes(last_place, place, multiplier)
+    travel_start = cursor
+    travel_end = travel_start + timedelta(minutes=travel_minutes)
 
-        day_start, day_end = _day_window(cursor.date(), touring_start, touring_end)
-        if cursor < day_start:
-            cursor = day_start
-        if cursor >= day_end:
-            next_date = cursor.date() + timedelta(days=1)
-            if next_date > touring_end.date():
-                return None, cursor
-            cursor = datetime.combine(next_date, time(DAY_START_HOUR, 0))
-            continue
+    open_dt = _place_open_dt(cursor.date(), place)
+    close_dt = _place_close_dt(cursor.date(), place)
 
-        travel_minutes = estimate_travel_minutes(last_place, place, multiplier)
-        travel_start = cursor
-        travel_end = travel_start + timedelta(minutes=travel_minutes)
+    visit_start = max(travel_end, open_dt)
+    visit_end = visit_start + timedelta(minutes=place.estimatedDurationMinutes + extra_dwell)
 
-        open_dt = _place_open_dt(cursor.date(), place)
-        close_dt = _place_close_dt(cursor.date(), place)
+    effective_end = min(day_end, close_dt)
+    if latest_end is not None:
+        effective_end = min(effective_end, latest_end)
 
-        visit_start = max(travel_end, open_dt)
-        visit_end = visit_start + timedelta(minutes=place.estimatedDurationMinutes + extra_dwell)
-
-        effective_end = min(day_end, close_dt, touring_end)
-
-        if visit_start < effective_end and visit_end <= effective_end:
-            return (
-                {
-                    "travel_start": travel_start,
-                    "travel_end": travel_end,
-                    "visit_start": visit_start,
-                    "visit_end": visit_end,
-                },
-                visit_end,
-            )
-
-        next_date = cursor.date() + timedelta(days=1)
-        if next_date > touring_end.date():
-            return None, cursor
-        cursor = datetime.combine(next_date, time(DAY_START_HOUR, 0))
+    if visit_start < effective_end and visit_end <= effective_end:
+        return (
+            {
+                "travel_start": travel_start,
+                "travel_end": travel_end,
+                "visit_start": visit_start,
+                "visit_end": visit_end,
+            },
+            visit_end,
+        )
+    return None, cursor
 
 
-def _schedule_attractions(
-    ordered_places: Sequence[PlaceRecord],
+def _place_visit_item(place: PlaceRecord, placement: dict, item_kind: str) -> dict:
+    return {
+        "type": item_kind,
+        "start": placement["visit_start"],
+        "end": placement["visit_end"],
+        "title": place.name,
+        "placeId": place.placeId,
+        "location": place.address,
+        "description": place.description,
+        "estimated": True,
+        "lat": place.lat,
+        "lng": place.lng,
+    }
+
+
+def _schedule_day(
+    day_places: Sequence[PlaceRecord],
+    day_meals: Dict[MealType, PlaceRecord],
+    day_date: date,
     touring_start: datetime,
     touring_end: datetime,
     companion_types: Sequence[str],
     pace: str,
     rng: random.Random,
-) -> Tuple[List[dict], List[str]]:
-    items: List[dict] = []
+    cursor: datetime,
+    last_place: Optional[PlaceRecord],
+) -> Tuple[List[dict], datetime, Optional[PlaceRecord], List[str]]:
+    """식당(끼니)을 관광지보다 먼저, 우선적으로 배치한다(요청사항 기준) — 관광지끼리
+    시간을 다투다 끼니가 밀려나는 일이 없도록, 끼니를 먼저 확정한 뒤 그 사이사이 남는
+    시간에 관광지를 채워 넣는다. 이렇게 하면 관광지 하나가 오래 걸려도 다른 날 다른
+    끼니에는 영향이 없고, 관광지·끼니가 불필요하게 제외되는 경우도 줄어든다."""
     warnings: List[str] = []
 
     multiplier = travel_multiplier(companion_types, pace)
     rest_base = rest_minutes(companion_types, pace)
 
-    cursor = touring_start
-    last_place: Optional[PlaceRecord] = None
-    last_place_date: Optional[date] = None
+    day_start, day_end = _day_window(day_date, touring_start, touring_end)
+    cursor = max(cursor, day_start)
 
-    for index, place in enumerate(ordered_places):
-        # 날짜가 바뀌면 전날 어디서 묵었는지 알 수 없으므로, 역/거점에서 출발하는 것으로 취급한다.
-        effective_last_place = last_place if last_place_date == cursor.date() else None
-        extra_dwell = extra_dwell_minutes(companion_types, place.tags, pace)
+    # --- 1단계: 끼니를 시간대(MEAL_WINDOWS) 순서대로 먼저 확정한다 ---
+    ordered_meals = sorted(day_meals.items(), key=lambda entry: MEAL_WINDOWS[entry[0]][0])
+    meal_results: List[Tuple[PlaceRecord, dict]] = []
+    meal_cursor = cursor
+    meal_last_place = last_place
 
-        placement, cursor = _try_place_attraction(
-            cursor, place, effective_last_place, touring_start, touring_end, multiplier, extra_dwell
+    for meal_type, meal_place in ordered_meals:
+        start_hour, end_hour = MEAL_WINDOWS[meal_type]
+        window_start = datetime.combine(day_date, time(start_hour, 0))
+        window_end = datetime.combine(day_date, time(end_hour, 0))
+        extra_dwell = extra_dwell_minutes(companion_types, meal_place.tags, pace)
+
+        start_cursor = max(meal_cursor, window_start, day_start)
+        placement, _ = _try_place_on_day(
+            start_cursor, day_end, meal_place, meal_last_place, multiplier, extra_dwell, window_start, window_end
         )
+        if placement is None and meal_last_place is not None:
+            # 이전 일정에서 이어진 이동시간 때문에 창을 놓쳤을 수 있으니, 거점에서 바로
+            # 오는 것으로 한 번 더 시도해 끼니가 최대한 배치되도록 한다.
+            placement, _ = _try_place_on_day(
+                window_start, day_end, meal_place, None, multiplier, extra_dwell, window_start, window_end
+            )
 
         if placement is None:
-            warnings.append(f"{_eun(place.name)} 이용 가능한 시간 안에 배치하지 못해 일정에서 제외했습니다.")
+            warnings.append(
+                f"{_eun(meal_place.name)} 이용 가능한 시간 안에 배치하지 못해 {day_date.isoformat()} 일정에서 제외했습니다."
+            )
             continue
 
+        meal_results.append((meal_place, placement))
+        meal_cursor = placement["visit_end"]
+        meal_last_place = meal_place
+
+    # --- 2단계: 끼니 사이사이(첫 끼니 전, 끼니 사이, 마지막 끼니 후) 남는 시간에
+    #     관광지를 그 여유 길이에 비례해 나눠 채운다 ---
+    boundaries = [day_start]
+    gap_last_places: List[Optional[PlaceRecord]] = [last_place]
+    for meal_place, placement in meal_results:
+        # 끼니 자체의 이동 구간(travel_start~)부터는 그 끼니가 "차지한" 시간으로 보고,
+        # 관광지가 그 구간을 침범해 이동 항목과 겹쳐 보이지 않게 한다.
+        boundaries.append(placement["travel_start"])
+        boundaries.append(placement["visit_end"])
+        gap_last_places.append(meal_place)
+    boundaries.append(day_end)
+
+    gap_bounds = [(boundaries[i], boundaries[i + 1]) for i in range(0, len(boundaries) - 1, 2)]
+    gap_minutes = [max(0, int((end - start).total_seconds() // 60)) for start, end in gap_bounds]
+
+    shuffled_places = list(day_places)
+    rng.shuffle(shuffled_places)
+    buckets = _distribute_by_weight(shuffled_places, gap_minutes)
+
+    attraction_results: List[Tuple[PlaceRecord, dict]] = []
+    for (gap_start, gap_end), bucket, gap_last_place in zip(gap_bounds, buckets, gap_last_places):
+        local_cursor = gap_start
+        local_last_place = gap_last_place
+        for place in bucket:
+            extra_dwell = extra_dwell_minutes(companion_types, place.tags, pace)
+            placement, next_cursor = _try_place_on_day(
+                local_cursor, gap_end, place, local_last_place, multiplier, extra_dwell, None, None
+            )
+            if placement is None:
+                warnings.append(
+                    f"{_eun(place.name)} 이용 가능한 시간 안에 배치하지 못해 {day_date.isoformat()} 일정에서 제외했습니다."
+                )
+                continue
+            attraction_results.append((place, placement))
+            # 다음 관광지의 이동을 곧바로 이어 붙이지 않고, 그 사이에 쉴 시간을 남겨둔다
+            # (3단계에서 이 여유를 "휴식" 항목으로 보여준다).
+            jitter = rng.randint(-5, 10)
+            rest_len = max(10, rest_base + jitter)
+            local_cursor = min(next_cursor + timedelta(minutes=rest_len), gap_end)
+            local_last_place = place
+
+    # --- 3단계: 끼니 + 관광지를 시간순으로 합쳐 이동·휴식 항목을 끼워 넣는다 ---
+    all_results = [(place, placement, "meal") for place, placement in meal_results] + [
+        (place, placement, "attraction") for place, placement in attraction_results
+    ]
+    all_results.sort(key=lambda entry: entry[1]["visit_start"])
+
+    items: List[dict] = []
+    for index, (place, placement, item_kind) in enumerate(all_results):
         travel_start, travel_end = placement["travel_start"], placement["travel_end"]
         visit_start, visit_end = placement["visit_start"], placement["visit_end"]
 
@@ -238,30 +403,18 @@ def _schedule_attractions(
                 }
             )
 
-        items.append(
-            {
-                "type": "attraction",
-                "start": visit_start,
-                "end": visit_end,
-                "title": place.name,
-                "placeId": place.placeId,
-                "location": place.address,
-                "description": place.description,
-                "estimated": True,
-            }
-        )
+        items.append(_place_visit_item(place, placement, item_kind))
 
-        cursor = visit_end
-        last_place = place
-        last_place_date = visit_end.date()
-
-        has_next = index < len(ordered_places) - 1
+        has_next = index < len(all_results) - 1
         if has_next:
+            # 다음 항목의 이동(travel_start)은 이미 2단계에서 독립적으로 정해져 있으므로,
+            # 그 시작 시각을 넘겨서까지 휴식을 넣으면 두 항목이 겹쳐 보인다. 다음 이동이
+            # 시작되기 전까지 실제로 남는 시간만 휴식으로 보여준다(남는 시간이 없으면 생략).
+            next_travel_start = all_results[index + 1][1]["travel_start"]
             jitter = rng.randint(-5, 10)
             rest_len = max(10, rest_base + jitter)
-            day_start, day_end = _day_window(cursor.date(), touring_start, touring_end)
-            rest_end = min(cursor + timedelta(minutes=rest_len), day_end)
-            if rest_end > cursor:
+            rest_end = min(visit_end + timedelta(minutes=rest_len), next_travel_start, day_end)
+            if rest_end > visit_end:
                 description = (
                     "반려동물과 함께 야외에서 쉬어가는 휴식 시간입니다."
                     if "pet" in companion_types
@@ -270,7 +423,7 @@ def _schedule_attractions(
                 items.append(
                     {
                         "type": "rest",
-                        "start": cursor,
+                        "start": visit_end,
                         "end": rest_end,
                         "title": "휴식",
                         "placeId": None,
@@ -279,9 +432,10 @@ def _schedule_attractions(
                         "estimated": True,
                     }
                 )
-                cursor = rest_end
 
-    return items, warnings
+    final_cursor = all_results[-1][1]["visit_end"] if all_results else cursor
+    final_last_place = all_results[-1][0] if all_results else last_place
+    return items, final_cursor, final_last_place, warnings
 
 
 def _build_booking_items(bookings, buffer_minutes: int) -> List[dict]:
@@ -338,17 +492,99 @@ def _build_booking_items(bookings, buffer_minutes: int) -> List[dict]:
     return items
 
 
+def _booking_primary_time(booking) -> Optional[datetime]:
+    if booking.arrivalTime:
+        return _parse_dt(booking.arrivalTime)
+    if booking.departureTime:
+        return _parse_dt(booking.departureTime)
+    return None
+
+
+# 두 예매편 사이 간격이 이보다 크면 "환승"이 아니라 그 사이에 관광 등 다른 일정이
+# 있는 것으로 보고 환승 이동 항목을 추가하지 않는다.
+_MAX_TRANSFER_GAP = timedelta(hours=6)
+
+
+def _build_transfer_items(bookings, buffer_minutes: int) -> List[dict]:
+    """서로 다른 교통수단(예: 항공→철도)으로 짧은 간격 안에 이어지는 예매편 사이에
+    공항·역 환승 이동 항목을 추가한다. 같은 교통수단이 이어지거나(예: 항공→항공),
+    간격이 커서 그 사이에 관광 등 다른 일정이 있다고 볼 수 있으면 추가하지 않는다."""
+    timed = [(booking, _booking_primary_time(booking)) for booking in bookings]
+    timed = [(booking, t) for booking, t in timed if t is not None]
+    timed.sort(key=lambda pair: pair[1])
+
+    items: List[dict] = []
+    for (prev, _), (nxt, _) in zip(timed, timed[1:]):
+        if prev.type == nxt.type:
+            continue
+        if not (prev.arrivalLocation and prev.arrivalTime):
+            continue
+        if not (nxt.departureLocation and nxt.departureTime):
+            continue
+        if _parse_dt(nxt.departureTime) - _parse_dt(prev.arrivalTime) > _MAX_TRANSFER_GAP:
+            continue
+
+        transfer_minutes = estimate_transfer_minutes(prev.type, nxt.type)
+        if transfer_minutes <= 0:
+            continue
+
+        # 도착 직후 정리·수속 여유(buffer_minutes)가 끝난 시점부터 환승 이동을 시작하는
+        # 것으로 봐, 같은 예매편에서 만들어지는 "도착" 항목과 시간이 겹치지 않게 한다.
+        start = _parse_dt(prev.arrivalTime) + timedelta(minutes=buffer_minutes)
+        end = start + timedelta(minutes=transfer_minutes)
+        items.append(
+            {
+                "type": "transport",
+                "start": start,
+                "end": end,
+                "title": f"{prev.arrivalLocation} → {nxt.departureLocation} 환승 이동",
+                "placeId": None,
+                "location": nxt.departureLocation,
+                "description": "서로 다른 교통수단 사이를 이동하는 데 걸리는 예상 환승 시간입니다. 실제 소요시간과 다를 수 있습니다.",
+                "estimated": True,
+            }
+        )
+    return items
+
+
+def _resolve_day_records(
+    day: DaySelection, by_id: Dict[str, PlaceRecord]
+) -> Tuple[List[PlaceRecord], Dict[MealType, PlaceRecord], List[str]]:
+    unknown: List[str] = []
+
+    places: List[PlaceRecord] = []
+    for place_id in day.placeIds:
+        record = by_id.get(place_id)
+        if record is None:
+            unknown.append(place_id)
+        else:
+            places.append(record)
+
+    meals: Dict[MealType, PlaceRecord] = {}
+    for meal_type, place_id in day.restaurantIds.items():
+        record = by_id.get(place_id)
+        if record is None:
+            unknown.append(place_id)
+        else:
+            meals[meal_type] = record
+
+    return places, meals, unknown
+
+
 def generate_timeline(
     request: TimelineGenerateRequest, rng: Optional[random.Random] = None
 ) -> TimelineGenerateData:
     if rng is None:
         rng = random.Random(request.seed) if request.seed is not None else random.Random()
 
-    if not (MIN_SELECTED_PLACES <= len(request.selectedPlaceIds) <= MAX_SELECTED_PLACES):
-        raise InvalidInputError("관광지는 1개 이상 3개 이하로 선택해야 합니다.")
+    if not request.days:
+        raise InvalidInputError("최소 하루 이상의 일정(days)이 필요합니다.")
 
-    if len(set(request.selectedPlaceIds)) != len(request.selectedPlaceIds):
-        raise InvalidInputError("selectedPlaceIds에 중복된 관광지 ID가 있습니다.")
+    for day in request.days:
+        if not (MIN_DAILY_PLACES <= len(day.placeIds) <= MAX_DAILY_PLACES):
+            raise InvalidInputError(f"{day.date}에는 관광지를 1개 이상 3개 이하로 선택해야 합니다.")
+        if len(set(day.placeIds)) != len(day.placeIds):
+            raise InvalidInputError(f"{day.date}의 관광지 목록에 중복된 ID가 있습니다.")
 
     validate_companion_types(request.companionTypes)
 
@@ -360,43 +596,58 @@ def generate_timeline(
 
     all_places = load_places()
     by_id: Dict[str, PlaceRecord] = {p.placeId: p for p in all_places}
+    for custom_id, custom_place in request.customPlaces.items():
+        # 실제 관광지 ID와 우연히 겹치더라도, 사용자가 이번 요청에서 직접 입력한 장소를
+        # 우선한다(places.json을 덮어쓰는 게 아니라 이번 요청 안에서만 쓰는 임시 조회용이므로).
+        by_id[custom_id] = _build_custom_place_record(custom_id, custom_place, request.destination)
 
-    unknown_ids = [pid for pid in request.selectedPlaceIds if pid not in by_id]
+    unknown_ids: List[str] = []
+    resolved_days: List[Tuple[date, List[PlaceRecord], Dict[MealType, PlaceRecord]]] = []
+    for day in request.days:
+        places, meals, unknown = _resolve_day_records(day, by_id)
+        unknown_ids.extend(unknown)
+        resolved_days.append((date.fromisoformat(day.date), places, meals))
+
     if unknown_ids:
-        raise InvalidInputError(f"존재하지 않는 관광지 ID가 있습니다: {', '.join(unknown_ids)}")
+        raise InvalidInputError(f"존재하지 않는 관광지·음식점 ID가 있습니다: {', '.join(unknown_ids)}")
 
     # set으로 다뤄 순서와 무관하게 항상 같은 정책 결과가 나오게 한다.
     companion_types: List[CompanionType] = sorted(set(request.companionTypes))
     pace: Pace = request.pace
 
-    selected_places = [by_id[pid] for pid in request.selectedPlaceIds]
-
     warnings: List[str] = []
 
     if "pet" in companion_types:
-        kept_places = []
-        for place in selected_places:
-            if "pet" in place.companionTypes:
-                kept_places.append(place)
-            else:
-                warnings.append(f"{_eun(place.name)} 반려동물 동반 조건에서 이용할 수 없어 일정에서 제외했습니다.")
-        selected_places = kept_places
+        filtered_days = []
+        for day_date, places, meals in resolved_days:
+            kept_places = []
+            for place in places:
+                if "pet" in place.companionTypes:
+                    kept_places.append(place)
+                else:
+                    warnings.append(f"{_eun(place.name)} 반려동물 동반 조건에서 이용할 수 없어 일정에서 제외했습니다.")
+            filtered_days.append((day_date, kept_places, meals))
+        resolved_days = filtered_days
 
     buffer_minutes = travel_buffer_minutes(companion_types, pace)
     touring_start, touring_end, window_warnings = _compute_touring_window(request.bookings, buffer_minutes)
     warnings.extend(window_warnings)
 
-    ordered_places = list(selected_places)
-    rng.shuffle(ordered_places)
+    resolved_days.sort(key=lambda item: item[0])
 
     touring_items: List[dict] = []
-    if ordered_places:
-        touring_items, schedule_warnings = _schedule_attractions(
-            ordered_places, touring_start, touring_end, companion_types, pace, rng
+    cursor = touring_start
+    for day_date, places, meals in resolved_days:
+        # 날짜가 바뀌면 전날 마지막으로 어디에 있었는지 알 수 없으므로(숙소로 돌아갔다고
+        # 본다), 매일 역/거점에서 새로 출발하는 것으로 취급한다(last_place=None).
+        day_items, cursor, _, day_warnings = _schedule_day(
+            places, meals, day_date, touring_start, touring_end, companion_types, pace, rng, cursor, None
         )
-        warnings.extend(schedule_warnings)
+        touring_items.extend(day_items)
+        warnings.extend(day_warnings)
 
     booking_items = _build_booking_items(request.bookings, buffer_minutes)
+    booking_items.extend(_build_transfer_items(request.bookings, buffer_minutes))
 
     raw_items = booking_items + touring_items
     raw_items.sort(key=lambda item: (item["start"], item["end"]))
@@ -414,12 +665,16 @@ def generate_timeline(
                 location=raw["location"],
                 description=raw["description"],
                 estimated=raw["estimated"],
+                lat=raw.get("lat"),
+                lng=raw.get("lng"),
             )
         )
 
     placed_place_ids = {raw["placeId"] for raw in touring_items if raw.get("placeId")}
     sightseeing_minutes = sum(
-        int((raw["end"] - raw["start"]).total_seconds() // 60) for raw in touring_items if raw["type"] == "attraction"
+        int((raw["end"] - raw["start"]).total_seconds() // 60)
+        for raw in touring_items
+        if raw["type"] in ("attraction", "meal")
     )
     estimated_travel_minutes = sum(
         int((raw["end"] - raw["start"]).total_seconds() // 60) for raw in touring_items if raw["type"] == "transport"

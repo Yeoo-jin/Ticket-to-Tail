@@ -19,6 +19,19 @@ PLACES_BY_ID = {p.placeId: p for p in load_places()}
 
 ALL_COMPANION_TYPES = ("solo", "friends_couple", "infant", "senior", "mobility_impaired", "pet")
 
+# 날짜별 추천은 bookings로 여행 날짜를 계산하므로, 단순히 "하루짜리 여행"만 필요한
+# 테스트에서 공통으로 쓰는 도착 전용 예매정보(당일 하루, 8/12).
+DEMO_BOOKINGS = [
+    {
+        "type": "flight",
+        "departureLocation": None,
+        "arrivalLocation": "부산",
+        "departureTime": None,
+        "arrivalTime": "2026-08-12T10:30:00",
+    }
+]
+DEMO_DAY = "2026-08-12"
+
 
 # ---------------------------------------------------------------------------
 # 동행 조건 enum이 최종 6개로 통일됐는지
@@ -65,14 +78,14 @@ def test_legacy_companion_type_value_is_rejected_by_api():
 def test_busan_infant_recommendation_via_api():
     response = client.post(
         "/api/places/recommend",
-        json={"destination": "부산", "companionTypes": ["infant"]},
+        json={"destination": "부산", "companionTypes": ["infant"], "bookings": DEMO_BOOKINGS},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
 
-    places = body["data"]["places"]
+    places = body["data"]["placesByDay"][DEMO_DAY]
     assert len(places) == 6
     for place in places:
         assert place["placeId"] in ALL_PLACE_IDS
@@ -81,7 +94,7 @@ def test_busan_infant_recommendation_via_api():
         assert "openTime" in place and "closeTime" in place
         assert "tags" in place and "category" in place
 
-    assert "autoSelectedPlaceIds" in body["data"]
+    assert DEMO_DAY in body["data"]["autoSelectedPlaceIdsByDay"]
 
 
 # ---------------------------------------------------------------------------
@@ -92,11 +105,11 @@ def test_busan_infant_recommendation_via_api():
 def test_busan_pet_recommendation_only_returns_pet_friendly_places():
     response = client.post(
         "/api/places/recommend",
-        json={"destination": "부산", "companionTypes": ["pet"]},
+        json={"destination": "부산", "companionTypes": ["pet"], "bookings": DEMO_BOOKINGS},
     )
 
     assert response.status_code == 200
-    places = response.json()["data"]["places"]
+    places = response.json()["data"]["placesByDay"][DEMO_DAY]
     assert len(places) > 0
     for place in places:
         assert "pet" in PLACES_BY_ID[place["placeId"]].companionTypes
@@ -110,14 +123,14 @@ def test_busan_pet_recommendation_only_returns_pet_friendly_places():
 def test_unsupported_region_returns_success_with_empty_places_and_empty_auto_selection():
     response = client.post(
         "/api/places/recommend",
-        json={"destination": "제주", "companionTypes": ["solo"]},
+        json={"destination": "제주", "companionTypes": ["solo"], "bookings": DEMO_BOOKINGS},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
-    assert body["data"]["places"] == []
-    assert body["data"]["autoSelectedPlaceIds"] == []
+    assert body["data"]["placesByDay"][DEMO_DAY] == []
+    assert body["data"]["autoSelectedPlaceIdsByDay"][DEMO_DAY] == []
 
 
 # ---------------------------------------------------------------------------
@@ -184,9 +197,9 @@ def test_multiple_non_solo_conditions_are_allowed():
 
 
 def test_default_recommend_count_is_six():
-    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"])
+    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"], bookings=DEMO_BOOKINGS)
     data = get_place_recommendations(request, rng=random.Random(1))
-    assert len(data.places) == 6
+    assert len(data.placesByDay[DEMO_DAY]) == 6
 
 
 # ---------------------------------------------------------------------------
@@ -319,6 +332,7 @@ def test_refresh_endpoint_rejects_unknown_keep_place_id():
         json={
             "destination": "부산",
             "companionTypes": ["solo"],
+            "bookings": DEMO_BOOKINGS,
             "keepPlaceIds": ["place-does-not-exist"],
         },
     )
@@ -425,9 +439,9 @@ def test_refresh_with_three_kept_keeps_three_and_fills_up_to_three_new():
 def test_refresh_via_api_endpoint_preserves_kept_and_excludes_unselected():
     first_response = client.post(
         "/api/places/recommend",
-        json={"destination": "부산", "companionTypes": ["friends_couple"]},
+        json={"destination": "부산", "companionTypes": ["friends_couple"], "bookings": DEMO_BOOKINGS},
     )
-    first_places = first_response.json()["data"]["places"]
+    first_places = first_response.json()["data"]["placesByDay"][DEMO_DAY]
     first_ids = [p["placeId"] for p in first_places]
     kept_ids = first_ids[:2]
     excluded_ids = first_ids[2:]
@@ -437,12 +451,14 @@ def test_refresh_via_api_endpoint_preserves_kept_and_excludes_unselected():
         json={
             "destination": "부산",
             "companionTypes": ["friends_couple"],
+            "bookings": DEMO_BOOKINGS,
+            "targetDate": DEMO_DAY,
             "keepPlaceIds": kept_ids,
             "excludePlaceIds": excluded_ids,
         },
     )
     assert second_response.status_code == 200
-    second_places = second_response.json()["data"]["places"]
+    second_places = second_response.json()["data"]["placesByDay"][DEMO_DAY]
     second_ids = [p["placeId"] for p in second_places]
 
     assert second_ids[:2] == kept_ids
@@ -509,71 +525,211 @@ def test_cafe_not_forced_when_no_room_left():
 
 
 # ---------------------------------------------------------------------------
-# 음식점(점심/저녁) 추천 - recommend_meals() 결과를 기준으로 버킷을 나눈다.
+# 음식점(아침/점심/저녁) 추천 - recommend_daily_meals() 결과를 기준으로 날짜별 버킷을 나눈다.
 # ---------------------------------------------------------------------------
 
 
-def test_restaurants_empty_when_no_arrival_time_given():
+def _bookings_with_arrival(arrival_time: str):
+    return [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "부산",
+            "departureTime": None,
+            "arrivalTime": arrival_time,
+        }
+    ]
+
+
+def test_restaurants_empty_when_no_bookings_given():
     request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"])
     data = get_place_recommendations(request, rng=random.Random(1))
-    assert data.restaurants == {}
+    assert data.restaurantsByDay == {}
 
 
 def test_restaurants_include_lunch_and_dinner_when_arrival_before_13():
     request = PlaceRecommendRequest(
         destination="부산",
         companionTypes=["friends_couple"],
-        arrivalTime="2026-08-12T10:30:00",
+        bookings=_bookings_with_arrival("2026-08-12T10:30:00"),
     )
     data = get_place_recommendations(request, rng=random.Random(1))
-    assert set(data.restaurants.keys()) == {"lunch", "dinner"}
-    assert len(data.restaurants["lunch"]) > 0
-    assert len(data.restaurants["dinner"]) > 0
+    restaurants = data.restaurantsByDay[DEMO_DAY]
+    assert set(restaurants.keys()) == {"lunch", "dinner"}
+    assert len(restaurants["lunch"]) > 0
+    assert len(restaurants["dinner"]) > 0
 
 
 def test_restaurants_include_only_dinner_when_arrival_at_or_after_13():
     request = PlaceRecommendRequest(
         destination="부산",
         companionTypes=["friends_couple"],
-        arrivalTime="2026-08-12T13:00:00",
+        bookings=_bookings_with_arrival("2026-08-12T13:00:00"),
     )
     data = get_place_recommendations(request, rng=random.Random(1))
-    assert set(data.restaurants.keys()) == {"dinner"}
-    assert len(data.restaurants["dinner"]) > 0
+    restaurants = data.restaurantsByDay[DEMO_DAY]
+    assert set(restaurants.keys()) == {"dinner"}
+    assert len(restaurants["dinner"]) > 0
+
+
+def test_restaurants_include_breakfast_when_arrival_before_9():
+    request = PlaceRecommendRequest(
+        destination="부산",
+        companionTypes=["friends_couple"],
+        bookings=_bookings_with_arrival("2026-08-12T07:00:00"),
+    )
+    data = get_place_recommendations(request, rng=random.Random(1))
+    restaurants = data.restaurantsByDay[DEMO_DAY]
+    assert set(restaurants.keys()) == {"breakfast", "lunch", "dinner"}
+    assert len(restaurants["breakfast"]) > 0
 
 
 def test_restaurant_results_only_contain_restaurant_category_with_matching_meal_type():
     request = PlaceRecommendRequest(
         destination="부산",
         companionTypes=["friends_couple"],
-        arrivalTime="2026-08-12T08:00:00",
+        bookings=_bookings_with_arrival("2026-08-12T08:00:00"),
     )
     data = get_place_recommendations(request, rng=random.Random(1))
-    for meal_type, places in data.restaurants.items():
+    for meal_type, places in data.restaurantsByDay[DEMO_DAY].items():
         for place in places:
             record = PLACES_BY_ID[place.placeId]
             assert record.category == RESTAURANT_CATEGORY
             assert record.mealType == meal_type
 
 
-def test_restaurants_via_api_endpoint_with_arrival_time():
+def test_restaurants_do_not_repeat_across_days():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "부산",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T10:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "부산",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T20:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"], bookings=bookings)
+    data = get_place_recommendations(request, rng=random.Random(1))
+
+    seen_ids = set()
+    for day_restaurants in data.restaurantsByDay.values():
+        for places in day_restaurants.values():
+            for place in places:
+                assert place.placeId not in seen_ids
+                seen_ids.add(place.placeId)
+
+
+def test_restaurants_via_api_endpoint_with_bookings():
     response = client.post(
         "/api/places/recommend",
         json={
             "destination": "부산",
             "companionTypes": ["friends_couple"],
-            "arrivalTime": "2026-08-12T18:00:00",
+            "bookings": _bookings_with_arrival("2026-08-12T18:00:00"),
         },
     )
     assert response.status_code == 200
     body = response.json()
-    assert set(body["data"]["restaurants"].keys()) == {"dinner"}
+    assert set(body["data"]["restaurantsByDay"][DEMO_DAY].keys()) == {"dinner"}
 
 
-def test_restaurants_via_api_endpoint_without_arrival_time_is_empty():
+def test_places_by_day_covers_full_trip_range():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "부산",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T10:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "부산",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T20:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"], bookings=bookings)
+    data = get_place_recommendations(request, rng=random.Random(1))
+    assert set(data.placesByDay.keys()) == {"2026-08-12", "2026-08-13", "2026-08-14"}
+
+
+def test_places_do_not_repeat_across_days():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "부산",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T10:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "부산",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T20:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    request = PlaceRecommendRequest(destination="부산", companionTypes=["friends_couple"], bookings=bookings)
+    data = get_place_recommendations(request, rng=random.Random(1))
+
+    seen_ids = set()
+    for places in data.placesByDay.values():
+        for place in places:
+            assert place.placeId not in seen_ids
+            seen_ids.add(place.placeId)
+
+
+def test_target_date_only_recomputes_that_day():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "부산",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T10:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "부산",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T20:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    request = PlaceRecommendRequest(
+        destination="부산", companionTypes=["friends_couple"], bookings=bookings, targetDate="2026-08-13"
+    )
+    data = get_place_recommendations(request, rng=random.Random(1))
+    assert set(data.placesByDay.keys()) == {"2026-08-13"}
+    assert set(data.restaurantsByDay.keys()) == {"2026-08-13"}
+
+
+def test_target_date_outside_trip_raises_invalid_input():
+    import pytest as _pytest
+
+    from app.utils.errors import InvalidInputError as _InvalidInputError
+
+    request = PlaceRecommendRequest(
+        destination="부산", companionTypes=["friends_couple"], bookings=DEMO_BOOKINGS, targetDate="2026-09-01"
+    )
+    with _pytest.raises(_InvalidInputError):
+        get_place_recommendations(request, rng=random.Random(1))
+
+
+def test_restaurants_via_api_endpoint_without_bookings_is_empty():
     response = client.post(
         "/api/places/recommend",
         json={"destination": "부산", "companionTypes": ["friends_couple"]},
     )
     assert response.status_code == 200
-    assert response.json()["data"]["restaurants"] == {}
+    assert response.json()["data"]["restaurantsByDay"] == {}

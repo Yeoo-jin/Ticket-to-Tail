@@ -12,6 +12,10 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/*.egg-info/
 
+# 공유 링크 저장소 (사용자가 만든 공유 데이터·사진 - 실제 데이터라 커밋하지 않음)
+backend/app/data/shares/
+backend/app/static/
+
 # editor / os
 .DS_Store
 .vscode/

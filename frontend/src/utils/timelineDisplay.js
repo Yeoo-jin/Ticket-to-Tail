@@ -2,6 +2,7 @@ export const TIMELINE_TYPE_LABEL = {
   arrival: '도착',
   transport: '이동',
   attraction: '관광',
+  meal: '식사',
   rest: '휴식',
   departure: '출발',
 }

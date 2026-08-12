@@ -16,6 +16,11 @@ async function handleResponse(response) {
   return payload.data
 }
 
+export async function getJson(path) {
+  const response = await fetch(`${API_BASE_URL}${path}`)
+  return handleResponse(response)
+}
+
 export async function postJson(path, body) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
@@ -32,4 +37,11 @@ export async function postFormData(path, formData) {
     body: formData,
   })
   return handleResponse(response)
+}
+
+// 백엔드가 상대 경로(예: /static/shares/...)로 내려준 파일 URL을, 카카오톡 공유처럼
+// 외부에서(우리 origin이 아닌 카카오 서버에서) 접근해야 하는 곳에 쓸 수 있는 절대 URL로 바꾼다.
+export function resolveAssetUrl(path) {
+  if (!path || /^https?:\/\//.test(path)) return path
+  return `${API_BASE_URL || window.location.origin}${path}`
 }
