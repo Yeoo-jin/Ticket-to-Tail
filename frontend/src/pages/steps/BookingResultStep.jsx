@@ -1,38 +1,6 @@
-import { useEffect, useState } from 'react'
-import { checkTransitStatus } from '../../services/bookingApi'
+import TransitStatusBadge from '../../components/TransitStatusBadge'
 
 const TYPE_LABEL = { flight: '항공편', train: '열차' }
-
-// 편명·열차번호가 있는 예매 건만 실시간 지연 여부를 조회한다(부가 정보라 실패해도
-// 화면 전체에는 영향 없이 해당 건만 "정보 없음"으로 조용히 넘어간다).
-function TransitStatusBadge({ booking }) {
-  const [status, setStatus] = useState(null)
-
-  useEffect(() => {
-    if (!booking.transitNumber) return undefined
-    let cancelled = false
-    checkTransitStatus(booking)
-      .then((data) => {
-        if (!cancelled) setStatus(data)
-      })
-      .catch(() => {
-        if (!cancelled) setStatus({ found: false })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [booking])
-
-  if (!booking.transitNumber) return null
-  if (!status) {
-    return <p className="mt-1 text-xs text-gray-400">실시간 상태 확인 중...</p>
-  }
-  if (!status.found) return null
-
-  return (
-    <p className={`mt-1 text-xs ${status.delayed ? 'font-medium text-red-600' : 'text-green-700'}`}>{status.message}</p>
-  )
-}
 
 function BookingResultStep({ bookingResult, onBack, onNext }) {
   const { bookings, missingFields } = bookingResult

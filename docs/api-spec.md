@@ -497,7 +497,8 @@ pet
   "seed":42,
   "customPlaces": {
     "custom-171234": { "name":"우리 가족 단골 산책로", "address":null, "lat":null, "lng":null }
-  }
+  },
+  "accommodation": { "name":"해운대 게스트하우스", "address":"부산 해운대구 해운대해변로 264", "lat":35.1591, "lng":129.1602 }
 }
 ```
 
@@ -518,6 +519,7 @@ pet
 | `customPlaces{}.name` | string | O | 장소 이름 |
 | `customPlaces{}.address` | string | X | 카카오 장소검색으로 골랐을 때의 주소. 없으면 `name`을 주소처럼 표시에 대신 쓴다 |
 | `customPlaces{}.lat`/`lng` | number | X | 카카오 장소검색으로 좌표까지 받았으면 채운다. 있으면 다른 장소와의 이동시간이 직선거리 기반으로 계산되고 지도에도 표시되며, 없으면 거점 기준 기본 이동시간으로 대체되고 지도에는 표시되지 않는다 |
+| `accommodation` | object | X | 숙소 정보. `customPlaces{}`와 같은 구조(`name`/`address`/`lat`/`lng`). 입력하면 매일 마지막 일정 뒤에 숙소로 이동하는 항목(`type: "accommodation"`)이 추가되고, 다음날은 숙소에서 출발하는 것으로 이동시간을 계산한다. 입력하지 않으면 기존과 동일하게(거점 기준으로 매일 새로 출발) 동작한다 |
 
 직접 입력한 장소는 운영시간 제약 없이 하루 중 아무 때나 배치 가능한 것으로 보고, 체류시간은 항상 60분 고정이다.
 
@@ -648,9 +650,11 @@ attraction
 meal
 rest
 departure
+accommodation
 ```
 
 `meal`은 날짜별로 선택한 음식점 방문 항목이다(`attraction`과 필드 구조는 동일하고 타입만 다르다).
+`accommodation`은 `accommodation` 요청 필드를 입력했을 때만 나타나며, 매일 마지막 일정 뒤 숙소로 이동하는 항목이다.
 
 `estimated`는 해당 항목의 시각이 예매정보 그대로의 정확한 값(`false`: `arrival`/`departure`/예매편 `transport`)인지,
 백엔드가 데모 규칙으로 계산한 추정값(`true`: 관광지·음식점 사이 `transport`(환승 이동 포함), `attraction`, `meal`, `rest`)인지 구분한다.

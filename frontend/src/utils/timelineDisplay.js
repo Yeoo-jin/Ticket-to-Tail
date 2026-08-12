@@ -5,6 +5,7 @@ export const TIMELINE_TYPE_LABEL = {
   meal: '식사',
   rest: '휴식',
   departure: '출발',
+  accommodation: '숙소',
 }
 
 const WEEKDAY_LABEL = ['일', '월', '화', '수', '목', '금', '토']

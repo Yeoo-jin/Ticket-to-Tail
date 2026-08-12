@@ -24,7 +24,7 @@ function TripMap({ timeline, placeCoordinates = {} }) {
         const daysInOrder = []
         const pointsByDay = {}
         timeline.forEach((item) => {
-          if (item.type !== 'attraction' && item.type !== 'meal') return
+          if (item.type !== 'attraction' && item.type !== 'meal' && item.type !== 'accommodation') return
           const coord =
             item.lat != null && item.lng != null
               ? { lat: item.lat, lng: item.lng }

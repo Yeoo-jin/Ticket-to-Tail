@@ -30,6 +30,9 @@ function PlaceRecommendStep({
   customPlaces,
   onAddCustomPlace,
   onRemoveCustomPlace,
+  accommodation,
+  onSetAccommodation,
+  onRemoveAccommodation,
 }) {
   const isEmptyResult = !loading && !error && places.length === 0
   const canProceed = selectedPlaceIds.length === REQUIRED_DAILY_PLACE_COUNT
@@ -117,7 +120,22 @@ function PlaceRecommendStep({
 
       {isLastDay ? (
         <div className="mt-5 rounded-lg border border-gray-200 p-3">
-          <p className="text-sm font-semibold text-gray-900">일정 여유</p>
+          <p className="text-sm font-semibold text-gray-900">숙소 (선택)</p>
+          <p className="mt-1 text-xs text-gray-500">
+            입력하면 매일 마지막 일정 뒤 숙소로 이동하는 일정이 자동으로 추가돼요.
+          </p>
+          {accommodation ? (
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#1a1a1a] bg-[#f3ece2] px-3 py-1 text-xs text-[#1a1a1a]">
+              {accommodation.name}
+              <button type="button" onClick={onRemoveAccommodation} aria-label="숙소 삭제">
+                ×
+              </button>
+            </span>
+          ) : (
+            <CustomPlaceInput placeholder="숙소 이름으로 검색하세요" onAdd={onSetAccommodation} />
+          )}
+
+          <p className="mt-4 text-sm font-semibold text-gray-900">일정 여유</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {PACE_OPTIONS.map((option) => (
               <button

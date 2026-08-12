@@ -7,6 +7,7 @@ import { toggleCompanionSelection } from '../utils/companionTypes'
 import { deriveDestinationGuess } from '../utils/deriveDestination'
 import { DEFAULT_BACKGROUND_COLOR } from '../utils/backgroundColor'
 import { DEFAULT_CHECK_SPACING, DEFAULT_DOT_SIZE, DEFAULT_PATTERN_COLOR } from '../utils/backgroundPattern'
+import { applyDelaysToBookings } from '../utils/bookingDelay'
 import { buildDefaultBackgroundCaptions } from '../utils/memoDistribution'
 import { DEFAULT_SPLIT_COUNT } from '../utils/panoramaLayouts'
 import { canGenerateDiary, removePhotoAt, resolveNewPhotos } from '../utils/photoUpload'
@@ -82,6 +83,10 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const [bookingResult, setBookingResult] = useState(persisted?.bookingResult ?? null)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  // 타임라인 화면에서 지연을 반영했을 때만 채워진다(bookingResult.bookings에 지연 시간을
+  // 적용한 결과). bookingResult.bookings 원본은 절대 건드리지 않는다 — 지연을 0으로 다시
+  // 입력했을 때 원래 시각으로 정확히 되돌아가려면 항상 원본에서부터 다시 계산해야 한다.
+  const [activeBookings, setActiveBookings] = useState(null)
 
   const [destination, setDestination] = useState(persisted?.destination ?? '')
   const [companionTypes, setCompanionTypes] = useState(persisted?.companionTypes ?? [])
@@ -108,6 +113,10 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const [selectionLimitMessage, setSelectionLimitMessage] = useState('')
   const [placesLoading, setPlacesLoading] = useState(false)
   const [placesError, setPlacesError] = useState('')
+
+  // 입력하면(선택 사항) 매일 마지막 일정 뒤 숙소로 이동하는 항목이 타임라인에 추가된다.
+  // { name, address, lat, lng } 형태, CustomPlaceInput의 카카오 장소검색 결과를 그대로 쓴다.
+  const [accommodation, setAccommodation] = useState(persisted?.accommodation ?? null)
 
   const [pace, setPace] = useState(persisted?.pace ?? 'normal')
   const [timelineData, setTimelineData] = useState(persisted?.timelineData ?? null)
@@ -170,6 +179,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
       selectedPlaceIdsByDay,
       selectedRestaurantIdsByDay,
       customPlaces,
+      accommodation,
       pace,
       timelineData,
       diaryMemo,
@@ -210,6 +220,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     selectedPlaceIdsByDay,
     selectedRestaurantIdsByDay,
     customPlaces,
+    accommodation,
     pace,
     timelineData,
     diaryMemo,
@@ -273,6 +284,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     try {
       const data = await parseBookingText(bookingText)
       setBookingResult(data)
+      setActiveBookings(null)
       setDestination(deriveDestinationGuess(data.bookings))
       setStep(STEP.BOOKING_RESULT)
     } catch (error) {
@@ -376,6 +388,14 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setSelectionLimitMessage('')
   }
 
+  function handleSetAccommodation(place) {
+    setAccommodation(place)
+  }
+
+  function handleRemoveAccommodation() {
+    setAccommodation(null)
+  }
+
   function handleAddCustomRestaurant(mealType, place) {
     const currentDate = tripDays[currentDayIndex]
     const id = generateCustomPlaceId()
@@ -439,17 +459,18 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     }))
   }
 
-  async function requestTimeline() {
+  async function requestTimeline(bookingsOverride) {
     setTimelineLoading(true)
     setTimelineError('')
     try {
       const data = await generateTimeline({
-        bookings: bookingResult.bookings,
+        bookings: bookingsOverride || activeBookings || bookingResult.bookings,
         companionTypes,
         days: buildDaysPayload(),
         destination,
         pace,
         customPlaces,
+        accommodation,
       })
       setTimelineData(data)
       return true
@@ -459,6 +480,16 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     } finally {
       setTimelineLoading(false)
     }
+  }
+
+  // 타임라인 화면에서 지연을 입력했을 때, 그 시각을 예매 정보에 반영하고 같은 조건(관광지·
+  // 음식점 선택)으로 타임라인을 다시 계산한다. bookingResult.bookings(원래 예매 시각)는
+  // 절대 덮어쓰지 않고 항상 거기서부터 다시 계산한다 — 그래야 지연 입력을 0으로 되돌리면
+  // (이전에 넣은 값이 계속 누적되지 않고) 원래 시각으로 정확히 복원된다.
+  async function handleApplyDelayAndRegenerate(delayMinutesByIndex) {
+    const updatedBookings = applyDelaysToBookings(bookingResult.bookings, delayMinutesByIndex)
+    setActiveBookings(updatedBookings)
+    await requestTimeline(updatedBookings)
   }
 
   async function handleGenerateTimeline() {
@@ -584,6 +615,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setStep(STEP.BOOKING_INPUT)
     setBookingText('')
     setBookingResult(null)
+    setActiveBookings(null)
     setBookingError('')
     setDestination('')
     setCompanionTypes([])
@@ -757,6 +789,9 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
               onGenerateTimeline={handleGenerateTimeline}
               timelineLoading={timelineLoading}
               timelineError={timelineError}
+              accommodation={accommodation}
+              onSetAccommodation={handleSetAccommodation}
+              onRemoveAccommodation={handleRemoveAccommodation}
             />
           )}
 
@@ -772,6 +807,8 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
               placeCoordinates={placeCoordinates}
               loading={timelineLoading}
               error={timelineError}
+              bookings={bookingResult?.bookings}
+              onApplyDelay={handleApplyDelayAndRegenerate}
             />
           )}
 

@@ -492,6 +492,36 @@ def test_custom_place_id_not_listed_in_custom_places_raises_invalid_input():
         generate_timeline(_request(selectedPlaceIds=["custom-unregistered"]))
 
 
+def test_accommodation_adds_return_item_except_last_day():
+    # 마지막 날은 다음날 아침이 없어(귀가/출발만 남음) 숙소로 돌아갈 필요가 없으므로
+    # 숙소 이동 항목이 마지막 날에는 추가되지 않는다.
+    data = generate_timeline(
+        _request(
+            days=[
+                {"date": "2026-08-12", "placeIds": ["place-009"], "restaurantIds": {}},
+                {"date": "2026-08-13", "placeIds": ["place-001"], "restaurantIds": {}},
+            ],
+            accommodation={
+                "name": "우리 숙소",
+                "address": "부산 해운대구",
+                "lat": 35.1591,
+                "lng": 129.1602,
+            },
+        )
+    )
+    accommodation_items = [i for i in data.timeline if i.type == "accommodation"]
+    assert len(accommodation_items) == 1
+    assert accommodation_items[0].startTime.startswith("2026-08-12")
+    assert accommodation_items[0].lat == 35.1591
+    assert accommodation_items[0].lng == 129.1602
+    assert "숙소" in accommodation_items[0].title
+
+
+def test_no_accommodation_means_no_accommodation_items():
+    data = generate_timeline(_request(days=_days_payload(["place-001"])))
+    assert not any(i.type == "accommodation" for i in data.timeline)
+
+
 # ---------------------------------------------------------------------------
 # 끼니 시간대 고정(아침 08~10시, 점심 11~13시, 저녁 18~20시)
 # ---------------------------------------------------------------------------
