@@ -142,10 +142,18 @@ def _compute_touring_window(bookings, buffer_minutes: int) -> Tuple[datetime, da
     if not arrival_times:
         raise InvalidInputError("예매정보에서 도착 시각을 확인할 수 없어 타임라인을 생성할 수 없습니다.")
 
-    # 여러 교통편 중 가장 마지막 도착 시각이, 실제로 목적지에 도착해 관광을 시작할 수 있는 시점이다.
-    touring_start = max(arrival_times) + timedelta(minutes=buffer_minutes)
-
     departure_times = [_parse_dt(b.departureTime) for b in bookings if b.departureTime]
+
+    # 귀국 항공편처럼 그 뒤에 이어지는 출발 예매가 없는 도착은 관광이 시작되는 지점이 아니라
+    # 여행이 완전히 끝나는 지점이므로 관광 시작 후보에서 제외한다(app/utils/trip_dates.py의
+    # compute_trip_boundary와 같은 이유 — 그렇지 않으면 귀국 도착 시각이 날짜상 가장 늦다는
+    # 이유로 관광 시작 시각으로 잘못 선택돼 관광 가능한 시간이 거의 사라져버린다).
+    touring_start_candidates = [a for a in arrival_times if any(d > a for d in departure_times)]
+    base_arrival = max(touring_start_candidates or arrival_times)
+
+    # 여러 교통편 중 가장 마지막 도착 시각이, 실제로 목적지에 도착해 관광을 시작할 수 있는 시점이다.
+    touring_start = base_arrival + timedelta(minutes=buffer_minutes)
+
     later_departures = [d for d in departure_times if d > touring_start]
     if later_departures:
         # 다음 출발 예매 전까지 돌아올 이동 여유를 남긴다.

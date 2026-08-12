@@ -1254,5 +1254,300 @@
     "imageUrl": null,
     "lat": 35.0912174458851,
     "lng": 129.067910492443
+  },
+  {
+    "placeId": "place-039",
+    "name": "동래할매재첩국집",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "재첩국으로 든든하게 아침을 시작할 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "저상 시설",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "mobility_impaired",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 부담 없이 뜨끈한 국물로 아침을 챙길 수 있는 식당입니다.",
+      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
+      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
+      "friends_couple": "여행 아침을 재첩국으로 든든하게 시작하기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "06:30",
+    "closeTime": "11:00",
+    "indoor": true,
+    "address": "부산 동래구 명륜로 12",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-040",
+    "name": "다대포 아침바다카페",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "다대포 바다를 보며 간단한 브런치를 즐길 수 있는 카페형 식당입니다.",
+    "tags": [
+      "실내",
+      "야경",
+      "음식",
+      "산책"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 바다를 보며 여유롭게 아침을 즐기기 좋은 곳입니다.",
+      "senior": "창가 좌석이 넉넉해 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "다대포 바다를 보며 아침을 함께 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "07:00",
+    "closeTime": "11:30",
+    "indoor": true,
+    "address": "부산 사하구 다대낙조길 4",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-041",
+    "name": "부산진 순두부조식집",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "순두부백반으로 가볍게 아침을 챙길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "저상 시설",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "mobility_impaired",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 아침을 챙기기 좋은 식당입니다.",
+      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
+      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
+      "friends_couple": "가볍게 아침을 챙기고 하루를 시작하기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 35,
+    "openTime": "07:00",
+    "closeTime": "10:30",
+    "indoor": true,
+    "address": "부산 부산진구 중앙대로691번길 15",
+    "imageUrl": null
+  },
+  {
+    "placeId": "place-042",
+    "name": "해운대 밀면집",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "부산 명물 밀면으로 점심을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
+      "senior": "부드러운 면 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "부산 명물 밀면을 함께 맛보기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "11:00",
+    "closeTime": "20:00",
+    "indoor": true,
+    "address": "부산 해운대구 구남로 20",
+    "imageUrl": null,
+    "lat": 35.1620899372729,
+    "lng": 129.159778910622
+  },
+  {
+    "placeId": "place-043",
+    "name": "광안리 물회집",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "광안리 바다를 보며 시원한 물회로 점심을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "야경",
+      "음식",
+      "산책"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 바다를 보며 여유롭게 점심을 즐기기 좋은 곳입니다.",
+      "senior": "창가 좌석이 넉넉해 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "광안리 전망과 함께 시원한 물회를 즐기기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "11:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 수영구 광안해변로 219",
+    "imageUrl": null,
+    "lat": 35.1537727634193,
+    "lng": 129.118519972498
+  },
+  {
+    "placeId": "place-044",
+    "name": "동래파전집",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "부산 명물 동래파전으로 점심을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "저상 시설",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "mobility_impaired",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
+      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
+      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
+      "friends_couple": "부산 명물 동래파전을 함께 맛보기 좋은 식당입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 동래구 충렬대로 102",
+    "imageUrl": null,
+    "lat": 35.20456573653352,
+    "lng": 129.08384831466842
+  },
+  {
+    "placeId": "place-045",
+    "name": "자갈치 회센터",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "자갈치시장에서 신선한 회로 저녁을 즐길 수 있는 곳입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "체험",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "자갈치시장 신선한 회로 여행의 저녁을 마무리하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "12:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 중구 자갈치해안로 52",
+    "imageUrl": null,
+    "lat": 35.0966137768508,
+    "lng": 129.030583690953
+  },
+  {
+    "placeId": "place-046",
+    "name": "서면 갈비골목집",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서면 갈비골목에서 숯불갈비로 저녁을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 1인분 주문이 가능해 부담 없이 즐길 수 있는 곳입니다.",
+      "senior": "부드러운 갈비 메뉴 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "숯불갈비로 여행의 저녁을 든든하게 마무리하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "17:00",
+    "closeTime": "23:00",
+    "indoor": true,
+    "address": "부산 부산진구 서면로 39",
+    "imageUrl": null,
+    "lat": 35.1542714950768,
+    "lng": 129.057302821914
+  },
+  {
+    "placeId": "place-047",
+    "name": "송정 조개구이집",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "송정 해변 근처에서 조개구이로 저녁을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "야경",
+      "음식",
+      "체험"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "송정 바다를 보며 조개구이로 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 65,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 해운대구 송정중앙로 30",
+    "imageUrl": null,
+    "lat": 35.1823567245554,
+    "lng": 129.203723762283
   }
 ]
