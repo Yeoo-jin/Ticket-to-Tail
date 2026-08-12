@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DoodleSticker from '../components/stickers/DoodleSticker'
 
 function TripRow({ trip }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -51,6 +52,22 @@ function MyPage({ trips, onBack }) {
   return (
     <div className="notebook-page min-h-app relative px-6 py-10">
       <div className="notebook-spine-holes" />
+      <DoodleSticker
+        icon="camera"
+        className="pointer-events-none absolute z-10 right-4 top-5 h-11 w-11 rotate-6 text-[#a38a6a] opacity-60"
+      />
+      <DoodleSticker
+        icon="passport"
+        className="pointer-events-none absolute z-10 left-2 top-[36%] h-8 w-8 -rotate-3 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="iceCream"
+        className="pointer-events-none absolute z-10 right-1 top-[56%] h-8 w-8 rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="tent"
+        className="pointer-events-none absolute z-10 bottom-5 left-8 h-11 w-11 -rotate-3 text-[#a38a6a] opacity-60"
+      />
 
       <div className="mx-auto w-full max-w-xs pl-6">
         <div className="flex items-center justify-between">

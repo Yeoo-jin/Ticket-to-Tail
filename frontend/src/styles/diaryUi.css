@@ -2,7 +2,22 @@
    흑백 톤 + 손그림 느낌(스프링노트, 마스킹테이프, 삐뚤빼뚤한 모서리)만 사용한다. */
 
 .diary-cover {
-  background: #ece3de;
+  background-color: #f3ead9;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(199, 178, 148, 0.09) 0,
+      rgba(199, 178, 148, 0.09) 14px,
+      transparent 14px,
+      transparent 28px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(199, 178, 148, 0.09) 0,
+      rgba(199, 178, 148, 0.09) 14px,
+      transparent 14px,
+      transparent 28px
+    );
   position: relative;
   overflow: hidden;
 }
@@ -17,15 +32,29 @@
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.15);
 }
 
+/* 표지 곰돌이 로고 위 손글씨 제목. 색은 표지 왼쪽 책등(.diary-cover-spine)과 같은 고동색. */
+.diary-cover-title {
+  font-family: 'Gaegu', 'Gowun Dodum', sans-serif;
+  font-weight: 700;
+  color: #2c2420;
+}
+
 .diary-cover-title-box {
   background: #f7f2ec;
   border-radius: 10px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-/* 스프링노트 배경: 왼쪽에 작은 링 구멍이 세로로 반복되는 점 패턴 */
+/* 스프링노트 배경: 연한 갈색 가로줄(줄노트) + 왼쪽에 작은 링 구멍이 세로로 반복되는 점 패턴 */
 .notebook-page {
-  background: #fbf8f2;
+  background-color: #fbf8f2;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    rgba(163, 138, 106, 0.15) 27px,
+    rgba(163, 138, 106, 0.15) 28px
+  );
   position: relative;
 }
 
@@ -180,4 +209,23 @@
 
 .progress-dot.active {
   background: #1a1a1a;
+}
+
+/* 예매정보 입력~음식점/관광지 선택(1~5단계) 카드를 화면 세로 중앙에 배치하기 위한 wrapper 두 개.
+   .booking-fill-column을 헤더 포함 전체 콘텐츠 열에 씌워 "헤더 높이를 뺀 나머지
+   화면 전체"를 확보하고, 그 안에서 .booking-center-box(flex: 1)가 카드를 가운데로
+   민다. .min-h-app과 같은 이유로 dvh를 우선 쓰되, 미지원 브라우저는 vh로 폴백한다.
+   3rem = notebook-page의 상하 padding(py-6) 합계. */
+.booking-fill-column {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 3rem);
+  min-height: calc(100dvh - 3rem);
+}
+
+.booking-center-box {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
 }

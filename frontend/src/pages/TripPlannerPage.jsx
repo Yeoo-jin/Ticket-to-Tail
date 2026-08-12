@@ -20,6 +20,7 @@ import {
   toggleSelection,
 } from '../utils/placeSelection'
 import { DEFAULT_POSTER_FONT } from '../utils/posterFonts'
+import DoodleSticker from '../components/stickers/DoodleSticker'
 import BookingInputStep from './steps/BookingInputStep'
 import BookingResultStep from './steps/BookingResultStep'
 import CompanionSelectStep from './steps/CompanionSelectStep'
@@ -40,6 +41,16 @@ const STEP = {
   DIARY_RESULT: 8,
 }
 const TOTAL_STEPS = 8
+
+// 예매정보 입력 ~ 음식점/관광지 선택까지(1~5단계)는 카드를 화면 세로 중앙에 배치한다.
+// "음식점 및 관광지 선택"은 RESTAURANT_RECOMMEND·PLACE_RECOMMEND 두 단계로 나뉘어 있어 둘 다 포함한다.
+const CENTERED_STEPS = [
+  STEP.BOOKING_INPUT,
+  STEP.BOOKING_RESULT,
+  STEP.COMPANION_SELECT,
+  STEP.RESTAURANT_RECOMMEND,
+  STEP.PLACE_RECOMMEND,
+]
 
 // 날짜 문자열(YYYY-MM-DD)을 "N일차 · M월 D일" 형태로 보여준다.
 function formatDayLabel(date, index) {
@@ -643,10 +654,23 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   return (
     <div className="notebook-page min-h-app px-4 py-6">
       <div className="notebook-spine-holes" />
-      <div className="mx-auto w-full max-w-md pl-6">
+      <DoodleSticker
+        icon="coffee"
+        className="pointer-events-none absolute z-10 left-1 top-1 h-7 w-7 rotate-6 text-[#a38a6a] opacity-50"
+      />
+      <DoodleSticker
+        icon="suitcase"
+        className="pointer-events-none absolute z-10 left-1 top-20 h-8 w-8 -rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <DoodleSticker
+        icon="pin"
+        className="pointer-events-none absolute z-10 right-1 top-36 h-8 w-8 rotate-6 text-[#a38a6a] opacity-55"
+      />
+      <div
+        className={`mx-auto w-full max-w-md pl-6 ${CENTERED_STEPS.includes(step) ? 'booking-fill-column' : ''}`}
+      >
         <header className="mb-4 flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-bold text-[#2c2420]">Ticket to Tale</h1>
             <div className="mt-1.5 flex items-center gap-2">
               <span className="tape-label text-[11px]">{phaseLabel}</span>
               <span className="flex items-center gap-1">
@@ -663,6 +687,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
           )}
         </header>
 
+        <div className={CENTERED_STEPS.includes(step) ? 'booking-center-box' : ''}>
         <div className="note-card-taped p-4 sm:p-6">
           {step === STEP.BOOKING_INPUT && (
             <BookingInputStep
@@ -813,6 +838,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
               error={diaryError}
             />
           )}
+        </div>
         </div>
       </div>
     </div>
