@@ -23,9 +23,15 @@ def compute_trip_boundary(bookings: Sequence[Booking]) -> Tuple[Optional[datetim
     arrival_times = [_parse(b.arrivalTime) for b in bookings if b.arrivalTime]
     if not arrival_times:
         return None, None
-    arrival = max(arrival_times)
-
     departure_times = [_parse(b.departureTime) for b in bookings if b.departureTime]
+
+    # 귀국(집으로 돌아가는) 항공편처럼 그 뒤에 이어지는 출발 예매가 없는 도착은 관광이
+    # 시작되는 지점이 아니라 여행이 완전히 끝나는 지점이므로 시작일 후보에서 제외한다.
+    # 그렇지 않으면 마지막 귀국 도착 시각이 가장 늦다는 이유로 여행 시작일로 잘못 선택된다.
+    touring_start_candidates = [a for a in arrival_times if any(d > a for d in departure_times)]
+    candidates = touring_start_candidates or arrival_times
+    arrival = max(candidates)
+
     later_departures = [d for d in departure_times if d > arrival]
     departure = min(later_departures) if later_departures else None
 

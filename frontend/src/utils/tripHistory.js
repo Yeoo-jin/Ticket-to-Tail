@@ -2,6 +2,7 @@
 // 사진은 세션 저장소에 넣을 수 없어(직렬화 불가) 여기에는 제목·진행 상태 같은 텍스트 정보만 담는다.
 const HISTORY_KEY = 'ticketToTale:tripHistory:v1'
 const CURRENT_KEY = 'ticketToTale:currentTrip:v1'
+const SCREEN_KEY = 'ticketToTale:screenState:v1'
 
 export function generateTripId() {
   return `trip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -54,6 +55,25 @@ export function loadCurrentTrip() {
 export function saveCurrentTrip(current) {
   try {
     sessionStorage.setItem(CURRENT_KEY, JSON.stringify(current))
+  } catch {
+    // 무시 — 다음 저장 시점에 다시 시도된다.
+  }
+}
+
+// 다이어리/타임라인 생성 중 탭이 리로드돼도(iOS Safari 백그라운드 탭 정리 등) 허브 화면으로
+// 되돌아가지 않고 원래 보던 화면(플래너 등)으로 복원되도록 현재 화면 상태를 저장한다.
+export function loadScreenState() {
+  try {
+    const raw = sessionStorage.getItem(SCREEN_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveScreenState(state) {
+  try {
+    sessionStorage.setItem(SCREEN_KEY, JSON.stringify(state))
   } catch {
     // 무시 — 다음 저장 시점에 다시 시도된다.
   }

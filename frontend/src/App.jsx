@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CoverPage from './pages/CoverPage'
 import HubPage from './pages/HubPage'
 import MyPage from './pages/MyPage'
@@ -8,8 +8,10 @@ import TripPlannerPage from './pages/TripPlannerPage'
 import {
   generateTripId,
   loadCurrentTrip,
+  loadScreenState,
   loadTripHistory,
   saveCurrentTrip,
+  saveScreenState,
   saveTripHistory,
   upsertTrip,
 } from './utils/tripHistory'
@@ -32,8 +34,18 @@ function parseShareRoute() {
 function App() {
   const [currentTrip, setCurrentTrip] = useState(loadCurrentTrip)
   const [tripHistory, setTripHistory] = useState(loadTripHistory)
-  const [screen, setScreen] = useState(currentTrip ? SCREEN.HUB : SCREEN.COVER)
-  const [plannerEntryMode, setPlannerEntryMode] = useState('timeline')
+  const [screen, setScreen] = useState(() => {
+    if (!currentTrip) return SCREEN.COVER
+    const saved = loadScreenState()
+    return saved && Object.values(SCREEN).includes(saved.screen) ? saved.screen : SCREEN.HUB
+  })
+  const [plannerEntryMode, setPlannerEntryMode] = useState(() => loadScreenState()?.plannerEntryMode ?? 'timeline')
+
+  // 다이어리/타임라인 생성 중 탭이 리로드돼도 허브로 초기화되지 않고 하던 화면으로 돌아오도록
+  // 화면 상태를 계속 저장한다(진행 중이던 입력 데이터 자체는 TripPlannerPage가 별도로 저장).
+  useEffect(() => {
+    saveScreenState({ screen, plannerEntryMode })
+  }, [screen, plannerEntryMode])
 
   const shareRoute = parseShareRoute()
 
