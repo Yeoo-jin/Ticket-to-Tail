@@ -676,113 +676,44 @@
   },
   {
     "placeId": "place-021",
-    "name": "동래아침국밥집",
+    "name": "동동국밥 동래점",
     "region": "부산",
     "district": "동래구",
     "category": "음식점",
     "mealType": "breakfast",
-    "description": "이른 아침부터 뜨끈한 국밥을 파는 식당입니다.",
+    "description": "우동면을 넣은 순대국밥으로 아침을 든든하게 챙길 수 있는 식당입니다.",
     "tags": [
       "실내",
-      "저상 시설",
       "음식",
       "대중교통 접근"
     ],
     "companionTypes": [
       "solo",
       "senior",
-      "mobility_impaired",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 이른 아침에 든든하게 한 끼를 챙길 수 있는 식당입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "이동 전에 든든하게 아침을 챙기기 좋은 식당입니다."
+      "solo": "혼자서도 든든하게 아침을 챙길 수 있는 식당입니다.",
+      "senior": "부드러운 국물 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "여행 아침을 든든한 국밥으로 시작하기 좋은 식당입니다."
     },
     "estimatedDurationMinutes": 40,
-    "openTime": "06:00",
-    "closeTime": "11:00",
+    "openTime": "07:00",
+    "closeTime": "20:00",
     "indoor": true,
-    "address": "부산 동래구 명륜로 88",
+    "address": "부산 동래구 충렬대로107번길 65",
     "imageUrl": null,
-    "lat": 35.2321932201961,
-    "lng": 129.085467559014
+    "lat": 35.2108185382833,
+    "lng": 129.071308200134
   },
   {
     "placeId": "place-022",
-    "name": "남포동 아침죽집",
+    "name": "고등어정식할매집",
     "region": "부산",
     "district": "중구",
     "category": "음식점",
     "mealType": "breakfast",
-    "description": "속을 편하게 채울 수 있는 전복죽·야채죽을 파는 죽 전문점입니다.",
-    "tags": [
-      "실내",
-      "휴식 공간",
-      "유모차 접근성",
-      "음식"
-    ],
-    "companionTypes": [
-      "infant",
-      "senior",
-      "solo",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "infant": "부드러운 죽 메뉴가 많아 유아 동반 아침 식사로 부담이 적습니다.",
-      "senior": "소화가 편한 메뉴 위주라 고령자 동반 여행 아침 식사로 좋습니다.",
-      "solo": "혼자서도 가볍게 아침을 챙기기 좋은 식당입니다.",
-      "friends_couple": "여행 첫날 아침을 든든하고 편하게 시작하기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 35,
-    "openTime": "07:00",
-    "closeTime": "10:30",
-    "indoor": true,
-    "address": "부산 중구 광복로 56",
-    "imageUrl": null,
-    "lat": 35.0991205301654,
-    "lng": 129.031140401838
-  },
-  {
-    "placeId": "place-023",
-    "name": "해운대 조식 베이커리카페",
-    "region": "부산",
-    "district": "해운대구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "빵과 커피로 가볍게 아침을 즐길 수 있는 베이커리 카페 겸 식당입니다.",
-    "tags": [
-      "실내",
-      "휴식 공간",
-      "저상 시설",
-      "음식"
-    ],
-    "companionTypes": [
-      "solo",
-      "mobility_impaired",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 편하게 커피와 빵으로 아침을 즐길 수 있는 곳입니다.",
-      "mobility_impaired": "저상 출입구로 이동 부담 없이 들를 수 있습니다.",
-      "friends_couple": "여행 첫날 아침을 가볍고 여유롭게 시작하기 좋은 곳입니다."
-    },
-    "estimatedDurationMinutes": 40,
-    "openTime": "07:30",
-    "closeTime": "11:00",
-    "indoor": true,
-    "address": "부산 해운대구 달맞이길 62",
-    "imageUrl": null
-  },
-  {
-    "placeId": "place-024",
-    "name": "부전시장 순대국밥",
-    "region": "부산",
-    "district": "부산진구",
-    "category": "음식점",
-    "mealType": "lunch",
-    "description": "시장 안에서 든든하게 한 끼를 채울 수 있는 순대국밥집입니다.",
+    "description": "자갈치시장 인근에서 고등어구이·갈치구이 백반으로 아침을 즐길 수 있는 식당입니다.",
     "tags": [
       "실내",
       "음식",
@@ -794,144 +725,208 @@
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 부담 없이 빠르게 점심을 먹을 수 있는 식당입니다.",
-      "senior": "메뉴가 간단하고 자리 회전이 빨라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "시장 구경과 함께 든든한 점심을 즐기기 좋은 식당입니다."
+      "solo": "혼자서도 든든한 생선구이 백반으로 아침을 챙길 수 있습니다.",
+      "senior": "부드러운 생선 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "자갈치시장 근처에서 든든한 아침 백반을 함께 즐기기 좋습니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "06:00",
+    "closeTime": "19:30",
+    "indoor": true,
+    "address": "부산 중구 자갈치로 64-2",
+    "imageUrl": null,
+    "lat": 35.0973974519139,
+    "lng": 129.03117988708
+  },
+  {
+    "placeId": "place-023",
+    "name": "박옥희 할매집원조복국",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "해운대에서 오래 자리를 지켜온 복국(복어탕) 노포입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 시원한 복국으로 속을 챙기기 좋은 노포입니다.",
+      "senior": "부드러운 국물 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "해운대에서 오래된 복국 노포를 함께 맛보기 좋습니다."
     },
     "estimatedDurationMinutes": 45,
-    "openTime": "09:00",
-    "closeTime": "20:00",
+    "openTime": "00:00",
+    "closeTime": "24:00",
     "indoor": true,
-    "address": "부산 부산진구 새싹로 30",
+    "address": "부산 해운대구 달맞이길62번길 28",
     "imageUrl": null,
-    "lat": 35.1605930469632,
-    "lng": 129.057324881261
+    "lat": 35.1588665231625,
+    "lng": 129.170591418833
+  },
+  {
+    "placeId": "place-024",
+    "name": "원조개금밀면",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "50년 넘는 역사를 가진 개금밀면 본점입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 즐기기 좋은 밀면 노포입니다.",
+      "senior": "부드러운 면 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "50년 역사의 원조 밀면을 함께 맛보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "11:00",
+    "closeTime": "19:40",
+    "indoor": true,
+    "address": "부산 부산진구 가야대로482번길 9-4",
+    "imageUrl": null,
+    "lat": 35.152543052875,
+    "lng": 129.025082075781
   },
   {
     "placeId": "place-025",
-    "name": "송정 물회거리",
+    "name": "스시미르네",
     "region": "부산",
     "district": "해운대구",
     "category": "음식점",
     "mealType": "lunch",
-    "description": "시원한 물회로 점심을 즐길 수 있는 해변가 식당입니다.",
+    "description": "해운대에서 초밥으로 점심을 즐길 수 있는 스시 전문점입니다.",
     "tags": [
       "실내",
-      "음식",
-      "바다"
+      "음식"
     ],
     "companionTypes": [
       "solo",
+      "senior",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 가볍게 즐기기 좋은 시원한 점심 메뉴입니다.",
-      "friends_couple": "바다를 보며 함께 시원한 물회로 점심을 즐기기 좋은 식당입니다."
+      "solo": "혼자서도 편하게 즐기기 좋은 스시 전문점입니다.",
+      "senior": "부드러운 초밥 위주라 고령자 동반 여행에도 무난합니다.",
+      "friends_couple": "해운대에서 초밥으로 점심을 함께 즐기기 좋은 곳입니다."
     },
     "estimatedDurationMinutes": 45,
-    "openTime": "10:30",
-    "closeTime": "20:00",
+    "openTime": "11:00",
+    "closeTime": "21:00",
     "indoor": true,
-    "address": "부산 해운대구 송정중앙로 45",
+    "address": "부산 해운대구 세실로 75 1층 100호",
     "imageUrl": null,
-    "lat": 35.1817700872251,
-    "lng": 129.205342011967
+    "lat": 35.1712911978093,
+    "lng": 129.176768537085
   },
   {
     "placeId": "place-026",
-    "name": "기장 활어회센터",
+    "name": "이화장횟집",
     "region": "부산",
     "district": "기장군",
     "category": "음식점",
     "mealType": "dinner",
-    "description": "싱싱한 활어회로 저녁 식사를 즐길 수 있는 횟집입니다.",
+    "description": "대변항 인근에서 멸치회·곰장어로 저녁을 즐길 수 있는 향토 맛집입니다.",
     "tags": [
       "실내",
       "음식",
-      "바다"
+      "체험"
     ],
     "companionTypes": [
-      "senior",
       "solo",
+      "senior",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
       "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
-      "friends_couple": "싱싱한 활어회로 여행의 저녁을 특별하게 마무리하기 좋은 곳입니다."
+      "senior": "부드러운 멸치회 메뉴가 있어 고령자 동반 여행에도 무난합니다.",
+      "friends_couple": "대변항 명물 멸치회·곰장어로 저녁을 즐기기 좋은 곳입니다."
     },
-    "estimatedDurationMinutes": 70,
-    "openTime": "12:00",
-    "closeTime": "22:00",
+    "estimatedDurationMinutes": 60,
+    "openTime": "09:30",
+    "closeTime": "20:30",
     "indoor": true,
-    "address": "부산 기장군 기장해안로 331",
+    "address": "부산 기장군 기장읍 기장해안로 560-5",
     "imageUrl": null,
-    "lat": 35.2436028623168,
-    "lng": 129.215185373818
+    "lat": 35.2236534495894,
+    "lng": 129.226929175369
   },
   {
     "placeId": "place-027",
-    "name": "이기대 오션뷰 카페",
+    "name": "베이커리카페 가원",
     "region": "부산",
     "district": "남구",
     "category": "카페",
-    "description": "바다 전망을 보며 쉬어갈 수 있는 실내 카페입니다.",
+    "description": "이기대 인근 정원형 베이커리 카페로, 오륙도 바다 전망을 즐길 수 있습니다.",
     "tags": [
-      "실내",
-      "휴식 공간",
-      "저상 시설",
-      "카페"
+      "실내외 혼합",
+      "야경",
+      "음식",
+      "산책"
     ],
     "companionTypes": [
-      "senior",
-      "mobility_impaired",
       "solo",
+      "senior",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "senior": "편안한 좌석에서 바다 전망을 보며 오래 쉴 수 있어 고령자 동반 여행에 적합합니다.",
-      "mobility_impaired": "저상 출입구와 넓은 통로가 있어 이동 부담이 적습니다.",
-      "solo": "혼자서도 창가 자리에 앉아 여유롭게 쉬어가기 좋은 카페입니다.",
-      "friends_couple": "바다 전망을 함께 즐기며 사진을 남기기 좋은 카페입니다."
+      "solo": "혼자 바다를 보며 여유롭게 쉬어가기 좋은 카페입니다.",
+      "senior": "정원 좌석이 있어 고령자 동반 여행에도 편하게 쉬어갈 수 있습니다.",
+      "friends_couple": "오륙도 전망을 보며 함께 쉬어가기 좋은 카페입니다."
     },
     "estimatedDurationMinutes": 60,
-    "openTime": "09:00",
+    "openTime": "10:00",
     "closeTime": "21:00",
-    "indoor": true,
-    "address": "부산 남구 이기대공원로 68",
+    "indoor": false,
+    "address": "부산 남구 백운포로 14",
     "imageUrl": null,
-    "lat": 35.1249511164494,
-    "lng": 129.119121519821
+    "lat": 35.106842370939,
+    "lng": 129.111357859633
   },
   {
     "placeId": "place-028",
-    "name": "감천문화마을 골목카페",
+    "name": "더프커피",
     "region": "부산",
     "district": "사하구",
     "category": "카페",
-    "description": "마을 골목 사이에서 쉬어갈 수 있는 작은 카페입니다.",
+    "description": "감천문화마을 안에서 마을 풍경을 감상할 수 있는 정원이 있는 카페입니다.",
     "tags": [
-      "실내",
-      "휴식 공간",
+      "실내외 혼합",
       "사진 명소",
-      "카페"
+      "음식"
     ],
     "companionTypes": [
       "solo",
+      "senior",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "골목 구경 중 혼자 잠시 쉬어가기 좋은 카페입니다.",
-      "friends_couple": "마을을 함께 둘러보다 잠시 앉아 쉬며 사진도 남기기 좋은 카페입니다."
+      "solo": "혼자 마을 풍경을 보며 쉬어가기 좋은 카페입니다.",
+      "senior": "테라스 좌석에서 편하게 쉬어갈 수 있습니다.",
+      "friends_couple": "감천문화마을 풍경을 보며 함께 쉬어가기 좋은 카페입니다."
     },
     "estimatedDurationMinutes": 50,
     "openTime": "10:00",
     "closeTime": "19:00",
-    "indoor": true,
-    "address": "부산 사하구 감내2로 210",
+    "indoor": false,
+    "address": "부산 사하구 감내1로 195, 2층",
     "imageUrl": null,
-    "lat": 35.10891428835576,
-    "lng": 129.0377926296539
+    "lat": 35.0962853531443,
+    "lng": 129.009248680703
   },
   {
     "placeId": "place-029",
@@ -1031,335 +1026,44 @@
   },
   {
     "placeId": "place-032",
-    "name": "초량돼지국밥집",
-    "region": "부산",
-    "district": "동구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "이른 아침부터 뜨끈한 돼지국밥을 파는 식당입니다.",
-    "tags": [
-      "실내",
-      "저상 시설",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "mobility_impaired",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 이른 아침에 든든하게 챙길 수 있는 식당입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "여행 첫날 아침을 든든하게 시작하기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 40,
-    "openTime": "06:00",
-    "closeTime": "11:00",
-    "indoor": true,
-    "address": "부산 동구 초량로 47",
-    "imageUrl": null,
-    "lat": 35.1200642479448,
-    "lng": 129.037496197783
-  },
-  {
-    "placeId": "place-033",
-    "name": "구포국수집",
-    "region": "부산",
-    "district": "북구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "가볍게 먹기 좋은 멸치국수로 아침을 여는 식당입니다.",
-    "tags": [
-      "실내",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 가볍게 아침을 챙기기 좋은 식당입니다.",
-      "senior": "메뉴가 간단하고 소화가 편해 고령자 동반 여행 아침 식사로 좋습니다.",
-      "friends_couple": "가볍게 아침을 먹고 하루를 여유롭게 시작하기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 35,
-    "openTime": "06:30",
-    "closeTime": "10:30",
-    "indoor": true,
-    "address": "부산 북구 구포만세길 12",
-    "imageUrl": null,
-    "lat": 35.208898977738365,
-    "lng": 129.00366273600397
-  },
-  {
-    "placeId": "place-034",
-    "name": "송정 조식 뷔페카페",
-    "region": "부산",
-    "district": "해운대구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "빵·과일·커피를 가볍게 즐길 수 있는 조식 카페입니다.",
-    "tags": [
-      "실내",
-      "휴식 공간",
-      "유모차 접근성",
-      "음식"
-    ],
-    "companionTypes": [
-      "infant",
-      "solo",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "infant": "좌석이 넓고 유모차 이동이 편리해 유아 동반 아침 식사로 부담이 적습니다.",
-      "solo": "혼자서도 편하게 커피와 빵으로 아침을 즐길 수 있는 곳입니다.",
-      "friends_couple": "여유롭게 아침을 즐기며 하루를 시작하기 좋은 곳입니다."
-    },
-    "estimatedDurationMinutes": 40,
-    "openTime": "07:00",
-    "closeTime": "11:00",
-    "indoor": true,
-    "address": "부산 해운대구 송정중앙로 10",
-    "imageUrl": null,
-    "lat": 35.1833272381577,
-    "lng": 129.201926291151
-  },
-  {
-    "placeId": "place-035",
-    "name": "남포동 완당집",
-    "region": "부산",
-    "district": "중구",
-    "category": "음식점",
-    "mealType": "lunch",
-    "description": "부산식 만두인 완당을 파는 점심 식당입니다.",
-    "tags": [
-      "실내",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
-      "senior": "부드러운 메뉴 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "부산 명물 완당을 함께 맛보기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 40,
-    "openTime": "10:30",
-    "closeTime": "20:00",
-    "indoor": true,
-    "address": "부산 중구 광복로 56",
-    "imageUrl": null,
-    "lat": 35.0991205301654,
-    "lng": 129.031140401838
-  },
-  {
-    "placeId": "place-036",
-    "name": "센텀 초밥집",
-    "region": "부산",
-    "district": "해운대구",
-    "category": "음식점",
-    "mealType": "lunch",
-    "description": "신선한 초밥을 점심 세트로 즐길 수 있는 식당입니다.",
-    "tags": [
-      "실내",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 부담 없이 초밥 세트로 점심을 즐길 수 있는 곳입니다.",
-      "friends_couple": "신선한 초밥을 함께 즐기기 좋은 점심 식당입니다."
-    },
-    "estimatedDurationMinutes": 45,
-    "openTime": "11:00",
-    "closeTime": "21:00",
-    "indoor": true,
-    "address": "부산 해운대구 센텀중앙로 90",
-    "imageUrl": null,
-    "lat": 35.1754430801399,
-    "lng": 129.126430961339
-  },
-  {
-    "placeId": "place-037",
-    "name": "기장 곰장어거리",
-    "region": "부산",
-    "district": "기장군",
-    "category": "음식점",
-    "mealType": "dinner",
-    "description": "숯불에 구운 곰장어로 저녁을 즐길 수 있는 거리입니다.",
-    "tags": [
-      "실내외 혼합",
-      "음식",
-      "체험"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
-      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "숯불 곰장어로 여행의 저녁을 든든하게 마무리하기 좋은 곳입니다."
-    },
-    "estimatedDurationMinutes": 65,
-    "openTime": "12:00",
-    "closeTime": "23:00",
-    "indoor": false,
-    "address": "부산 기장군 기장읍 대변항로 46",
-    "imageUrl": null
-  },
-  {
-    "placeId": "place-038",
-    "name": "영도 대구탕집",
-    "region": "부산",
-    "district": "영도구",
-    "category": "음식점",
-    "mealType": "dinner",
-    "description": "시원한 대구탕으로 저녁을 즐길 수 있는 식당입니다.",
-    "tags": [
-      "실내",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "mobility_impaired",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 편하게 저녁 한 끼를 즐길 수 있는 식당입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "시원한 대구탕으로 여행의 저녁을 든든하게 마무리하기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 55,
-    "openTime": "11:30",
-    "closeTime": "22:00",
-    "indoor": true,
-    "address": "부산 영도구 태종로 423",
-    "imageUrl": null,
-    "lat": 35.0912174458851,
-    "lng": 129.067910492443
-  },
-  {
-    "placeId": "place-039",
-    "name": "동래할매재첩국집",
-    "region": "부산",
-    "district": "동래구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "재첩국으로 든든하게 아침을 시작할 수 있는 식당입니다.",
-    "tags": [
-      "실내",
-      "저상 시설",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "mobility_impaired",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 부담 없이 뜨끈한 국물로 아침을 챙길 수 있는 식당입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "여행 아침을 재첩국으로 든든하게 시작하기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 40,
-    "openTime": "06:30",
-    "closeTime": "11:00",
-    "indoor": true,
-    "address": "부산 동래구 명륜로 12",
-    "imageUrl": null
-  },
-  {
-    "placeId": "place-040",
-    "name": "다대포 아침바다카페",
-    "region": "부산",
-    "district": "사하구",
-    "category": "음식점",
-    "mealType": "breakfast",
-    "description": "다대포 바다를 보며 간단한 브런치를 즐길 수 있는 카페형 식당입니다.",
-    "tags": [
-      "실내",
-      "야경",
-      "음식",
-      "산책"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자 바다를 보며 여유롭게 아침을 즐기기 좋은 곳입니다.",
-      "senior": "창가 좌석이 넉넉해 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "다대포 바다를 보며 아침을 함께 즐기기 좋은 곳입니다."
-    },
-    "estimatedDurationMinutes": 50,
-    "openTime": "07:00",
-    "closeTime": "11:30",
-    "indoor": true,
-    "address": "부산 사하구 다대낙조길 4",
-    "imageUrl": null
-  },
-  {
-    "placeId": "place-041",
-    "name": "부산진 순두부조식집",
+    "name": "팔미분식",
     "region": "부산",
     "district": "부산진구",
     "category": "음식점",
     "mealType": "breakfast",
-    "description": "순두부백반으로 가볍게 아침을 챙길 수 있는 식당입니다.",
+    "description": "시락국과 충무김밥으로 가볍게 아침을 챙길 수 있는 분식집입니다.",
     "tags": [
       "실내",
-      "저상 시설",
       "음식",
       "대중교통 접근"
     ],
     "companionTypes": [
       "solo",
       "senior",
-      "mobility_impaired",
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 가볍게 아침을 챙기기 좋은 식당입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "가볍게 아침을 챙기고 하루를 시작하기 좋은 식당입니다."
+      "solo": "혼자서도 가볍게 아침을 챙기기 좋은 분식집입니다.",
+      "senior": "부드러운 국물 메뉴가 있어 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "가볍게 아침을 챙기고 하루를 시작하기 좋은 곳입니다."
     },
-    "estimatedDurationMinutes": 35,
+    "estimatedDurationMinutes": 30,
     "openTime": "07:00",
-    "closeTime": "10:30",
+    "closeTime": "15:00",
     "indoor": true,
-    "address": "부산 부산진구 중앙대로691번길 15",
-    "imageUrl": null
+    "address": "부산 부산진구 중앙대로691번길 55",
+    "imageUrl": null,
+    "lat": 35.1542815850844,
+    "lng": 129.055971007281
   },
   {
-    "placeId": "place-042",
-    "name": "해운대 밀면집",
+    "placeId": "place-033",
+    "name": "김밥나라",
     "region": "부산",
-    "district": "해운대구",
+    "district": "북구",
     "category": "음식점",
-    "mealType": "lunch",
-    "description": "부산 명물 밀면으로 점심을 즐길 수 있는 식당입니다.",
+    "mealType": "breakfast",
+    "description": "이른 아침부터 여는 김밥·분식 전문점입니다.",
     "tags": [
       "실내",
       "음식",
@@ -1371,95 +1075,91 @@
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
-      "senior": "부드러운 면 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "부산 명물 밀면을 함께 맛보기 좋은 식당입니다."
+      "solo": "혼자서도 간단히 아침을 챙기기 좋은 분식점입니다.",
+      "senior": "부담 없는 메뉴 구성이라 고령자 동반 여행에도 무난합니다.",
+      "friends_couple": "가볍게 아침을 챙기고 이동하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 25,
+    "openTime": "05:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 북구 금곡대로303번길 25",
+    "imageUrl": null,
+    "lat": 35.2354225350239,
+    "lng": 129.01202870132
+  },
+  {
+    "placeId": "place-034",
+    "name": "최뼈다구해장국",
+    "region": "부산",
+    "district": "사상구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "얼큰한 감자탕·해장국으로 아침을 든든하게 챙길 수 있는 24시간 식당입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 든든하게 해장국으로 아침을 챙길 수 있습니다.",
+      "senior": "부드럽게 우려낸 국물 요리라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "이른 아침에도 문을 열어 여행 첫 끼로 챙기기 좋습니다."
     },
     "estimatedDurationMinutes": 40,
-    "openTime": "11:00",
-    "closeTime": "20:00",
+    "openTime": "00:00",
+    "closeTime": "24:00",
     "indoor": true,
-    "address": "부산 해운대구 구남로 20",
+    "address": "부산 사상구 광장로 22",
     "imageUrl": null,
-    "lat": 35.1620899372729,
-    "lng": 129.159778910622
+    "lat": 35.1623732872364,
+    "lng": 128.978903888378
   },
   {
-    "placeId": "place-043",
-    "name": "광안리 물회집",
-    "region": "부산",
-    "district": "수영구",
-    "category": "음식점",
-    "mealType": "lunch",
-    "description": "광안리 바다를 보며 시원한 물회로 점심을 즐길 수 있는 식당입니다.",
-    "tags": [
-      "실내",
-      "야경",
-      "음식",
-      "산책"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 바다를 보며 여유롭게 점심을 즐기기 좋은 곳입니다.",
-      "senior": "창가 좌석이 넉넉해 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "광안리 전망과 함께 시원한 물회를 즐기기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 50,
-    "openTime": "11:00",
-    "closeTime": "21:00",
-    "indoor": true,
-    "address": "부산 수영구 광안해변로 219",
-    "imageUrl": null,
-    "lat": 35.1537727634193,
-    "lng": 129.118519972498
-  },
-  {
-    "placeId": "place-044",
-    "name": "동래파전집",
-    "region": "부산",
-    "district": "동래구",
-    "category": "음식점",
-    "mealType": "lunch",
-    "description": "부산 명물 동래파전으로 점심을 즐길 수 있는 식당입니다.",
-    "tags": [
-      "실내",
-      "저상 시설",
-      "음식",
-      "대중교통 접근"
-    ],
-    "companionTypes": [
-      "solo",
-      "senior",
-      "mobility_impaired",
-      "friends_couple"
-    ],
-    "recommendationReasons": {
-      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
-      "senior": "저상 출입구와 평탄한 매장 동선으로 고령자 동반 여행에도 부담이 적습니다.",
-      "mobility_impaired": "출입구와 좌석까지 평지로 이동할 수 있습니다.",
-      "friends_couple": "부산 명물 동래파전을 함께 맛보기 좋은 식당입니다."
-    },
-    "estimatedDurationMinutes": 45,
-    "openTime": "11:00",
-    "closeTime": "21:00",
-    "indoor": true,
-    "address": "부산 동래구 충렬대로 102",
-    "imageUrl": null,
-    "lat": 35.20456573653352,
-    "lng": 129.08384831466842
-  },
-  {
-    "placeId": "place-045",
-    "name": "자갈치 회센터",
+    "placeId": "place-035",
+    "name": "재성밀면",
     "region": "부산",
     "district": "중구",
     "category": "음식점",
-    "mealType": "dinner",
-    "description": "자갈치시장에서 신선한 회로 저녁을 즐길 수 있는 곳입니다.",
+    "mealType": "lunch",
+    "description": "중앙역 인근에서 물밀면으로 점심을 즐길 수 있는 밀면 노포입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 즐기기 좋은 밀면 노포입니다.",
+      "senior": "부드러운 면 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "부산 대표 음식인 밀면을 함께 맛보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 35,
+    "openTime": "10:00",
+    "closeTime": "16:00",
+    "indoor": true,
+    "address": "부산 중구 중앙대로41번길 14-1",
+    "imageUrl": null,
+    "lat": 35.101149102466,
+    "lng": 129.034765045633
+  },
+  {
+    "placeId": "place-036",
+    "name": "신동아회센터15호",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "자갈치시장 안에서 즉석으로 활어회를 맛볼 수 있는 회센터입니다.",
     "tags": [
       "실내",
       "음식",
@@ -1472,27 +1172,27 @@
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "solo": "혼자서도 소량 주문으로 신선한 회를 즐길 수 있는 곳입니다.",
       "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "자갈치시장 신선한 회로 여행의 저녁을 마무리하기 좋은 곳입니다."
+      "friends_couple": "자갈치시장에서 신선한 활어회를 함께 즐기기 좋은 곳입니다."
     },
-    "estimatedDurationMinutes": 60,
-    "openTime": "12:00",
+    "estimatedDurationMinutes": 50,
+    "openTime": "05:00",
     "closeTime": "22:00",
     "indoor": true,
-    "address": "부산 중구 자갈치해안로 52",
+    "address": "부산 중구 자갈치로 42",
     "imageUrl": null,
-    "lat": 35.0966137768508,
-    "lng": 129.030583690953
+    "lat": 35.0967213403401,
+    "lng": 129.02867013436
   },
   {
-    "placeId": "place-046",
-    "name": "서면 갈비골목집",
+    "placeId": "place-037",
+    "name": "부산명물횟집",
     "region": "부산",
-    "district": "부산진구",
+    "district": "중구",
     "category": "음식점",
     "mealType": "dinner",
-    "description": "서면 갈비골목에서 숯불갈비로 저녁을 즐길 수 있는 식당입니다.",
+    "description": "자갈치시장 안에서 숙성 광어회백밥으로 저녁을 즐길 수 있는 오래된 횟집입니다.",
     "tags": [
       "실내",
       "음식",
@@ -1504,30 +1204,29 @@
       "friends_couple"
     ],
     "recommendationReasons": {
-      "solo": "혼자서도 1인분 주문이 가능해 부담 없이 즐길 수 있는 곳입니다.",
-      "senior": "부드러운 갈비 메뉴 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "숯불갈비로 여행의 저녁을 든든하게 마무리하기 좋은 곳입니다."
+      "solo": "혼자서도 회백밥으로 부담 없이 즐길 수 있는 곳입니다.",
+      "senior": "부드러운 회백밥 메뉴라 고령자 동반 여행에도 무난합니다.",
+      "friends_couple": "자갈치시장 노포에서 숙성 광어회를 함께 즐기기 좋은 곳입니다."
     },
     "estimatedDurationMinutes": 60,
-    "openTime": "17:00",
-    "closeTime": "23:00",
+    "openTime": "11:00",
+    "closeTime": "21:00",
     "indoor": true,
-    "address": "부산 부산진구 서면로 39",
+    "address": "부산 중구 자갈치해안로 55",
     "imageUrl": null,
-    "lat": 35.1542714950768,
-    "lng": 129.057302821914
+    "lat": 35.0971126896193,
+    "lng": 129.031120190056
   },
   {
-    "placeId": "place-047",
-    "name": "송정 조개구이집",
+    "placeId": "place-038",
+    "name": "조개대교",
     "region": "부산",
-    "district": "해운대구",
+    "district": "영도구",
     "category": "음식점",
     "mealType": "dinner",
-    "description": "송정 해변 근처에서 조개구이로 저녁을 즐길 수 있는 식당입니다.",
+    "description": "태종대 인근에서 조개구이로 저녁을 즐길 수 있는 식당입니다.",
     "tags": [
-      "실내외 혼합",
-      "야경",
+      "실내",
       "음식",
       "체험"
     ],
@@ -1539,15 +1238,1428 @@
     "recommendationReasons": {
       "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
       "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
-      "friends_couple": "송정 바다를 보며 조개구이로 저녁을 즐기기 좋은 곳입니다."
+      "friends_couple": "태종대 여행 후 조개구이로 저녁을 마무리하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": true,
+    "address": "부산 영도구 태종로 54-1, 2층",
+    "imageUrl": null,
+    "lat": 35.0931822961562,
+    "lng": 129.037059468165
+  },
+  {
+    "placeId": "place-042",
+    "name": "동래할매파전",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "방송에도 소개된 동래파전 원조격 노포입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 즐기기 좋은 점심 메뉴입니다.",
+      "senior": "부드러운 파전 메뉴라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "부산 명물 동래파전을 함께 맛보기 좋은 노포입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:30",
+    "closeTime": "21:30",
+    "indoor": true,
+    "address": "부산 동래구 명륜로94번길 43-10",
+    "imageUrl": null,
+    "lat": 35.2046043260066,
+    "lng": 129.083868075445
+  },
+  {
+    "placeId": "place-043",
+    "name": "나사리식당 광안점",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "광안리 해변 인근에서 해물왕칼국수·해물파전으로 점심을 즐길 수 있는 식당입니다. 야외 좌석에 한해 반려동물 동반도 가능합니다.",
+    "tags": [
+      "실내외 혼합",
+      "음식",
+      "반려동물 동반",
+      "야경"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple",
+      "pet"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 바다를 보며 여유롭게 점심을 즐기기 좋은 곳입니다.",
+      "senior": "창가 좌석이 넉넉해 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "광안리 오션뷰와 함께 해물칼국수를 즐기기 좋은 곳입니다.",
+      "pet": "중소형견에 한해(케이지/전용 가방 지참) 야외 좌석에서 반려동물과 함께 식사할 수 있습니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 수영구 광안로61번길 60",
+    "imageUrl": null,
+    "lat": 35.1555049261777,
+    "lng": 129.12208862779
+  },
+  {
+    "placeId": "place-045",
+    "name": "해운대기와집대구탕",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "기와집을 개조한 식당에서 대구탕으로 저녁을 즐길 수 있는 곳입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "야경"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 든든하게 대구탕으로 저녁을 챙길 수 있는 곳입니다.",
+      "senior": "부드러운 국물 요리 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "해운대·광안대교 전망과 함께 대구탕을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 55,
+    "openTime": "08:00",
+    "closeTime": "20:40",
+    "indoor": true,
+    "address": "부산 해운대구 달맞이길50번길 4",
+    "imageUrl": null,
+    "lat": 35.1611267256864,
+    "lng": 129.169985087898
+  },
+  {
+    "placeId": "place-046",
+    "name": "사미헌 신관",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서면에서 오랜 전통을 이어온 갈비 전문점입니다.",
+    "tags": [
+      "실내",
+      "음식",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 1인 이용이 가능한 무한리필 갈비집입니다.",
+      "senior": "부드러운 갈비 메뉴 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "서면에서 돼지갈비로 여행의 저녁을 든든하게 마무리하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "11:00",
+    "closeTime": "23:30",
+    "indoor": true,
+    "address": "부산 부산진구 서면문화로 32",
+    "imageUrl": null,
+    "lat": 35.159944473914,
+    "lng": 129.056253459018
+  },
+  {
+    "placeId": "place-047",
+    "name": "다대횟집",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "다대포 인근에서 신선한 활어회로 저녁을 즐길 수 있는 식당입니다.",
+    "tags": [
+      "실내",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "senior",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 주문으로 신선한 회를 즐길 수 있는 곳입니다.",
+      "senior": "테이블 좌석 위주라 고령자 동반 여행에도 부담이 적습니다.",
+      "friends_couple": "다대포에서 신선한 활어회로 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "10:30",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "부산 사하구 몰운대2길 7",
+    "imageUrl": null,
+    "lat": 35.04636551841,
+    "lng": 128.96896044578
+  },
+  {
+    "placeId": "place-048",
+    "name": "삼락생태공원",
+    "region": "부산",
+    "district": "사상구",
+    "category": "공원",
+    "description": "낙동강변에 펼쳐진 부산 최초의 오토캠핑장이 있는 생태공원입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "반려동물 동반",
+      "휴식 공간"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 산책하며 여유를 즐기기 좋은 넓은 공원입니다.",
+      "pet": "넓은 잔디밭과 산책로에서 반려동물과 함께 뛰어놀기 좋습니다.",
+      "friends_couple": "낙동강변 풍경을 보며 함께 산책하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 90,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사상구 삼락동 29-59",
+    "imageUrl": null,
+    "lat": 35.1665055461382,
+    "lng": 128.96854762453
+  },
+  {
+    "placeId": "place-049",
+    "name": "을숙도생태공원",
+    "region": "부산",
+    "district": "사하구",
+    "category": "자연경관",
+    "description": "낙동강 하구에 자리한 철새 도래지이자 생태공원입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "반려동물 동반",
+      "체험"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "탁 트인 자연 속을 혼자 여유롭게 걷기 좋은 곳입니다.",
+      "pet": "넓은 산책로에서 반려동물과 함께 자연을 즐기기 좋습니다.",
+      "friends_couple": "철새와 강 풍경을 보며 함께 산책하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 90,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사하구 낙동대로398번길 12",
+    "imageUrl": null,
+    "lat": 35.1045019580248,
+    "lng": 128.974790181016
+  },
+  {
+    "placeId": "place-050",
+    "name": "온천천 카페거리",
+    "region": "부산",
+    "district": "동래구",
+    "category": "산책로",
+    "description": "온천천을 따라 카페거리와 동래온천·명륜 일대를 잇는 산책로입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "반려동물 동반",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "대중교통 접근이 편리하고 혼자 걷기 좋은 산책로입니다.",
+      "pet": "하천을 따라 이어지는 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "물길을 따라 함께 걸으며 이야기 나누기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 동래구 온천천로 451-1",
+    "imageUrl": null,
+    "lat": 35.1916121355161,
+    "lng": 129.102292183576
+  },
+  {
+    "placeId": "place-051",
+    "name": "장림포구",
+    "region": "부산",
+    "district": "사하구",
+    "category": "자연경관",
+    "description": "알록달록한 벽화로 뒤덮인 건물들이 늘어선 작은 포구 마을입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "반려동물 동반",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 산책하며 사진 찍기 좋은 조용한 포구입니다.",
+      "pet": "인적이 드문 산책로라 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "알록달록한 벽화를 배경으로 함께 사진을 남기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 70,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사하구 장림로93번길 72",
+    "imageUrl": null,
+    "lat": 35.0791595519288,
+    "lng": 128.951368692909
+  },
+  {
+    "placeId": "place-052",
+    "name": "아워오차드",
+    "region": "부산",
+    "district": "기장군",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "일광 화전마을의 오션 근처 브런치 카페로, 2층은 반려동물 동반이 가능합니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 여유롭게 브런치를 즐기기 좋은 카페입니다.",
+      "pet": "2층과 야외 테라스에서 반려동물과 함께 식사할 수 있습니다.",
+      "friends_couple": "한적한 바다 근처에서 반려동물과 함께 아침을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "20:00",
+    "indoor": false,
+    "address": "부산 기장군 일광읍 화용길 53-47",
+    "imageUrl": null,
+    "lat": 35.280505807746,
+    "lng": 129.228880800657
+  },
+  {
+    "placeId": "place-053",
+    "name": "청사포역",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "청사포 인근의 반려동물 동반 가능 카페입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식",
+      "야경"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 여유롭게 브런치를 즐기기 좋은 카페입니다.",
+      "pet": "반려동물과 함께 방문할 수 있는 카페로 알려져 있습니다.",
+      "friends_couple": "청사포 바다 근처에서 반려동물과 함께 아침을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 55,
+    "openTime": "11:30",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 해운대구 청사포로58번길 121",
+    "imageUrl": null,
+    "lat": 35.1608502261022,
+    "lng": 129.191184880654
+  },
+  {
+    "placeId": "place-054",
+    "name": "스위티",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "송정 인근 디저트·음료 카페로, 반려견 전용 비건 간식도 판매합니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 가볍게 아침을 즐기기 좋은 카페입니다.",
+      "pet": "반려견 전용 비건 간식을 함께 즐길 수 있는 카페입니다.",
+      "friends_couple": "송정 바다 근처에서 반려동물과 함께 아침을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 해운대구 송정구덕포길 124 1층",
+    "imageUrl": null,
+    "lat": 35.1703409346782,
+    "lng": 129.19720432254
+  },
+  {
+    "placeId": "place-055",
+    "name": "하숙집 본점",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "상호에 '반려동물 동반 식당'이 명시된 해운대 고기 전문점입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 고기 전문점입니다.",
+      "pet": "상호 자체에 반려동물 동반 식당임이 명시되어 있는 곳입니다.",
+      "friends_couple": "해운대에서 반려동물과 함께 점심을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:30",
+    "closeTime": "21:00",
+    "indoor": false,
+    "address": "부산 해운대구 센텀중앙로 90",
+    "imageUrl": null,
+    "lat": 35.1754430801399,
+    "lng": 129.126430961339
+  },
+  {
+    "placeId": "place-056",
+    "name": "브런치카페이엘",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "원도심(중구)에서 드문 반려동물 동반 브런치 카페입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 브런치 카페입니다.",
+      "pet": "소형견은 가방/캐리어 동반 시 함께 식사할 수 있습니다.",
+      "friends_couple": "원도심 여행 중 반려동물과 함께 점심을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:00",
+    "closeTime": "20:00",
+    "indoor": true,
+    "address": "부산 중구 대청로126번길 22 3층",
+    "imageUrl": null,
+    "lat": 35.1010196413645,
+    "lng": 129.03397900339
+  },
+  {
+    "placeId": "place-058",
+    "name": "도희네",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "청사포 인근에서 해물 요리로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식",
+      "야경"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 부담 없이 즐길 수 있는 해물 요리 식당입니다.",
+      "pet": "반려동물과 함께 방문할 수 있는 식당으로 여러 검색에서 확인됩니다.",
+      "friends_couple": "청사포 바다 근처에서 반려동물과 함께 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 70,
+    "openTime": "11:30",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 해운대구 청사포로 157",
+    "imageUrl": null,
+    "lat": 35.1624941251331,
+    "lng": 129.194262678547
+  },
+  {
+    "placeId": "place-059",
+    "name": "더바베큐051",
+    "region": "부산",
+    "district": "기장군",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "기장 해안가의 야외 바베큐 전문점으로, 목줄 착용 시 모든 견종이 동반 가능합니다.",
+    "tags": [
+      "실외",
+      "반려동물 동반",
+      "음식",
+      "체험"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 즐길 수 있는 야외 바베큐입니다.",
+      "pet": "목줄 착용 시 모든 견종이 반려동물과 함께 식사할 수 있습니다.",
+      "friends_couple": "기장 해안가에서 반려동물과 함께 바베큐를 즐기기 좋은 곳입니다."
     },
     "estimatedDurationMinutes": 65,
     "openTime": "16:00",
     "closeTime": "23:00",
     "indoor": false,
-    "address": "부산 해운대구 송정중앙로 30",
+    "address": "부산 기장군 기장읍 기장해안로 62",
     "imageUrl": null,
-    "lat": 35.1823567245554,
-    "lng": 129.203723762283
+    "lat": 35.1847785240991,
+    "lng": 129.211101361893
+  },
+  {
+    "placeId": "place-060",
+    "name": "욱이네 불타는 조개구이&전골",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "다대포 인근 조개찜·조개구이 전골 맛집으로, 야외 테이블에서 반려동물과 함께 식사할 수 있습니다.",
+    "tags": [
+      "실외",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "pet": "야외 테이블에서 반려동물과 함께 저녁을 즐길 수 있습니다.",
+      "friends_couple": "다대포 인근에서 반려동물과 함께 조개구이 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 65,
+    "openTime": "16:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사하구 다송로72번길 16",
+    "imageUrl": null,
+    "lat": 35.0611856219658,
+    "lng": 128.982897513407
+  },
+  {
+    "placeId": "place-061",
+    "name": "광안리해수욕장",
+    "region": "부산",
+    "district": "수영구",
+    "category": "해변",
+    "description": "광안대교 야경으로 유명한 부산의 대표 해변입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책",
+      "사진 명소",
+      "야경",
+      "대중교통 접근"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "대중교통 접근이 편리하고 혼자서도 자유롭게 산책할 수 있습니다.",
+      "pet": "백사장 인근 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "광안대교 야경을 보며 함께 산책하고 사진을 남기기 좋습니다."
+    },
+    "estimatedDurationMinutes": 100,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 수영구 광안해변로 219",
+    "imageUrl": null,
+    "lat": 35.1537727634193,
+    "lng": 129.118519972498
+  },
+  {
+    "placeId": "place-062",
+    "name": "다대포해수욕장",
+    "region": "부산",
+    "district": "사하구",
+    "category": "해변",
+    "description": "낙조로 유명한 부산 서쪽의 넓은 해변입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 여유롭게 노을을 보며 산책하기 좋은 해변입니다.",
+      "pet": "넓은 백사장과 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "다대포 낙조를 보며 함께 산책하기 좋은 해변입니다."
+    },
+    "estimatedDurationMinutes": 100,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사하구 다대동",
+    "imageUrl": null,
+    "lat": 35.0602782199637,
+    "lng": 128.967656104235
+  },
+  {
+    "placeId": "place-063",
+    "name": "일광해수욕장",
+    "region": "부산",
+    "district": "기장군",
+    "category": "해변",
+    "description": "완만하고 한적한 기장 지역의 해변입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "비교적 한적해 혼자 여유롭게 시간을 보내기 좋은 해변입니다.",
+      "pet": "한적한 백사장에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "한적한 분위기에서 함께 바다를 즐기기 좋은 해변입니다."
+    },
+    "estimatedDurationMinutes": 90,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 기장군 일광읍 삼성리 116-9",
+    "imageUrl": null,
+    "lat": 35.2599339990976,
+    "lng": 129.233657929476
+  },
+  {
+    "placeId": "place-064",
+    "name": "송도해수욕장",
+    "region": "부산",
+    "district": "서구",
+    "category": "해변",
+    "description": "부산 최초의 공식 해수욕장으로, 구름산책로와 함께 즐길 수 있는 해변입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 여유롭게 산책하기 좋은 해변입니다.",
+      "pet": "해변 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "구름산책로와 함께 바다를 즐기기 좋은 해변입니다."
+    },
+    "estimatedDurationMinutes": 90,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 서구 암남동 135-5",
+    "imageUrl": null,
+    "lat": 35.075785793635,
+    "lng": 129.016767364455
+  },
+  {
+    "placeId": "place-065",
+    "name": "임랑해수욕장",
+    "region": "부산",
+    "district": "기장군",
+    "category": "해변",
+    "description": "기장 지역의 한적한 해변입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "한적해서 혼자 여유롭게 시간을 보내기 좋은 해변입니다.",
+      "pet": "한적한 백사장에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "한적한 분위기에서 함께 바다를 즐기기 좋은 해변입니다."
+    },
+    "estimatedDurationMinutes": 80,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 기장군 장안읍 임랑리",
+    "imageUrl": null,
+    "lat": 35.3195387867567,
+    "lng": 129.257609379894
+  },
+  {
+    "placeId": "place-066",
+    "name": "청사포다릿돌전망대",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "전망대",
+    "description": "청사포 앞바다 다릿돌 방파제 위에 세워진 해상 전망대입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 산책하며 바다 전망을 즐기기 좋은 곳입니다.",
+      "pet": "산책로를 따라 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "청사포 바다 전망을 함께 즐기고 사진을 남기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "09:00",
+    "closeTime": "18:00",
+    "indoor": false,
+    "address": "부산 해운대구 중동 591-21",
+    "imageUrl": null,
+    "lat": 35.1599131645333,
+    "lng": 129.19220392881
+  },
+  {
+    "placeId": "place-067",
+    "name": "흰여울문화마을",
+    "region": "부산",
+    "district": "영도구",
+    "category": "문화마을",
+    "description": "바다를 낀 좁은 골목길을 따라 이어지는 절벽 위 마을입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 골목을 걸으며 바다 전망을 즐기기 좋은 곳입니다.",
+      "pet": "마을 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "바다를 낀 골목길을 함께 걸으며 사진을 남기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 80,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 영도구 영선동4가 605-3",
+    "imageUrl": null,
+    "lat": 35.0794451817751,
+    "lng": 129.043754455684
+  },
+  {
+    "placeId": "place-068",
+    "name": "아미산전망대",
+    "region": "부산",
+    "district": "사하구",
+    "category": "전망대",
+    "description": "낙동강 하구와 노을을 함께 볼 수 있는 전망대입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "사진 명소",
+      "야경"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 노을을 보며 여유를 즐기기 좋은 전망대입니다.",
+      "pet": "야외 산책로에서 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "낙동강 하구 노을을 함께 즐기기 좋은 전망대입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 사하구 다대낙조2길 77",
+    "imageUrl": null,
+    "lat": 35.0527641375414,
+    "lng": 128.960747415187
+  },
+  {
+    "placeId": "place-069",
+    "name": "동생말 전망대",
+    "region": "부산",
+    "district": "남구",
+    "category": "전망대",
+    "description": "이기대 인근에서 오륙도와 바다를 조망할 수 있는 전망대입니다.",
+    "tags": [
+      "실외",
+      "바다",
+      "산책",
+      "사진 명소"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자 산책하며 바다 전망을 즐기기 좋은 곳입니다.",
+      "pet": "이기대 산책로와 이어져 반려동물과 함께 걷기 좋습니다.",
+      "friends_couple": "오륙도 전망을 함께 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 남구 용호동 산 1",
+    "imageUrl": null,
+    "lat": 35.1315424584689,
+    "lng": 129.121477993534
+  },
+  {
+    "placeId": "place-070",
+    "name": "도그어바웃",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "다대포 인근의 애견카페로, 반려동물과 함께 방문할 수 있는 곳입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 카페입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 반려동물 동반 전문 카페입니다.",
+      "friends_couple": "다대포 근처에서 반려동물과 함께 아침을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "20:00",
+    "indoor": false,
+    "address": "부산 사하구 다대로 680",
+    "imageUrl": null,
+    "lat": 35.0481460077651,
+    "lng": 128.966872193415
+  },
+  {
+    "placeId": "place-071",
+    "name": "봄날",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "몰운대 인근에서 회로 점심을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실외",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "pet": "'애견동반' 검색에서 반복적으로 확인되는 식당입니다.",
+      "friends_couple": "몰운대 산책 후 반려동물과 함께 점심을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "11:00",
+    "closeTime": "20:00",
+    "indoor": false,
+    "address": "부산 사하구 몰운대1길 53",
+    "imageUrl": null,
+    "lat": 35.045334216074,
+    "lng": 128.969253147413
+  },
+  {
+    "placeId": "place-072",
+    "name": "왔다갈비 다대본점",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "다대포 인근에서 갈비로 점심·저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실외외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 갈비 전문점입니다.",
+      "pet": "'애견동반' 검색에서 확인되는 다대포 지역 갈비 전문점입니다.",
+      "friends_couple": "다대포에서 반려동물과 함께 갈비를 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 55,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 사하구 윤공단로 1",
+    "imageUrl": null,
+    "lat": 35.0543169897267,
+    "lng": 128.970182853324
+  },
+  {
+    "placeId": "place-073",
+    "name": "코난 조개구이장어구이",
+    "region": "부산",
+    "district": "영도구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "영도 해변가에서 조개구이·장어구이로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실외",
+      "반려동물 동반",
+      "음식",
+      "체험"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 소량 메뉴로 부담 없이 즐길 수 있는 곳입니다.",
+      "pet": "'애견동반' 검색에서 확인되는 영도 지역 식당입니다.",
+      "friends_couple": "영도 해변가에서 반려동물과 함께 저녁을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "12:00",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 영도구 감지해변길 102",
+    "imageUrl": null,
+    "lat": 35.0613387251264,
+    "lng": 129.077164862301
+  },
+  {
+    "placeId": "place-074",
+    "name": "스포독",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "센텀 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 해운대구 센텀동로 102",
+    "imageUrl": null,
+    "lat": 35.1765866865981,
+    "lng": 129.126489620138
+  },
+  {
+    "placeId": "place-075",
+    "name": "콩이랜드",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "해운대 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 해운대구 세실로 86",
+    "imageUrl": null,
+    "lat": 35.1723414059392,
+    "lng": 129.176556744039
+  },
+  {
+    "placeId": "place-076",
+    "name": "나인독스",
+    "region": "부산",
+    "district": "사하구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "사하구 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 사하구 낙동대로 436",
+    "imageUrl": null,
+    "lat": 35.1046931592859,
+    "lng": 128.971044391397
+  },
+  {
+    "placeId": "place-077",
+    "name": "메리도그애견카페",
+    "region": "부산",
+    "district": "동래구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "동래구 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 동래구 명륜로139번길 27",
+    "imageUrl": null,
+    "lat": 35.2061475560991,
+    "lng": 129.080452273926
+  },
+  {
+    "placeId": "place-078",
+    "name": "파우제독",
+    "region": "부산",
+    "district": "남구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "남구 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 남구 용소로 13",
+    "imageUrl": null,
+    "lat": 35.1362136955536,
+    "lng": 129.10092383766
+  },
+  {
+    "placeId": "place-079",
+    "name": "애견카페 남포아지트",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "남포동 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:30",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 중구 비프광장로 3",
+    "imageUrl": null,
+    "lat": 35.0983611313721,
+    "lng": 129.025738565444
+  },
+  {
+    "placeId": "place-080",
+    "name": "덕수네애견카페 광복로점",
+    "region": "부산",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "광복로 지역의 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "10:30",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "부산 중구 광복로 59-1",
+    "imageUrl": null,
+    "lat": 35.0993403043016,
+    "lng": 129.031749272127
+  },
+  {
+    "placeId": "place-081",
+    "name": "비쇼쿠",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "광안리에서 고기로 점심을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 55,
+    "openTime": "11:30",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 수영구 광안해변로344번길 9-5",
+    "imageUrl": null,
+    "lat": 35.1554075530272,
+    "lng": 129.130892992167
+  },
+  {
+    "placeId": "place-082",
+    "name": "하숙집 2호점",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "센텀 지역에서 고기로 점심을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 55,
+    "openTime": "11:30",
+    "closeTime": "22:00",
+    "indoor": false,
+    "address": "부산 해운대구 센텀2로 20",
+    "imageUrl": null,
+    "lat": 35.1671970117476,
+    "lng": 129.132039053517
+  },
+  {
+    "placeId": "place-083",
+    "name": "봉계한우로스구이 (해운대점)",
+    "region": "부산",
+    "district": "해운대구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "센텀 지역에서 한우로 저녁을 즐길 수 있는 반려동물 동반 식당입니다. 상호에 '애견동반식당'이 명시되어 있습니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "상호 자체에 '애견동반식당'이 명시되어 있는 곳입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 65,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 해운대구 센텀중앙로 90",
+    "imageUrl": null,
+    "lat": 35.1754430801399,
+    "lng": 129.126430961339
+  },
+  {
+    "placeId": "place-084",
+    "name": "오데뜨정육점 서면본점",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서면에서 삼겹살로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 부산진구 신천대로62번길 61",
+    "imageUrl": null,
+    "lat": 35.1535558634193,
+    "lng": 129.05827978237
+  },
+  {
+    "placeId": "place-085",
+    "name": "시바화로 문현직영점",
+    "region": "부산",
+    "district": "남구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "문현동에서 고기로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 남구 전포대로91번길 25",
+    "imageUrl": null,
+    "lat": 35.1448313899756,
+    "lng": 129.065191015013
+  },
+  {
+    "placeId": "place-086",
+    "name": "태풍곱창",
+    "region": "부산",
+    "district": "부산진구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "부산진구에서 곱창으로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "16:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "부산 부산진구 동천로107번길 16",
+    "imageUrl": null,
+    "lat": 35.1583857404541,
+    "lng": 129.061378929225
+  },
+  {
+    "placeId": "place-087",
+    "name": "조개뷰 광안본점",
+    "region": "부산",
+    "district": "수영구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "민락수변공원 인근에서 조개요리로 저녁을 즐길 수 있는 반려동물 동반 식당입니다.",
+    "tags": [
+      "실내외 혼합",
+      "반려동물 동반",
+      "음식"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "혼자서도 편하게 즐기기 좋은 곳입니다.",
+      "pet": "'애견동반' 검색에서 상위로 확인되는 식당입니다.",
+      "friends_couple": "반려동물과 함께 여행 일정을 즐기기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "16:00",
+    "closeTime": "23:00",
+    "indoor": false,
+    "address": "부산 수영구 민락수변로 1",
+    "imageUrl": null,
+    "lat": 35.1555588987657,
+    "lng": 129.123821392424
   }
 ]

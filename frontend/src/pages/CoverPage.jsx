@@ -14,7 +14,7 @@ function CoverPage({ onSubmit }) {
     <div className="diary-cover min-h-app flex items-center justify-center px-6 py-10">
       <div className="diary-cover-spine" />
       <div className="mx-auto flex w-full max-w-xs flex-col items-center pl-4">
-        <h1 className="diary-cover-title text-4xl">모두잇다</h1>
+        <h1 className="diary-cover-title text-4xl">모두잇다.</h1>
         <img src={logo} alt="Ticket to Tale" className="mt-2 h-40 w-48 object-contain" />
 
         <label className="diary-cover-title-box mt-10 flex w-full flex-col items-center px-4 py-5">
