@@ -322,8 +322,20 @@ def _schedule_day(
             )
 
         if placement is None:
+            # 끼니는 "무조건 포함"이 원칙이므로, 정해진 시간대(MEAL_WINDOWS)에 못 들어가도
+            # 그 시간대 제약만 풀고 하루 안(day_start~day_end) 아무 데나 들어갈 수 있으면
+            # 거기에 배치한다 — 가게 영업시간 자체를 벗어나는 경우만 어쩔 수 없이 제외된다.
+            placement, _ = _try_place_on_day(
+                meal_cursor, day_end, meal_place, meal_last_place, multiplier, extra_dwell, None, None
+            )
+            if placement is None:
+                placement, _ = _try_place_on_day(
+                    day_start, day_end, meal_place, None, multiplier, extra_dwell, None, None
+                )
+
+        if placement is None:
             warnings.append(
-                f"{_eun(meal_place.name)} 이용 가능한 시간 안에 배치하지 못해 {day_date.isoformat()} 일정에서 제외했습니다."
+                f"{_eun(meal_place.name)} 영업시간 안에 배치할 수 없어 {day_date.isoformat()} 일정에서 제외했습니다."
             )
             continue
 
