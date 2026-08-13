@@ -2,6 +2,7 @@ import CustomPlaceInput from '../../components/CustomPlaceInput'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
+import WeatherHint from '../../components/WeatherHint'
 
 const MEAL_LABELS = {
   breakfast: '아침',
@@ -12,6 +13,7 @@ const MEAL_ORDER = ['breakfast', 'lunch', 'dinner']
 
 function RestaurantRecommendStep({
   dayLabel,
+  destination,
   restaurantsForDay,
   selectedRestaurantIds,
   onToggleSelect,
@@ -29,6 +31,7 @@ function RestaurantRecommendStep({
     <section>
       <h2 className="text-base font-semibold text-gray-900">🍴 {dayLabel} 음식점 선택</h2>
       <p className="mt-1 text-xs text-gray-500">끼니마다 한 곳만 고를 수 있어요. 안 골라도 괜찮아요(선택 안 함).</p>
+      <WeatherHint destination={destination} />
 
       <ErrorMessage message={error} />
 

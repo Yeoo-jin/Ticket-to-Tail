@@ -2,12 +2,14 @@ import io
 import json
 from unittest.mock import MagicMock, patch
 
+import httpx
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services import diary_ai_generator, diary_service
 from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError
 from app.services.place_data import load_places
+from app.utils import ai_retry
 
 client = TestClient(app)
 
@@ -191,6 +193,40 @@ def test_one_photo_with_memo_succeeds():
     body = response.json()
     assert len(body["data"]["photoCaptions"]) == 1
     assert body["data"]["photoCaptions"][0]["photoIndex"] == 0
+
+
+def test_photo_timeline_item_id_links_photo_to_place_in_prompt():
+    # 6단계(타임라인 화면)에서 관광지 항목(item-001, "국립해양박물관")에 붙인 사진이면,
+    # AI에게 보내는 프롬프트에 그 항목 제목이 근거로 같이 실려야 한다.
+    fake_client = _fake_gemini_client(_fake_raw_diary(photo_count=1))
+    with patch.object(diary_ai_generator, "get_gemini_client", return_value=fake_client):
+        response = client.post(
+            "/api/diaries/generate",
+            data=_fields(
+                photoMemosJson=json.dumps(["여기서 찍음"]),
+                photoTimelineItemIdsJson=json.dumps(["item-001"]),
+            ),
+            files=[("photos", _photo_file())],
+        )
+
+    assert response.status_code == 200
+    call_kwargs = fake_client.models.generate_content.call_args.kwargs
+    prompt_text = call_kwargs["contents"][0]["parts"][0]["text"]
+    assert "국립해양박물관" in prompt_text
+
+
+def test_photo_without_timeline_item_id_still_succeeds():
+    # 연결 정보가 없어도(예: 옛 방식으로 저장된 사진) 다이어리 생성 자체는 그대로 동작해야 한다.
+    with patch.object(
+        diary_ai_generator, "get_gemini_client", return_value=_fake_gemini_client(_fake_raw_diary(photo_count=1))
+    ):
+        response = client.post(
+            "/api/diaries/generate",
+            data=_fields(photoMemosJson=json.dumps(["메모"])),
+            files=[("photos", _photo_file())],
+        )
+    assert response.status_code == 200
+    assert response.json()["success"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -397,6 +433,26 @@ def test_ai_transient_failure_falls_back_to_template():
     assert any("AI 호출에 실패" in w for w in body["warnings"])
     for field in ("title", "diary", "summary", "snsPost", "photoCaptions", "hashtags", "storyCards", "warnings"):
         assert field in body
+
+
+def test_transient_network_error_is_retried_and_succeeds_without_fallback(monkeypatch):
+    # 네트워크 순단처럼 한 번 실패했다가 바로 다음 시도에서 성공하면, fallback 템플릿(사진을
+    # 실제로 반영하지 않는 밋밋한 결과)이 아니라 재시도만으로 정상 AI 결과가 나와야 한다.
+    monkeypatch.setattr(ai_retry.time, "sleep", lambda *_args: None)
+
+    fake_client = MagicMock()
+    fake_client.models.generate_content.side_effect = [
+        httpx.TimeoutException("timed out"),
+        FakeGeminiResponse(payload=_fake_raw_diary()),
+    ]
+
+    with patch.object(diary_ai_generator, "get_gemini_client", return_value=fake_client):
+        response = client.post("/api/diaries/generate", data=_fields())
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["generationMode"] == "ai"
+    assert fake_client.models.generate_content.call_count == 2
 
 
 def test_ai_config_error_also_falls_back_to_template():

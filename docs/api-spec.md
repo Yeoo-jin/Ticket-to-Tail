@@ -25,29 +25,30 @@
 
 ## POST `/api/bookings/parse`
 
-사용자가 입력한 항공·철도 예매정보 텍스트에서 출발지, 도착지, 날짜, 시간 등의 정보를 추출한다.
+사용자가 입력한 항공·철도 예매정보에서 출발지, 도착지, 날짜, 시간 등의 정보를 추출한다.
+텍스트 또는 사진(예매 내역 목록 캡처 화면) 둘 중 하나로 입력받으며, `multipart/form-data`로 요청한다
+(사진이 없어도 `bookingText`만 form 필드로 보내는 방식으로 통일했다 — 사진 첨부 가능성이 있는
+요청은 항상 `multipart/form-data`를 쓴다는 공통 규칙을 따름).
 
-### 요청
-
-```
-{
-  "bookingText":"8월 12일 오전 10시 30분 인천공항 도착. 오후 1시 20분 서울역에서 KTX 출발, 오후 4시 5분 부산역 도착. 8월 14일 오후 6시 인천공항 출발."
-}
-```
-
-### 요청 필드
+### 요청 (`multipart/form-data`)
 
 | 필드 | 자료형 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `bookingText` | string | O | 항공·철도 예매정보가 포함된 자유 텍스트 |
+| `bookingText` | string (form field) | `photos`와 둘 중 하나 | 항공·철도 예매정보가 포함된 자유 텍스트 |
+| `photos` | file (여러 개 가능) | `bookingText`와 둘 중 하나 | 예매 내역을 촬영·캡처한 이미지(jpg/png/webp, 장당 최대 5MB, 최대 5장). 예: 항공권 캡처 1장 + KTX 캡처 1장처럼 서로 다른 예매 건을 각각 다른 사진으로 첨부해도 되고, 한 장에 왕복 등 여러 건이 보여도 전부 추출한다 |
+
+`bookingText`와 `photos`를 둘 다 보내거나 둘 다 안 보내면 `400 INVALID_INPUT`을 반환한다.
 
 ### 처리 내용
 
-1. 입력된 텍스트에서 항공편과 열차 정보를 구분한다.
+1. 텍스트 또는 사진에서 항공편과 열차 정보를 구분한다.
 2. 출발지·도착지·날짜·시간을 추출한다.
-3. 항공편명 또는 열차 편명·번호(`transitNumber`)가 텍스트에 있으면 함께 추출한다. 텍스트에 없으면 `null`.
+3. 항공편명 또는 열차 편명·번호(`transitNumber`)가 있으면 함께 추출한다. 없으면 `null`.
 4. 타임라인 생성에 사용할 수 있는 데이터 형태로 변환한다.
 5. 필수 정보가 부족한 경우 누락된 항목을 반환한다.
+
+사진 입력에서 AI 추출이 실패하면(텍스트처럼 규칙 기반 fallback을 쓸 수 없음) `500 AI_SERVICE_ERROR`로
+응답하며, 프론트는 이때 텍스트 직접 입력으로 전환하도록 안내한다.
 
 ### 성공 응답
 
@@ -778,6 +779,7 @@ Gemini를 사용하지만, 사진/개수/용량 검증과 결과 정규화는 �
 | `timelineJson` | JSON string | O | `/api/timelines/generate` 응답의 `data`(`timeline`/`summary`/`warnings`)를 그대로 JSON 문자열로 인코딩 |
 | `selectedPlaceIdsJson` | JSON string | O | 선택한 관광지 ID 배열. `places.json`에 존재하는 ID만 허용 |
 | `photoMemosJson` | JSON string | X | 사진별 메모 배열(문자열[]). 사진 순서와 배열 순서가 일치해야 한다 |
+| `photoTimelineItemIdsJson` | JSON string | X | 사진이 타임라인의 어떤 항목(`TimelineItem.id`)에서 첨부됐는지 배열((string\|null)[]). 사진 순서와 일치해야 하며, 없으면 전부 `null`로 취급 |
 | `photos` | File[] | X | 여행 사진. 최대 5장, 1장당 최대 5MB, `image/jpeg`·`image/png`·`image/webp`만 허용 |
 
 `memo`와 `photos`가 모두 없으면 공통 오류 응답(`INVALID_INPUT`)을 반환한다.

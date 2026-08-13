@@ -2,6 +2,7 @@ import CustomPlaceInput from '../../components/CustomPlaceInput'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import PlaceCard from '../../components/PlaceCard'
+import WeatherHint from '../../components/WeatherHint'
 import { REQUIRED_DAILY_PLACE_COUNT } from '../../utils/placeSelection'
 
 const PACE_OPTIONS = [
@@ -11,6 +12,7 @@ const PACE_OPTIONS = [
 
 function PlaceRecommendStep({
   dayLabel,
+  destination,
   places,
   selectedPlaceIds,
   onToggleSelect,
@@ -46,6 +48,7 @@ function PlaceRecommendStep({
         선택한 관광지 {selectedPlaceIds.length}/{REQUIRED_DAILY_PLACE_COUNT} · 정확히{' '}
         {REQUIRED_DAILY_PLACE_COUNT}개를 선택해야 다음으로 진행할 수 있어요.
       </p>
+      <WeatherHint destination={destination} />
 
       <ErrorMessage message={error} />
       {selectionLimitMessage && <ErrorMessage message={selectionLimitMessage} />}

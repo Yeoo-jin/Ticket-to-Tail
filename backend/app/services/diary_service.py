@@ -48,6 +48,10 @@ class _DiaryRequestPayload(BaseModel):
     timeline: TimelineGenerateData
     selectedPlaceIds: List[str]
     photoMemos: List[str] = Field(default_factory=list)
+    # 사진이 타임라인 화면의 어떤 관광지·식사 항목에서 첨부됐는지(TimelineItem.id). photos와
+    # 인덱스가 맞으며, 값이 없거나 일치하는 항목을 못 찾으면 None으로 둔다(연결 정보 없이도
+    # 다이어리 생성 자체는 그대로 동작한다).
+    photoTimelineItemIds: List[Optional[str]] = Field(default_factory=list)
 
 
 def _load_json_field(raw: Optional[str], field_name: str, required: bool = True):
@@ -134,6 +138,7 @@ async def generate_diary(
     timeline_json: str,
     selected_place_ids_json: str,
     photo_memos_json: Optional[str],
+    photo_timeline_item_ids_json: Optional[str] = None,
     photos: List[UploadFile],
 ) -> DiaryGenerateData:
     destination = (destination or "").strip()
@@ -144,6 +149,9 @@ async def generate_diary(
     timeline_raw = _load_json_field(timeline_json, "timelineJson")
     selected_place_ids_raw = _load_json_field(selected_place_ids_json, "selectedPlaceIdsJson")
     photo_memos_raw = _load_json_field(photo_memos_json, "photoMemosJson", required=False) or []
+    photo_timeline_item_ids_raw = (
+        _load_json_field(photo_timeline_item_ids_json, "photoTimelineItemIdsJson", required=False) or []
+    )
 
     try:
         payload = _DiaryRequestPayload.model_validate(
@@ -152,6 +160,7 @@ async def generate_diary(
                 "timeline": timeline_raw,
                 "selectedPlaceIds": selected_place_ids_raw,
                 "photoMemos": photo_memos_raw,
+                "photoTimelineItemIds": photo_timeline_item_ids_raw,
             }
         )
     except ValidationError as exc:
@@ -177,6 +186,14 @@ async def generate_diary(
     companion_labels = [_COMPANION_LABEL_KO.get(t, t) for t in payload.companionTypes]
     timeline_lines = _format_timeline_lines(payload.timeline.timeline)
 
+    # 사진이 타임라인의 어떤 항목(관광지·식사)에서 첨부됐는지 사람이 읽을 수 있는 제목으로
+    # 바꿔 AI에게 같이 전달한다 - "이 사진은 해운대암소갈비집 저녁식사에서 찍음"처럼 근거를
+    # 붙여 캡션 정확도를 높이기 위함이다. 연결 정보가 없거나 못 찾으면 None으로 둔다.
+    timeline_item_titles = {item.id: item.title for item in payload.timeline.timeline}
+    photo_place_labels = [
+        timeline_item_titles.get(item_id) if item_id else None for item_id in payload.photoTimelineItemIds
+    ]
+
     generation_mode = "ai"
     warnings: List[str] = []
 
@@ -189,6 +206,7 @@ async def generate_diary(
             timeline_lines=timeline_lines,
             place_names=place_names,
             photo_memos=payload.photoMemos,
+            photo_place_labels=photo_place_labels,
             photos=photo_data,
         )
     except (AIConfigError, AIServiceError, AITransientError, AIValidationFailedError) as exc:

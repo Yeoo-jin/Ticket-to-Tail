@@ -102,6 +102,17 @@
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
+.hub-tab-secondary {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  border-radius: 999px;
+  border: 1.5px solid #1a1a1a;
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
 .mypage-back-tab {
   border-radius: 999px;
   border: 1.5px solid #1a1a1a;

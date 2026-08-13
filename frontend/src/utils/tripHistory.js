@@ -8,10 +8,20 @@ export function generateTripId() {
   return `trip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+// 마이페이지가 항상 빈 화면으로 보이지 않도록 채워두는 예시 데이터(데모용).
+// sessionStorage에 아직 아무 기록도 없을 때만(첫 방문) 보여주고, 사용자가 실제로 여행을
+// 만들면(upsertTrip 이후 saveTripHistory가 호출되면) 그때부터는 실제 기록으로 대체된다.
+const DEMO_TRIPS = [
+  { id: 'trip-demo-busan', title: '부산 가족 여행', timelineDone: true, diaryDone: true },
+  { id: 'trip-demo-gangneung', title: '강릉 반려동물 여행', timelineDone: true, diaryDone: false },
+  { id: 'trip-demo-jeju', title: '제주도 친구들과', timelineDone: false, diaryDone: false },
+]
+
 export function loadTripHistory() {
   try {
     const raw = sessionStorage.getItem(HISTORY_KEY)
-    const list = raw ? JSON.parse(raw) : []
+    if (raw === null) return DEMO_TRIPS
+    const list = JSON.parse(raw)
     return Array.isArray(list) ? list : []
   } catch {
     return []

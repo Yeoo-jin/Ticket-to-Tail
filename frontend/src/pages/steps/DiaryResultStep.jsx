@@ -183,8 +183,8 @@ function DiaryResultStep({
               <p className="mb-1.5 text-[11px] text-gray-500">사진 글귀 크기: {polaroidCaptionSize}</p>
               <input
                 type="range"
-                min={18}
-                max={36}
+                min={24}
+                max={56}
                 value={polaroidCaptionSize}
                 onChange={(event) => onChangePolaroidCaptionSize(Number(event.target.value))}
                 className="w-full"
@@ -194,8 +194,8 @@ function DiaryResultStep({
               <p className="mb-1.5 text-[11px] text-gray-500">배경 글귀 크기: {backgroundTextSize}</p>
               <input
                 type="range"
-                min={24}
-                max={72}
+                min={32}
+                max={120}
                 value={backgroundTextSize}
                 onChange={(event) => onChangeBackgroundTextSize(Number(event.target.value))}
                 className="w-full"
