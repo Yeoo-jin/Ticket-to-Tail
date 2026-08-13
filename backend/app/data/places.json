@@ -2661,5 +2661,670 @@
     "imageUrl": null,
     "lat": 35.1555588987657,
     "lng": 129.123821392424
+  },
+  {
+    "placeId": "place-088",
+    "name": "삼진어묵 인천공항T2점",
+    "region": "인천",
+    "district": "영종구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "인천국제공항 제2여객터미널 안에 있는 부산 삼진어묵 매장입니다.",
+    "tags": [
+      "실내",
+      "간편식",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 가볍게 요기하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 가볍게 요기하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 30,
+    "openTime": "06:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.46760426583354,
+    "lng": 126.43962065030702
+  },
+  {
+    "placeId": "place-089",
+    "name": "남산왕돈까스 인천국제공항제2여객터미널",
+    "region": "인천",
+    "district": "영종구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "인천국제공항 제2여객터미널 안에 있는 돈까스 전문점입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 든든하게 식사하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 든든하게 식사하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "06:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.46775484725363,
+    "lng": 126.43491481818751
+  },
+  {
+    "placeId": "place-090",
+    "name": "자문밖 인천공항 T2점",
+    "region": "인천",
+    "district": "영종구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "인천국제공항 제2여객터미널 안에 있는 한식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 한식으로 식사하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 한식으로 식사하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "06:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.467135556253766,
+    "lng": 126.43391004455562
+  },
+  {
+    "placeId": "place-091",
+    "name": "우리가김치 인천국제공항제2여객터미널",
+    "region": "인천",
+    "district": "영종구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "인천국제공항 제2여객터미널 안에 있는 한식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 한식으로 식사하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 한식으로 식사하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "06:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.46758912146341,
+    "lng": 126.43473859389375
+  },
+  {
+    "placeId": "place-092",
+    "name": "로봇김밥 인천공항T2점",
+    "region": "인천",
+    "district": "영종구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "인천국제공항 제2여객터미널 안에 있는 분식점입니다.",
+    "tags": [
+      "실내",
+      "간편식",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 가볍게 요기하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 가볍게 요기하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 25,
+    "openTime": "06:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.46689306443322,
+    "lng": 126.44050539712471
+  },
+  {
+    "placeId": "place-093",
+    "name": "인천공항박물관",
+    "region": "인천",
+    "district": "중구",
+    "category": "박물관",
+    "mealType": null,
+    "description": "인천국제공항 제1여객터미널 안에 있는 공항 역사 전시 박물관입니다.",
+    "tags": [
+      "실내",
+      "박물관",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 짧게 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 짧게 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "09:00",
+    "closeTime": "19:00",
+    "indoor": true,
+    "address": "인천 중구 공항로 272",
+    "imageUrl": null,
+    "lat": 37.455238971825565,
+    "lng": 126.44363361459052
+  },
+  {
+    "placeId": "place-094",
+    "name": "한국전통문화센터(T2서관) 인천국제공항제2여객터미널",
+    "region": "인천",
+    "district": "중구",
+    "category": "문화시설",
+    "mealType": null,
+    "description": "인천국제공항 제2여객터미널 안에서 한국 전통문화를 짧게 체험할 수 있는 공간입니다.",
+    "tags": [
+      "실내",
+      "전통문화 체험",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 전통문화를 체험하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 전통문화를 체험하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "09:00",
+    "closeTime": "19:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.4657623352135,
+    "lng": 126.431824700901
+  },
+  {
+    "placeId": "place-095",
+    "name": "인천국제공항 홍보전망대",
+    "region": "인천",
+    "district": "중구",
+    "category": "전시관",
+    "mealType": null,
+    "description": "인천국제공항 제2여객터미널 안에 있는 공항 홍보 전시관입니다.",
+    "tags": [
+      "실내",
+      "전시관",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 짧게 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 짧게 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 30,
+    "openTime": "09:00",
+    "closeTime": "19:00",
+    "indoor": true,
+    "address": "인천 중구 운서동 2868",
+    "imageUrl": null,
+    "lat": 37.467060253064005,
+    "lng": 126.43530776872166
+  },
+  {
+    "placeId": "place-096",
+    "name": "비선루",
+    "region": "인천",
+    "district": "중구",
+    "category": "전망대",
+    "mealType": null,
+    "description": "인천국제공항 제1여객터미널 인근에 있는 전통 정자형 전망대입니다.",
+    "tags": [
+      "실외",
+      "전망대",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 바람 쐬며 쉬어가기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 바람 쐬며 쉬어가기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 20,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "인천 중구 공항로 272",
+    "imageUrl": null,
+    "lat": 37.4507211806562,
+    "lng": 126.453640564629
+  },
+  {
+    "placeId": "place-097",
+    "name": "파라다이스시티 원더박스",
+    "region": "인천",
+    "district": "중구",
+    "category": "테마파크",
+    "mealType": null,
+    "description": "인천국제공항 인근 복합 리조트 파라다이스시티 안에 있는 실내 예술·엔터테인먼트 공간입니다.",
+    "tags": [
+      "실내",
+      "체험",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 실내에서 여유롭게 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 실내에서 여유롭게 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 60,
+    "openTime": "10:00",
+    "closeTime": "20:00",
+    "indoor": true,
+    "address": "인천 중구 영종해안남로321번길 186",
+    "imageUrl": null,
+    "lat": 37.4365796645163,
+    "lng": 126.457300284659
+  },
+  {
+    "placeId": "place-098",
+    "name": "풍년옥",
+    "region": "서울",
+    "district": "용산구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "서울역 인근에서 설렁탕을 파는 식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 든든하게 한 끼 먹기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 든든하게 한 끼 먹기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "07:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "서울 용산구 후암로 107",
+    "imageUrl": null,
+    "lat": 37.553420771205964,
+    "lng": 126.97324088416164
+  },
+  {
+    "placeId": "place-099",
+    "name": "이여곰탕 서울역점",
+    "region": "서울",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "서울역 인근에서 곰탕을 파는 식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 든든하게 한 끼 먹기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 든든하게 한 끼 먹기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 40,
+    "openTime": "07:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "서울 중구 세종대로 17",
+    "imageUrl": null,
+    "lat": 37.5586294439291,
+    "lng": 126.973267316122
+  },
+  {
+    "placeId": "place-100",
+    "name": "영덕물회막회",
+    "region": "서울",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서울역 인근에서 물회·막회를 파는 식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 해산물로 식사하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 해산물로 식사하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "서울 중구 청파로 429",
+    "imageUrl": null,
+    "lat": 37.55793194336918,
+    "lng": 126.96905171785218
+  },
+  {
+    "placeId": "place-101",
+    "name": "금자네생등심",
+    "region": "서울",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서울역 인근에서 고기를 파는 식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 고기로 식사하기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 고기로 식사하기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 45,
+    "openTime": "11:00",
+    "closeTime": "22:00",
+    "indoor": true,
+    "address": "서울 중구 통일로 22-4",
+    "imageUrl": null,
+    "lat": 37.5576488973778,
+    "lng": 126.972135899572
+  },
+  {
+    "placeId": "place-102",
+    "name": "백년옥 서울역점",
+    "region": "서울",
+    "district": "중구",
+    "category": "음식점",
+    "mealType": "breakfast",
+    "description": "서울역 안에 있는 한식당입니다.",
+    "tags": [
+      "실내",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 가볍게 한 끼 먹기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 가볍게 한 끼 먹기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 35,
+    "openTime": "07:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "서울 중구 한강대로 405",
+    "imageUrl": null,
+    "lat": 37.554954699651795,
+    "lng": 126.97123831221128
+  },
+  {
+    "placeId": "place-103",
+    "name": "서울역 구역사",
+    "region": "서울",
+    "district": "중구",
+    "category": "문화유적",
+    "mealType": null,
+    "description": "옛 서울역 건물을 활용한 문화공간입니다.",
+    "tags": [
+      "실내",
+      "문화유적",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 짧게 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 짧게 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 30,
+    "openTime": "10:00",
+    "closeTime": "19:00",
+    "indoor": true,
+    "address": "서울 중구 통일로 1",
+    "imageUrl": null,
+    "lat": 37.55586664672877,
+    "lng": 126.9718083586258
+  },
+  {
+    "placeId": "place-104",
+    "name": "서울로7017",
+    "region": "서울",
+    "district": "중구",
+    "category": "공원",
+    "mealType": null,
+    "description": "옛 서울역 고가도로를 산책로로 조성한 공중정원입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "사진 명소",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 걸으며 바람 쐬기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 걸으며 바람 쐬기 좋은 곳입니다.",
+      "pet": "실외 공공 산책로·공원이라 반려동물과 함께 걷기 좋습니다."
+    },
+    "estimatedDurationMinutes": 30,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "서울 중구 청파로 432",
+    "imageUrl": null,
+    "lat": 37.55674031886184,
+    "lng": 126.97059705366439
+  },
+  {
+    "placeId": "place-105",
+    "name": "숭례문",
+    "region": "서울",
+    "district": "중구",
+    "category": "문화유적",
+    "mealType": null,
+    "description": "대한민국 국보 제1호인 조선시대 성문입니다.",
+    "tags": [
+      "실외",
+      "문화유적",
+      "사진 명소",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 역사적인 장소를 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 역사적인 장소를 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 25,
+    "openTime": "09:00",
+    "closeTime": "18:00",
+    "indoor": false,
+    "address": "서울 중구 세종대로 40",
+    "imageUrl": null,
+    "lat": 37.5600030088843,
+    "lng": 126.975313124237
+  },
+  {
+    "placeId": "place-106",
+    "name": "손기정체육공원",
+    "region": "서울",
+    "district": "중구",
+    "category": "공원",
+    "mealType": null,
+    "description": "손기정 선수를 기념해 조성한 도심 공원입니다.",
+    "tags": [
+      "실외",
+      "산책",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 산책하며 쉬어가기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 산책하며 쉬어가기 좋은 곳입니다.",
+      "pet": "실외 공공 산책로·공원이라 반려동물과 함께 걷기 좋습니다."
+    },
+    "estimatedDurationMinutes": 30,
+    "openTime": "00:00",
+    "closeTime": "24:00",
+    "indoor": false,
+    "address": "서울 중구 손기정로 101",
+    "imageUrl": null,
+    "lat": 37.5560721669535,
+    "lng": 126.965382244479
+  },
+  {
+    "placeId": "place-107",
+    "name": "덕수궁",
+    "region": "서울",
+    "district": "중구",
+    "category": "고궁",
+    "mealType": null,
+    "description": "서울 중구에 있는 조선시대 궁궐입니다.",
+    "tags": [
+      "실외",
+      "고궁",
+      "사진 명소",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 부담 없이 고궁을 둘러보기 좋은 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 고궁을 둘러보기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "09:00",
+    "closeTime": "21:00",
+    "indoor": false,
+    "address": "서울 중구 세종대로 99",
+    "imageUrl": null,
+    "lat": 37.5655638710672,
+    "lng": 126.974894754989
+  },
+  {
+    "placeId": "place-108",
+    "name": "앙꼬",
+    "region": "서울",
+    "district": "용산구",
+    "category": "음식점",
+    "mealType": "lunch",
+    "description": "서울역 인근 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 반려동물과 함께 쉬어가기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 반려동물과 함께 쉬어가기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "11:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "서울 용산구 청파로47다길 6",
+    "imageUrl": null,
+    "lat": 37.5453864154633,
+    "lng": 126.965685923842
+  },
+  {
+    "placeId": "place-109",
+    "name": "아이조아펫파크 서울점",
+    "region": "서울",
+    "district": "용산구",
+    "category": "음식점",
+    "mealType": "dinner",
+    "description": "서울역 인근 반려동물 동반 카페입니다.",
+    "tags": [
+      "실내",
+      "반려동물 동반",
+      "음식",
+      "환승 대기"
+    ],
+    "companionTypes": [
+      "solo",
+      "pet",
+      "friends_couple"
+    ],
+    "recommendationReasons": {
+      "solo": "환승 대기 시간에 혼자서도 반려동물과 함께 쉬어가기 좋은 곳입니다.",
+      "pet": "카카오맵에 '애견카페'로 분류된 곳입니다.",
+      "friends_couple": "환승 대기 시간에 일행과 함께 반려동물과 함께 쉬어가기 좋은 곳입니다."
+    },
+    "estimatedDurationMinutes": 50,
+    "openTime": "11:00",
+    "closeTime": "21:00",
+    "indoor": true,
+    "address": "서울 용산구 녹사평대로32길 28",
+    "imageUrl": null,
+    "lat": 37.5334797781401,
+    "lng": 126.990258632616
   }
 ]

@@ -45,6 +45,9 @@ class Place(BaseModel):
     # places.json에 미리 채워둔다. 좌표가 없는 장소(예: 사용자가 직접 입력한 장소)는 null.
     lat: Optional[float] = None
     lng: Optional[float] = None
+    # 선택 필드. 이 후보를 CustomPlaceInput(name/address/lat/lng)과 같은 형태로 그대로
+    # 재사용해야 하는 화면(예: 환승 대기 장소 추천)에서만 채워 보낸다.
+    address: Optional[str] = None
 
 
 class PlaceRecommendData(BaseModel):

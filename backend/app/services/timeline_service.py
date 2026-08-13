@@ -10,17 +10,20 @@ from datetime import date, datetime, time, timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, get_args
 
 from app.schemas.common import CompanionType
-from app.schemas.place import MealType, PlaceRecord
+from app.schemas.place import MealType, Place, PlaceRecord
 from app.schemas.timeline import (
     CustomPlaceInput,
     DaySelection,
+    LayoverCandidatesData,
     Pace,
+    StationFacility,
     TimelineGenerateData,
     TimelineGenerateRequest,
     TimelineItem,
     TimelineSummary,
 )
 from app.services.place_data import load_places
+from app.services.station_facility_service import fetch_station_facility
 from app.services.timeline_companion_policy import (
     extra_dwell_minutes,
     rest_minutes,
@@ -233,11 +236,14 @@ def _try_place_on_day(
         cursor = min(earliest_start, day_end)
 
     travel_minutes = estimate_travel_minutes(last_place, place, multiplier)
-    travel_start = cursor
-    travel_end = travel_start + timedelta(minutes=travel_minutes)
-
     open_dt = _place_open_dt(cursor.date(), place)
     close_dt = _place_close_dt(cursor.date(), place)
+
+    # 지금 바로 출발하면 문 열기 전에 도착해 무의미하게 기다려야 하는 경우, 문 여는
+    # 시각에 맞춰 도착하도록 출발을 늦춘다(cursor보다 이르게 당기지는 않는다). 방문
+    # 시작·종료 시각은 그대로라 이후 일정에는 영향이 없고, "개장 대기"만 줄어든다.
+    travel_start = max(cursor, open_dt - timedelta(minutes=travel_minutes))
+    travel_end = travel_start + timedelta(minutes=travel_minutes)
 
     visit_start = max(travel_end, open_dt)
     visit_end = visit_start + timedelta(minutes=place.estimatedDurationMinutes + extra_dwell)
@@ -316,9 +322,12 @@ def _schedule_day(
         )
         if placement is None and meal_last_place is not None:
             # 이전 일정에서 이어진 이동시간 때문에 창을 놓쳤을 수 있으니, 거점에서 바로
-            # 오는 것으로 한 번 더 시도해 끼니가 최대한 배치되도록 한다.
+            # 오는 것으로 한 번 더 시도해 끼니가 최대한 배치되도록 한다. 이때도 커서는
+            # window_start가 아니라 start_cursor(=meal_cursor 이후)여야 한다 — 그렇지 않으면
+            # 바로 앞서 배치한 다른 끼니가 아직 끝나지 않았는데 이 끼니가 그보다 이른
+            # 시각(window_start)부터 시작해버려 두 끼니 시간이 서로 겹치게 된다.
             placement, _ = _try_place_on_day(
-                window_start, day_end, meal_place, None, multiplier, extra_dwell, window_start, window_end
+                start_cursor, day_end, meal_place, None, multiplier, extra_dwell, window_start, window_end
             )
 
         if placement is None:
@@ -332,8 +341,10 @@ def _schedule_day(
                 fallback_cursor, day_end, meal_place, meal_last_place, multiplier, extra_dwell, None, None
             )
             if placement is None:
+                # 여기도 day_start부터 다시 시도하면 위와 같은 이유로 앞선 끼니와 겹칠 수
+                # 있으므로, 앞선 끼니 이후 시각을 보장하는 fallback_cursor부터 시도한다.
                 placement, _ = _try_place_on_day(
-                    day_start, day_end, meal_place, None, multiplier, extra_dwell, None, None
+                    fallback_cursor, day_end, meal_place, None, multiplier, extra_dwell, None, None
                 )
 
         if placement is None:
@@ -528,14 +539,192 @@ def _booking_primary_time(booking) -> Optional[datetime]:
 _MAX_TRANSFER_GAP = timedelta(hours=6)
 
 
-def _build_transfer_items(bookings, buffer_minutes: int) -> List[dict]:
+# 환승 대기시간을 채울 때, 예매정보의 위치 텍스트에 이 키워드가 들어있으면 어느
+# 거점(허브) 데이터(region)를 쓸지 판단한다. 실제 관광지·음식점 데이터가 있는 거점만
+# 다룰 수 있어(서울역/인천공항 인근), 그 외 지역은 채우지 않고 지금처럼 빈 시간으로 둔다.
+_LAYOVER_HUB_KEYWORDS: List[Tuple[str, str]] = [
+    ("인천국제공항", "인천"),
+    ("인천공항", "인천"),
+    ("서울역", "서울"),
+]
+
+# 환승 이동 이후 남는 시간이 이보다 짧으면(거점까지 왕복 이동시간 60분 + 가장 짧은
+# 체류시간을 감안하면 방문이 무의미하므로) 별도 장소를 채우지 않는다.
+_MIN_LAYOVER_FILL_MINUTES = 90
+
+# 사용자가 직접 고른 환승 대기 장소(layoverPlace)에 최소한 보장하는 체류시간(분).
+# 이보다 짧게밖에 못 있으면 오히려 배치하지 않는 편이 낫다고 본다.
+_MIN_CUSTOM_LAYOVER_VISIT_MINUTES = 15
+
+
+def _match_layover_hub_region(location: Optional[str]) -> Optional[str]:
+    if not location:
+        return None
+    for keyword, region in _LAYOVER_HUB_KEYWORDS:
+        if keyword in location:
+            return region
+    return None
+
+
+def _build_layover_fill_items(
+    hub_region: Optional[str],
+    window_start: datetime,
+    window_end: datetime,
+    all_places: Sequence[PlaceRecord],
+    used_place_ids: set,
+    companion_types: Sequence[str],
+    pace: str,
+    rng: random.Random,
+    custom_place: Optional[PlaceRecord] = None,
+) -> List[dict]:
+    """환승 대기 구간(window_start~window_end) 안에 끼니 시간대(MEAL_WINDOWS)와 겹치면
+    식당을, 아니면 관광지를 하나 골라 거점↔장소 왕복 이동과 함께 배치한다. 배치할 수
+    없으면(맞는 후보가 없거나 시간이 부족하면) 빈 리스트를 반환해 지금처럼 빈 시간으로
+    남긴다.
+
+    custom_place가 있으면(사용자가 직접 검색해 지정한 장소) 서울역·인천공항 같은 데이터
+    보유 거점이 아니어도, 그리고 큐레이션된 후보보다 우선해서 이 장소를 먼저 시도한다."""
+    if window_end - window_start < timedelta(minutes=_MIN_LAYOVER_FILL_MINUTES):
+        return []
+
+    day = window_start.date()
+    overlapping_meal: Optional[MealType] = None
+    for meal_type, (start_hour, end_hour) in MEAL_WINDOWS.items():
+        meal_window_start = datetime.combine(day, time(start_hour, 0))
+        meal_window_end = datetime.combine(day, time(end_hour, 0))
+        if window_start < meal_window_end and window_end > meal_window_start:
+            overlapping_meal = meal_type
+            break
+
+    def _eligible(place: PlaceRecord) -> bool:
+        if place.region != hub_region or place.placeId in used_place_ids:
+            return False
+        if "pet" in companion_types and "pet" not in place.companionTypes:
+            return False
+        return True
+
+    multiplier = travel_multiplier(companion_types, pace)
+
+    def _try_candidates(candidates: List[PlaceRecord], item_kind: str) -> List[dict]:
+        shuffled = list(candidates)
+        rng.shuffle(shuffled)
+
+        for place in shuffled:
+            extra_dwell = extra_dwell_minutes(companion_types, place.tags, pace)
+            # 거점(역·공항)에는 장소 레코드가 없어 좌표 기반 거리 계산을 할 수 없으므로,
+            # 첫 관광지 이동과 같은 방식(from_place=None → STATION_TO_FIRST_PLACE_MINUTES)을
+            # 왕복 모두에 대칭으로 적용한다.
+            leg_minutes = estimate_travel_minutes(None, place, multiplier)
+
+            go_start = window_start
+            go_end = go_start + timedelta(minutes=leg_minutes)
+            open_dt = _place_open_dt(day, place)
+            close_dt = _place_close_dt(day, place)
+            visit_start = max(go_end, open_dt)
+            visit_end = visit_start + timedelta(minutes=place.estimatedDurationMinutes + extra_dwell)
+            return_start = visit_end
+            return_end = return_start + timedelta(minutes=leg_minutes)
+
+            if visit_start >= close_dt or visit_end > close_dt:
+                continue
+            if return_end > window_end:
+                continue
+
+            used_place_ids.add(place.placeId)
+            return [
+                {
+                    "type": "transport",
+                    "start": go_start,
+                    "end": go_end,
+                    "title": f"{_ro(place.name)} 이동",
+                    "placeId": None,
+                    "location": place.name,
+                    "description": "환승 대기 시간 동안 들를 곳으로 이동하는 예상 이동시간입니다. 실제 소요시간과 다를 수 있습니다.",
+                    "estimated": True,
+                },
+                {
+                    "type": item_kind,
+                    "start": visit_start,
+                    "end": visit_end,
+                    "title": place.name,
+                    "placeId": place.placeId,
+                    "location": place.address,
+                    "description": place.description,
+                    "estimated": True,
+                    "lat": place.lat,
+                    "lng": place.lng,
+                },
+                {
+                    "type": "transport",
+                    "start": return_start,
+                    "end": return_end,
+                    "title": "환승 거점으로 이동",
+                    "placeId": None,
+                    "location": place.name,
+                    "description": "다음 예매편을 타기 위해 환승 거점으로 돌아가는 예상 이동시간입니다. 실제 소요시간과 다를 수 있습니다.",
+                    "estimated": True,
+                },
+            ]
+
+        return []
+
+    if custom_place is not None and custom_place.placeId not in used_place_ids:
+        # 사용자가 직접 고른 장소는 고정 체류시간(60분)이 왕복 이동시간과 합쳐지면 빠듯한
+        # 환승 구간에는 못 들어가 조용히 건너뛰어질 수 있다. 그렇게 되면 사용자가 고른
+        # 장소가 아니라 큐레이션된 후보로 대체돼버려("내가 고른 게 반영이 안 된다") 헷갈리므로,
+        # 실제로 왕복하고 남는 시간에 맞춰 체류시간을 줄여서라도(최소 보장 시간 이상이면)
+        # 우선 배치한다.
+        leg_minutes = estimate_travel_minutes(None, custom_place, multiplier)
+        available_minutes = int((window_end - window_start).total_seconds() // 60) - 2 * leg_minutes
+        if available_minutes >= _MIN_CUSTOM_LAYOVER_VISIT_MINUTES:
+            fitted_duration = min(custom_place.estimatedDurationMinutes, available_minutes)
+            fitted_place = custom_place.model_copy(update={"estimatedDurationMinutes": fitted_duration})
+            item_kind = "meal" if overlapping_meal is not None else "attraction"
+            result = _try_candidates([fitted_place], item_kind)
+            if result:
+                return result
+
+    if hub_region is None:
+        # 데이터를 가진 거점(서울역·인천공항)이 아니고 사용자가 지정한 장소도 안 맞으면
+        # 채울 후보 자체가 없다.
+        return []
+
+    if overlapping_meal is not None:
+        meal_candidates = [
+            p for p in all_places if _eligible(p) and p.category == "음식점" and p.mealType == overlapping_meal
+        ]
+        result = _try_candidates(meal_candidates, "meal")
+        if result:
+            return result
+
+    # 끼니 시간대가 아니었거나, 끼니 후보가 없었거나, 있어도 시간 안에 왕복이 안 맞아
+    # 하나도 배치하지 못했으면 관광지 후보로 다시 시도한다.
+    attraction_candidates = [p for p in all_places if _eligible(p) and p.category != "음식점"]
+    return _try_candidates(attraction_candidates, "attraction")
+
+
+def _build_transfer_items(
+    bookings,
+    buffer_minutes: int,
+    all_places: Optional[Sequence[PlaceRecord]] = None,
+    companion_types: Optional[Sequence[str]] = None,
+    pace: Optional[str] = None,
+    rng: Optional[random.Random] = None,
+    layover_record: Optional[PlaceRecord] = None,
+) -> List[dict]:
     """서로 다른 교통수단(예: 항공→철도)으로 짧은 간격 안에 이어지는 예매편 사이에
     공항·역 환승 이동 항목을 추가한다. 같은 교통수단이 이어지거나(예: 항공→항공),
-    간격이 커서 그 사이에 관광 등 다른 일정이 있다고 볼 수 있으면 추가하지 않는다."""
+    간격이 커서 그 사이에 관광 등 다른 일정이 있다고 볼 수 있으면 추가하지 않는다.
+
+    all_places가 주어지면 환승 이동 뒤 남는 대기시간에 식사·관광 항목을 하나 더 채워
+    넣는다 — layover_record(사용자가 직접 검색한 장소)가 있으면 거점 데이터 유무와
+    상관없이 그 장소를 먼저 시도하고(첫 번째로 시간이 맞는 구간 하나에만), 없거나 안
+    맞으면 서울역·인천공항처럼 큐레이션된 데이터가 있는 거점에서 골라 채운다."""
     timed = [(booking, _booking_primary_time(booking)) for booking in bookings]
     timed = [(booking, t) for booking, t in timed if t is not None]
     timed.sort(key=lambda pair: pair[1])
 
+    used_place_ids: set = set()
     items: List[dict] = []
     for (prev, _), (nxt, _) in zip(timed, timed[1:]):
         if prev.type == nxt.type:
@@ -567,7 +756,111 @@ def _build_transfer_items(bookings, buffer_minutes: int) -> List[dict]:
                 "estimated": True,
             }
         )
+
+        if all_places is not None and companion_types is not None and pace is not None and rng is not None:
+            hub_region = _match_layover_hub_region(nxt.departureLocation)
+            if hub_region is not None or layover_record is not None:
+                window_start = end
+                window_end = _parse_dt(nxt.departureTime) - timedelta(minutes=buffer_minutes)
+                if window_end > window_start:
+                    items.extend(
+                        _build_layover_fill_items(
+                            hub_region,
+                            window_start,
+                            window_end,
+                            all_places,
+                            used_place_ids,
+                            companion_types,
+                            pace,
+                            rng,
+                            layover_record,
+                        )
+                    )
     return items
+
+
+def _layover_reason(place: PlaceRecord, companion_types: Sequence[str]) -> str:
+    for companion_type in companion_types:
+        reason = place.recommendationReasons.get(companion_type)
+        if reason:
+            return reason
+    return place.description
+
+
+def _to_public_place(place: PlaceRecord, companion_types: Sequence[str]) -> Place:
+    return Place(
+        placeId=place.placeId,
+        name=place.name,
+        description=place.description,
+        recommendationReason=_layover_reason(place, companion_types),
+        estimatedDurationMinutes=place.estimatedDurationMinutes,
+        tags=place.tags,
+        imageUrl=place.imageUrl,
+        category=place.category,
+        openTime=place.openTime,
+        closeTime=place.closeTime,
+        lat=place.lat,
+        lng=place.lng,
+        address=place.address,
+    )
+
+
+_MAX_LAYOVER_CANDIDATES = 8
+
+
+def find_layover_candidates(bookings, companion_types: Sequence[str]) -> LayoverCandidatesData:
+    """예매정보만으로(동행 조건을 아직 안 골랐을 수도 있음) 항공↔철도 환승 구간 중 데이터를
+    가진 거점(서울역·인천공항 등)과 겹치는 첫 번째 구간을 찾아 그 후보 목록을 돌려준다.
+
+    실제 배치 가능 여부(왕복 이동시간이 정확히 맞는지 등)는 여기서 엄밀히 검증하지 않는다
+    — 타임라인을 생성할 때 최종적으로 다시 확인되며, 여기서는 "고를 수 있는 후보"만
+    보여주면 된다. companionTypes가 비어 있으면(아직 안 골랐으면) solo 기준으로 계산한다."""
+    effective_companions = list(companion_types) if companion_types else ["solo"]
+    buffer_minutes = travel_buffer_minutes(effective_companions, "normal")
+
+    timed = [(booking, _booking_primary_time(booking)) for booking in bookings]
+    timed = [(booking, t) for booking, t in timed if t is not None]
+    timed.sort(key=lambda pair: pair[1])
+
+    all_places = load_places()
+
+    for (prev, _), (nxt, _) in zip(timed, timed[1:]):
+        if prev.type == nxt.type:
+            continue
+        if not (prev.arrivalLocation and prev.arrivalTime):
+            continue
+        if not (nxt.departureLocation and nxt.departureTime):
+            continue
+        if _parse_dt(nxt.departureTime) - _parse_dt(prev.arrivalTime) > _MAX_TRANSFER_GAP:
+            continue
+
+        transfer_minutes = estimate_transfer_minutes(prev.type, nxt.type)
+        if transfer_minutes <= 0:
+            continue
+
+        hub_region = _match_layover_hub_region(nxt.departureLocation)
+        if hub_region is None:
+            continue
+
+        transfer_start = _parse_dt(prev.arrivalTime) + timedelta(minutes=buffer_minutes)
+        transfer_end = transfer_start + timedelta(minutes=transfer_minutes)
+        window_end = _parse_dt(nxt.departureTime) - timedelta(minutes=buffer_minutes)
+        if window_end - transfer_end < timedelta(minutes=_MIN_LAYOVER_FILL_MINUTES):
+            continue
+
+        candidates = [p for p in all_places if p.region == hub_region]
+        if "pet" in companion_types:
+            candidates = [p for p in candidates if "pet" in p.companionTypes]
+        candidates.sort(key=lambda p: p.name)
+
+        window_minutes = int((window_end - transfer_end).total_seconds() // 60)
+        return LayoverCandidatesData(
+            hubRegion=hub_region,
+            windowMinutes=window_minutes,
+            candidates=[_to_public_place(p, effective_companions) for p in candidates[:_MAX_LAYOVER_CANDIDATES]],
+        )
+
+    return LayoverCandidatesData(hubRegion=None, windowMinutes=None, candidates=[])
 
 
 def _resolve_day_records(
@@ -629,6 +922,10 @@ def generate_timeline(
         accommodation_record = _build_custom_place_record(
             "accommodation", request.accommodation, request.destination
         )
+
+    layover_record: Optional[PlaceRecord] = None
+    if request.layoverPlace is not None:
+        layover_record = _build_custom_place_record("layover", request.layoverPlace, request.destination)
 
     unknown_ids: List[str] = []
     resolved_days: List[Tuple[date, List[PlaceRecord], Dict[MealType, PlaceRecord]]] = []
@@ -707,7 +1004,11 @@ def generate_timeline(
             day_start_place = accommodation_record
 
     booking_items = _build_booking_items(request.bookings, buffer_minutes)
-    booking_items.extend(_build_transfer_items(request.bookings, buffer_minutes))
+    booking_items.extend(
+        _build_transfer_items(
+            request.bookings, buffer_minutes, all_places, companion_types, pace, rng, layover_record
+        )
+    )
 
     raw_items = booking_items + touring_items
     raw_items.sort(key=lambda item: (item["start"], item["end"]))
@@ -730,16 +1031,20 @@ def generate_timeline(
             )
         )
 
-    placed_place_ids = {raw["placeId"] for raw in touring_items if raw.get("placeId")}
+    # 환승 대기시간에 채운 식사·관광 항목(booking_items에 들어감)도 방문 장소·관광시간에
+    # 반영되도록 touring_items가 아니라 raw_items(전체) 기준으로 집계한다.
+    placed_place_ids = {raw["placeId"] for raw in raw_items if raw.get("placeId")}
     sightseeing_minutes = sum(
         int((raw["end"] - raw["start"]).total_seconds() // 60)
-        for raw in touring_items
+        for raw in raw_items
         if raw["type"] in ("attraction", "meal")
     )
+    # 실제 예매된 교통편 이동시간(estimated=False)은 "예상 이동시간"이 아니므로 제외하고,
+    # 데모 추정치로 계산한 이동(환승 이동·레이오버 왕복 이동 포함)만 합산한다.
     estimated_travel_minutes = sum(
         int((raw["end"] - raw["start"]).total_seconds() // 60)
-        for raw in touring_items
-        if raw["type"] in ("transport", "accommodation")
+        for raw in raw_items
+        if raw["type"] in ("transport", "accommodation") and raw.get("estimated")
     )
 
     summary = TimelineSummary(
@@ -750,4 +1055,29 @@ def generate_timeline(
         pace=pace,
     )
 
-    return TimelineGenerateData(timeline=timeline, summary=summary, warnings=warnings)
+    # 유아 동반/교통약자 동반일 때만 여정에 포함된 기차역의 편의시설을 조회한다(그 외에는
+    # 빈 배열). 예매정보에 있는 역명(예: "서울역")을 그대로 쓰며, 같은 역이 왕복 등으로
+    # 여러 번 나와도 한 번만 조회한다.
+    include_nursing_room = "infant" in companion_types
+    include_accessible = "mobility_impaired" in companion_types
+    station_facilities: List[StationFacility] = []
+    if include_nursing_room or include_accessible:
+        seen_stations: set = set()
+        for booking in request.bookings:
+            if booking.type != "train":
+                continue
+            for location in (booking.departureLocation, booking.arrivalLocation):
+                if not location or location in seen_stations:
+                    continue
+                seen_stations.add(location)
+                facility = fetch_station_facility(
+                    location,
+                    include_nursing_room=include_nursing_room,
+                    include_accessible=include_accessible,
+                )
+                if facility is not None:
+                    station_facilities.append(facility)
+
+    return TimelineGenerateData(
+        timeline=timeline, summary=summary, warnings=warnings, stationFacilities=station_facilities
+    )

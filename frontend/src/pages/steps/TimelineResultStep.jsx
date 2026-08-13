@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import ShareButton from '../../components/ShareButton'
+import StationFacilities from '../../components/StationFacilities'
 import TransitStatusBadge from '../../components/TransitStatusBadge'
 import TripMap from '../../components/TripMap'
 import { createTimelineShare } from '../../services/shareApi'
@@ -33,6 +34,7 @@ function TimelineResultStep({
   const timeline = timelineData?.timeline ?? []
   const summary = timelineData?.summary
   const warnings = timelineData?.warnings ?? []
+  const stationFacilities = timelineData?.stationFacilities ?? []
 
   // bookings 배열 안에서의 위치(index) -> 사용자가 입력한 지연 분. 예매가 서울↔부산
   // 열차, 인천↔김해 항공편처럼 여러 개일 수 있어 transitNumber가 아니라 index로 매칭한다
@@ -101,6 +103,8 @@ function TimelineResultStep({
           </p>
         </div>
       )}
+
+      <StationFacilities stationFacilities={stationFacilities} />
 
       {allBookings.length > 0 && (
         <div className="mt-2 rounded-lg border border-gray-200 p-3">

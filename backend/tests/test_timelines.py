@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,14 @@ from app.services.timeline_service import generate_timeline
 from app.utils.errors import InvalidInputError
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def no_public_data_key(monkeypatch):
+    # 기본 companionTypes(infant)로 만들어지는 대부분의 테스트가 역 편의시설 조회를
+    # 트리거하므로, 키를 비워 실제 네트워크 호출 없이 항상 빈 목록으로 처리되게 한다.
+    # 이 기능 자체를 검증하는 테스트는 필요한 곳에서 개별적으로 키를 설정한다.
+    monkeypatch.delenv("PUBLIC_DATA_API_KEY", raising=False)
 
 PLACES_BY_ID = {p.placeId: p for p in load_places()}
 
@@ -552,6 +561,41 @@ def test_meal_items_stay_within_fixed_time_windows():
         assert (end_dt.hour, end_dt.minute) <= (end_hour + 1, 0)
 
 
+def test_fallback_placed_meals_never_overlap_each_other():
+    # place-053(청사포역, 아침 11:30 개장)은 아침 시간대(8-10시) 안에 못 들어가 "무조건
+    # 포함" 재시도로 밀려나고, place-079(애견카페 남포아지트, 중구)는 청사포역과 멀리
+    # 떨어져 있어 점심 시간대(11-13시) 안에도 못 들어간다. 재시도가 meal_cursor(앞선
+    # 끼니가 끝나는 시각)를 무시하고 window_start/day_start부터 다시 시작하면, 두 끼니가
+    # 서로 겹치는 시각에 배치되는 버그가 있었다.
+    data = generate_timeline(
+        _request(
+            bookings=[
+                {
+                    "type": "train",
+                    "departureLocation": "서울역",
+                    "arrivalLocation": "부산역",
+                    "departureTime": "2026-08-12T13:08:00",
+                    "arrivalTime": "2026-08-12T16:28:00",
+                },
+                {
+                    "type": "train",
+                    "departureLocation": "부산역",
+                    "arrivalLocation": "서울역",
+                    "departureTime": "2026-08-14T21:00:00",
+                    "arrivalTime": "2026-08-14T23:44:00",
+                },
+            ],
+            companionTypes=["pet"],
+            days=_days_payload(
+                ["place-066"], date=MIDDLE_DAY, restaurant_ids={"breakfast": "place-053", "lunch": "place-079"}
+            ),
+        )
+    )
+    meal_items = sorted((i for i in data.timeline if i.type == "meal"), key=lambda i: i.startTime)
+    assert len(meal_items) == 2
+    assert _dt(meal_items[0].endTime) <= _dt(meal_items[1].startTime)
+
+
 def test_new_day_does_not_carry_previous_day_last_place_for_travel_time():
     # 첫날 마지막 장소(해운대구)가 둘째 날 첫 이동시간 계산에 영향을 주면 안 된다 —
     # 전날 마지막 관광지에서 바로 이동하는 게 아니라, 매일 거점에서 새로 출발하는 것으로
@@ -589,6 +633,212 @@ def test_transfer_item_added_between_flight_and_train():
     ]
     assert len(transfer_items) == 1
     assert transfer_items[0].title == "인천공항 → 서울역 환승 이동"
+
+
+# 인천공항 도착 -> 서울역 KTX 출발 사이 간격을 넉넉히 벌려(환승 이동시간을 빼고도
+# 4시간 남음) 레이오버 채우기가 동작할 수 있는지 확인하는 예매정보.
+LAYOVER_BOOKINGS = [
+    {
+        "type": "flight",
+        "departureLocation": None,
+        "arrivalLocation": "인천공항",
+        "departureTime": None,
+        "arrivalTime": "2026-08-12T09:00:00",
+    },
+    {
+        "type": "train",
+        "departureLocation": "서울역",
+        "arrivalLocation": "부산역",
+        "departureTime": "2026-08-12T14:30:00",
+        "arrivalTime": "2026-08-12T17:00:00",
+    },
+    {
+        "type": "flight",
+        "departureLocation": "인천공항",
+        "arrivalLocation": None,
+        "departureTime": "2026-08-14T18:00:00",
+        "arrivalTime": None,
+    },
+]
+
+
+def test_layover_fill_adds_real_place_between_flight_and_train():
+    data = generate_timeline(
+        _request(bookings=LAYOVER_BOOKINGS, companionTypes=["solo"], selectedPlaceIds=["place-001"])
+    )
+    gap_start = datetime.fromisoformat("2026-08-12T09:00:00")
+    gap_end = datetime.fromisoformat("2026-08-12T14:30:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert len(visit_items) == 1
+    place = PLACES_BY_ID[visit_items[0].placeId]
+    assert place.region in ("서울", "인천")
+
+
+def test_layover_falls_back_to_attraction_when_meal_candidate_does_not_fit():
+    # pet 동행에서 서울역 인근 끼니 후보는 "앙꼬"(place-108) 하나뿐이고, 왕복 이동시간까지
+    # 더하면 이 예매 간격 안에 다 들어가지 못한다. 끼니 후보가 있다는 이유만으로 관광지
+    # 대체 시도를 건너뛰면(과거 버그) 아무것도 채워지지 않는다 — 관광지로 대체돼야 한다.
+    data = generate_timeline(
+        _request(bookings=LAYOVER_BOOKINGS, companionTypes=["pet"], selectedPlaceIds=["place-002"])
+    )
+    gap_start = datetime.fromisoformat("2026-08-12T09:00:00")
+    gap_end = datetime.fromisoformat("2026-08-12T14:30:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert len(visit_items) == 1
+    place = PLACES_BY_ID[visit_items[0].placeId]
+    assert place.region == "서울"
+    assert "pet" in place.companionTypes
+
+
+def test_custom_layover_place_fills_gap_even_without_curated_hub_data():
+    # "김포공항"은 큐레이션된 서울역/인천공항 데이터가 없는 거점이라, 사용자가 직접
+    # 검색한 layoverPlace가 없으면 이 구간은 채워지지 않는다(그 다음 테스트로 확인).
+    # layoverPlace가 있으면 데이터 보유 거점이 아니어도 그 장소로 채워져야 한다.
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "김포공항",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T09:00:00",
+        },
+        {
+            "type": "train",
+            "departureLocation": "김포공항역",
+            "arrivalLocation": "부산역",
+            "departureTime": "2026-08-12T14:30:00",
+            "arrivalTime": "2026-08-12T17:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "인천공항",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T18:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    data = generate_timeline(
+        _request(
+            bookings=bookings,
+            companionTypes=["solo"],
+            selectedPlaceIds=["place-001"],
+            layoverPlace={"name": "사용자가 직접 검색한 곳", "address": "서울 강서구", "lat": 37.56, "lng": 126.80},
+        )
+    )
+    gap_start = datetime.fromisoformat("2026-08-12T09:00:00")
+    gap_end = datetime.fromisoformat("2026-08-12T14:30:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert len(visit_items) == 1
+    assert visit_items[0].title == "사용자가 직접 검색한 곳"
+
+
+def test_custom_layover_place_used_even_when_window_too_tight_for_fixed_duration():
+    # custom place는 항상 60분 고정 체류시간으로 만들어지는데, pet 동행(버퍼 20분)에
+    # 인천공항 09:35 도착 -> 서울역 13:08 출발이면 왕복 이동시간(72분)+60분이 남는
+    # 시간(약 113분)을 넘어서 예전에는 사용자가 고른 장소가 조용히 배제되고 큐레이션된
+    # 후보로 대체됐다. 지금은 남는 시간에 맞춰 체류시간을 줄여서라도 사용자가 고른
+    # 장소를 우선 배치해야 한다.
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": "오사카",
+            "arrivalLocation": "인천공항",
+            "departureTime": "2026-08-14T07:40:00",
+            "arrivalTime": "2026-08-14T09:35:00",
+        },
+        {
+            "type": "train",
+            "departureLocation": "서울역",
+            "arrivalLocation": "부산역",
+            "departureTime": "2026-08-14T13:08:00",
+            "arrivalTime": "2026-08-14T16:28:00",
+        },
+        {
+            "type": "train",
+            "departureLocation": "부산역",
+            "arrivalLocation": "서울역",
+            "departureTime": "2026-08-16T21:00:00",
+            "arrivalTime": "2026-08-16T23:44:00",
+        },
+    ]
+    data = generate_timeline(
+        _request(
+            bookings=bookings,
+            companionTypes=["pet"],
+            selectedPlaceIds=["place-002"],
+            date="2026-08-14",
+            layoverPlace={"name": "사용자가 고른 곳", "address": "서울 어딘가", "lat": 37.56, "lng": 126.97},
+        )
+    )
+    gap_start = datetime.fromisoformat("2026-08-14T09:35:00")
+    gap_end = datetime.fromisoformat("2026-08-14T13:08:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert len(visit_items) == 1
+    assert visit_items[0].title == "사용자가 고른 곳"
+
+
+def test_no_layover_fill_when_no_curated_hub_and_no_custom_place():
+    bookings = [
+        {
+            "type": "flight",
+            "departureLocation": None,
+            "arrivalLocation": "김포공항",
+            "departureTime": None,
+            "arrivalTime": "2026-08-12T09:00:00",
+        },
+        {
+            "type": "train",
+            "departureLocation": "김포공항역",
+            "arrivalLocation": "부산역",
+            "departureTime": "2026-08-12T14:30:00",
+            "arrivalTime": "2026-08-12T17:00:00",
+        },
+        {
+            "type": "flight",
+            "departureLocation": "인천공항",
+            "arrivalLocation": None,
+            "departureTime": "2026-08-14T18:00:00",
+            "arrivalTime": None,
+        },
+    ]
+    data = generate_timeline(_request(bookings=bookings, companionTypes=["solo"], selectedPlaceIds=["place-001"]))
+    gap_start = datetime.fromisoformat("2026-08-12T09:00:00")
+    gap_end = datetime.fromisoformat("2026-08-12T14:30:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert visit_items == []
+
+
+def test_no_layover_fill_when_gap_too_short():
+    # DEMO_BOOKINGS는 환승 이동시간을 빼면 약 50분만 남아 레이오버를 채우기에 부족하다.
+    data = generate_timeline(_request(selectedPlaceIds=["place-001"]))
+    gap_start = datetime.fromisoformat("2026-08-12T10:30:00")
+    gap_end = datetime.fromisoformat("2026-08-12T13:20:00")
+    visit_items = [
+        item
+        for item in data.timeline
+        if item.type in ("meal", "attraction") and gap_start < _dt(item.startTime) and _dt(item.endTime) < gap_end
+    ]
+    assert visit_items == []
 
 
 def test_no_transfer_item_when_same_transit_mode():
@@ -633,6 +883,47 @@ def test_api_generates_timeline_successfully():
 
 
 # ---------------------------------------------------------------------------
+# POST /api/timelines/layover-candidates
+# ---------------------------------------------------------------------------
+
+
+def test_layover_candidates_returns_hub_and_places_for_matching_gap():
+    response = client.post(
+        "/api/timelines/layover-candidates",
+        json={"bookings": LAYOVER_BOOKINGS, "companionTypes": []},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["hubRegion"] == "서울"
+    assert data["windowMinutes"] is not None
+    assert len(data["candidates"]) > 0
+    for place in data["candidates"]:
+        assert PLACES_BY_ID[place["placeId"]].region == "서울"
+
+
+def test_layover_candidates_filters_by_pet_companion_type():
+    response = client.post(
+        "/api/timelines/layover-candidates",
+        json={"bookings": LAYOVER_BOOKINGS, "companionTypes": ["pet"]},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    for place in data["candidates"]:
+        assert "pet" in PLACES_BY_ID[place["placeId"]].companionTypes
+
+
+def test_layover_candidates_empty_when_no_matching_gap():
+    response = client.post(
+        "/api/timelines/layover-candidates",
+        json={"bookings": DEMO_BOOKINGS, "companionTypes": []},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["hubRegion"] is None
+    assert data["candidates"] == []
+
+
+# ---------------------------------------------------------------------------
 # 기존 GET /health, /docs 정상
 # ---------------------------------------------------------------------------
 
@@ -646,3 +937,125 @@ def test_docs_expose_timeline_generate():
     response = client.get("/openapi.json")
     assert response.status_code == 200
     assert "/api/timelines/generate" in response.json()["paths"]
+
+
+# ---------------------------------------------------------------------------
+# stationFacilities (역 편의시설, 유아/교통약자 동반 전용)
+# ---------------------------------------------------------------------------
+
+_STATION_GENERAL_PAYLOAD = {
+    "response": {
+        "body": {
+            "items": {
+                "item": {
+                    "altm_lead_cntr_estnc": "Y",
+                    "elevt_cnt": "18",
+                    "esclt_cnt": "23",
+                    "gen_tolt_estnc": "Y",
+                    "nrsrm_estnc": "Y",
+                    "stn_cd": "3900023",
+                    "stn_nm": "서울",
+                }
+            }
+        }
+    }
+}
+
+_STATION_ACCESSIBLE_PAYLOAD = {
+    "response": {
+        "body": {
+            "items": {
+                "item": {
+                    "pwdbs_slwy_estnc": "Y",
+                    "pwdbs_tolt_estnc": "Y",
+                    "stn_cd": "3900023",
+                    "stn_nm": "서울",
+                    "whlch_liftt_cnt": "1",
+                }
+            }
+        }
+    }
+}
+
+
+def _mock_station_response(payload):
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = payload
+    return response
+
+
+def test_no_station_facilities_when_neither_infant_nor_mobility_impaired():
+    request = _request(companionTypes=["friends_couple"])
+    with patch("httpx.get") as mock_get:
+        result = generate_timeline(request)
+    mock_get.assert_not_called()
+    assert result.stationFacilities == []
+
+
+def test_station_facilities_included_for_infant(monkeypatch):
+    monkeypatch.setenv("PUBLIC_DATA_API_KEY", "test-public-data-key")
+    from app.services import station_facility_service
+
+    station_facility_service._cache.clear()
+    request = _request(companionTypes=["infant"])
+    with patch("httpx.get", return_value=_mock_station_response(_STATION_GENERAL_PAYLOAD)):
+        result = generate_timeline(request)
+
+    # DEMO_BOOKINGS의 철도 구간(서울역→부산역)에 있는 두 역 모두 조회된다.
+    station_names = {f.stationName for f in result.stationFacilities}
+    assert station_names == {"서울역", "부산역"}
+    for facility in result.stationFacilities:
+        assert facility.hasNursingRoom is True
+        assert facility.hasAccessibleRestroom is None
+        assert facility.hasWheelchairRamp is None
+
+
+def test_station_facilities_included_for_mobility_impaired(monkeypatch):
+    monkeypatch.setenv("PUBLIC_DATA_API_KEY", "test-public-data-key")
+    from app.services import station_facility_service
+
+    station_facility_service._cache.clear()
+    request = _request(companionTypes=["mobility_impaired"])
+    with patch(
+        "httpx.get",
+        side_effect=[
+            _mock_station_response(_STATION_GENERAL_PAYLOAD),
+            _mock_station_response(_STATION_ACCESSIBLE_PAYLOAD),
+            _mock_station_response(_STATION_GENERAL_PAYLOAD),
+            _mock_station_response(_STATION_ACCESSIBLE_PAYLOAD),
+        ],
+    ):
+        result = generate_timeline(request)
+
+    assert len(result.stationFacilities) == 2
+    for facility in result.stationFacilities:
+        assert facility.hasNursingRoom is None
+        assert facility.hasAccessibleRestroom is True
+        assert facility.hasWheelchairRamp is True
+        assert facility.wheelchairLiftCount == 1
+
+
+def test_station_facilities_empty_but_timeline_still_generated_when_api_fails(monkeypatch):
+    monkeypatch.setenv("PUBLIC_DATA_API_KEY", "test-public-data-key")
+    from app.services import station_facility_service
+
+    station_facility_service._cache.clear()
+    request = _request(companionTypes=["infant"])
+
+    import httpx as httpx_module
+
+    with patch("httpx.get", side_effect=httpx_module.ConnectTimeout("timeout")):
+        result = generate_timeline(request)
+
+    assert result.stationFacilities == []
+    assert len(result.timeline) > 0
+
+
+def test_station_facilities_route_returns_empty_list_by_default():
+    response = client.post(
+        "/api/timelines/generate",
+        json=_api_payload(["place-001"], companionTypes=["friends_couple"]),
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["stationFacilities"] == []
