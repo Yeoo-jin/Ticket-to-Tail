@@ -657,6 +657,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
         selectedPlaceIds: allSelectedPlaceIds(),
         photoMemos: photos.map((photo) => photo.memo),
         photoTimelineItemIds: photos.map((photo) => photo.timelineItemId || null),
+        customPlaces,
         photos,
       })
       setDiaryData(data)
@@ -806,19 +807,6 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {step !== STEP.BOOKING_INPUT && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('처음부터 다시 시작할까요? 지금까지 입력한 내용이 모두 사라집니다.')) {
-                    handleStartOver()
-                  }
-                }}
-                className="mypage-back-tab px-3 py-1.5 text-xs"
-              >
-                🔄 처음부터
-              </button>
-            )}
             {onBack && (
               <button type="button" onClick={onBack} className="mypage-back-tab px-3 py-1.5 text-xs">
                 ← 허브로

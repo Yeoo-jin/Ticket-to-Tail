@@ -9,6 +9,7 @@ export function generateDiary({
   selectedPlaceIds,
   photoMemos,
   photoTimelineItemIds,
+  customPlaces,
   photos,
 }) {
   const formData = new FormData()
@@ -25,6 +26,9 @@ export function generateDiary({
   }
   if (photoTimelineItemIds && photoTimelineItemIds.length > 0) {
     formData.append('photoTimelineItemIdsJson', JSON.stringify(photoTimelineItemIds))
+  }
+  if (customPlaces && Object.keys(customPlaces).length > 0) {
+    formData.append('customPlacesJson', JSON.stringify(customPlaces))
   }
   photos.forEach((photo) => {
     formData.append('photos', photo.file, photo.file.name)

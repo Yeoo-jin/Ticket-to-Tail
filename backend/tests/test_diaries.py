@@ -352,6 +352,36 @@ def test_unknown_selected_place_id_returns_400():
     assert response.json()["error"]["code"] == "INVALID_INPUT"
 
 
+def test_custom_place_id_is_accepted_when_declared_in_custom_places_json():
+    # 관광지 추천 대신 사용자가 직접 추가한 장소(예: 커스텀 음식점)의 ID는 places.json에
+    # 없으므로, customPlacesJson으로 같이 보내면 그 안에서 이름을 찾아야 한다.
+    custom_id = "custom-abc123"
+    with patch.object(diary_ai_generator, "get_gemini_client", return_value=_fake_gemini_client(_fake_raw_diary())):
+        response = client.post(
+            "/api/diaries/generate",
+            data=_fields(
+                selectedPlaceIdsJson=json.dumps(["place-001", custom_id]),
+                customPlacesJson=json.dumps({custom_id: {"name": "직접 추가한 맛집", "address": None, "lat": None, "lng": None}}),
+            ),
+        )
+    assert response.status_code == 200
+
+
+def test_place_id_not_in_places_json_or_custom_places_still_returns_400():
+    custom_id = "custom-abc123"
+    response = client.post(
+        "/api/diaries/generate",
+        data=_fields(
+            selectedPlaceIdsJson=json.dumps(["place-does-not-exist", custom_id]),
+            customPlacesJson=json.dumps({custom_id: {"name": "직접 추가한 맛집"}}),
+        ),
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_INPUT"
+    assert "place-does-not-exist" in response.json()["error"]["message"]
+    assert custom_id not in response.json()["error"]["message"]
+
+
 # ---------------------------------------------------------------------------
 # 13/19. Gemini 정상 구조화 응답 + 해시태그 정규화
 # ---------------------------------------------------------------------------

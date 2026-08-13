@@ -777,9 +777,10 @@ Gemini를 사용하지만, 사진/개수/용량 검증과 결과 정규화는 �
 | `memo` | string | X | 전체 여행 메모 |
 | `companionTypesJson` | JSON string | O | 동행 조건 배열(`companionTypes`)을 JSON 문자열로 인코딩. `/api/places/recommend`·`/api/timelines/generate`와 동일한 enum·공통 검증 규칙(최소 1개, solo 배타 정책) 적용 |
 | `timelineJson` | JSON string | O | `/api/timelines/generate` 응답의 `data`(`timeline`/`summary`/`warnings`)를 그대로 JSON 문자열로 인코딩 |
-| `selectedPlaceIdsJson` | JSON string | O | 선택한 관광지 ID 배열. `places.json`에 존재하는 ID만 허용 |
+| `selectedPlaceIdsJson` | JSON string | O | 선택한 관광지 ID 배열. `places.json`에 존재하는 ID이거나 `customPlacesJson`에 있는 ID만 허용 |
 | `photoMemosJson` | JSON string | X | 사진별 메모 배열(문자열[]). 사진 순서와 배열 순서가 일치해야 한다 |
 | `photoTimelineItemIdsJson` | JSON string | X | 사진이 타임라인의 어떤 항목(`TimelineItem.id`)에서 첨부됐는지 배열((string\|null)[]). 사진 순서와 일치해야 하며, 없으면 전부 `null`로 취급 |
+| `customPlacesJson` | JSON string | X | 관광지·음식점 추천 대신 사용자가 직접 추가한 장소. 키는 프론트가 생성한 임시 ID, 값은 `/api/timelines/generate`의 `customPlaces`와 같은 형태(`name`/`address`/`lat`/`lng`). `selectedPlaceIdsJson`에 이 ID가 있으면 `places.json` 대신 여기서 이름을 찾는다 |
 | `photos` | File[] | X | 여행 사진. 최대 5장, 1장당 최대 5MB, `image/jpeg`·`image/png`·`image/webp`만 허용 |
 
 `memo`와 `photos`가 모두 없으면 공통 오류 응답(`INVALID_INPUT`)을 반환한다.

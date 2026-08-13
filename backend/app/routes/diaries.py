@@ -18,6 +18,7 @@ async def generate(
     selectedPlaceIdsJson: str = Form(...),
     photoMemosJson: Optional[str] = Form(None),
     photoTimelineItemIdsJson: Optional[str] = Form(None),
+    customPlacesJson: Optional[str] = Form(None),
     photos: List[UploadFile] = File(default=[]),
 ) -> DiaryGenerateResponse:
     data = await generate_diary(
@@ -29,6 +30,7 @@ async def generate(
         selected_place_ids_json=selectedPlaceIdsJson,
         photo_memos_json=photoMemosJson,
         photo_timeline_item_ids_json=photoTimelineItemIdsJson,
+        custom_places_json=customPlacesJson,
         photos=photos,
     )
     return DiaryGenerateResponse(data=data)

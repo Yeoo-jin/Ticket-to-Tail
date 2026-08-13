@@ -6,14 +6,14 @@
 
 import json
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import UploadFile
 from pydantic import BaseModel, Field, ValidationError
 
 from app.schemas.common import CompanionType
 from app.schemas.diary import DiaryGenerateData, DiaryTone, PhotoCaption, StoryCard
-from app.schemas.timeline import TimelineGenerateData, TimelineItem
+from app.schemas.timeline import CustomPlaceInput, TimelineGenerateData, TimelineItem
 from app.services import diary_ai_generator, diary_fallback
 from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError, AIValidationFailedError
 from app.services.photo_validation import validate_and_read_photos
@@ -52,6 +52,10 @@ class _DiaryRequestPayload(BaseModel):
     # 인덱스가 맞으며, 값이 없거나 일치하는 항목을 못 찾으면 None으로 둔다(연결 정보 없이도
     # 다이어리 생성 자체는 그대로 동작한다).
     photoTimelineItemIds: List[Optional[str]] = Field(default_factory=list)
+    # 관광지·음식점 추천 대신 사용자가 직접 추가한 장소. 키는 프론트가 생성한 임시 ID이며
+    # selectedPlaceIds에 이 ID가 들어있으면 places.json이 아니라 여기서 이름을 찾는다
+    # (/api/timelines/generate의 customPlaces와 같은 방식).
+    customPlaces: Dict[str, CustomPlaceInput] = Field(default_factory=dict)
 
 
 def _load_json_field(raw: Optional[str], field_name: str, required: bool = True):
@@ -139,6 +143,7 @@ async def generate_diary(
     selected_place_ids_json: str,
     photo_memos_json: Optional[str],
     photo_timeline_item_ids_json: Optional[str] = None,
+    custom_places_json: Optional[str] = None,
     photos: List[UploadFile],
 ) -> DiaryGenerateData:
     destination = (destination or "").strip()
@@ -152,6 +157,7 @@ async def generate_diary(
     photo_timeline_item_ids_raw = (
         _load_json_field(photo_timeline_item_ids_json, "photoTimelineItemIdsJson", required=False) or []
     )
+    custom_places_raw = _load_json_field(custom_places_json, "customPlacesJson", required=False) or {}
 
     try:
         payload = _DiaryRequestPayload.model_validate(
@@ -161,6 +167,7 @@ async def generate_diary(
                 "selectedPlaceIds": selected_place_ids_raw,
                 "photoMemos": photo_memos_raw,
                 "photoTimelineItemIds": photo_timeline_item_ids_raw,
+                "customPlaces": custom_places_raw,
             }
         )
     except ValidationError as exc:
@@ -170,10 +177,14 @@ async def generate_diary(
 
     all_places = load_places()
     by_id = {place.placeId: place for place in all_places}
-    unknown_ids = [pid for pid in payload.selectedPlaceIds if pid not in by_id]
+    unknown_ids = [
+        pid for pid in payload.selectedPlaceIds if pid not in by_id and pid not in payload.customPlaces
+    ]
     if unknown_ids:
         raise InvalidInputError(f"존재하지 않는 관광지 ID가 있습니다: {', '.join(unknown_ids)}")
-    place_names = [by_id[pid].name for pid in payload.selectedPlaceIds]
+    place_names = [
+        by_id[pid].name if pid in by_id else payload.customPlaces[pid].name for pid in payload.selectedPlaceIds
+    ]
 
     memo_text = (memo or "").strip()
     has_memo = bool(memo_text)
