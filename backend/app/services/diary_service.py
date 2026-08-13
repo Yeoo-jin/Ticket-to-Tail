@@ -15,7 +15,7 @@ from app.schemas.common import CompanionType
 from app.schemas.diary import DiaryGenerateData, DiaryTone, PhotoCaption, StoryCard
 from app.schemas.timeline import TimelineGenerateData, TimelineItem
 from app.services import diary_ai_generator, diary_fallback
-from app.services.ai_errors import AITransientError, AIValidationFailedError
+from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError, AIValidationFailedError
 from app.services.photo_validation import validate_and_read_photos
 from app.services.place_data import load_places
 from app.utils.companion_validation import validate_companion_types
@@ -191,7 +191,11 @@ async def generate_diary(
             photo_memos=payload.photoMemos,
             photos=photo_data,
         )
-    except (AITransientError, AIValidationFailedError) as exc:
+    except (AIConfigError, AIServiceError, AITransientError, AIValidationFailedError) as exc:
+        # 원래는 AITransientError/AIValidationFailedError(일시적 오류)만 fallback 대상이었지만,
+        # 데모 도중 AI 키·설정 문제(AIConfigError)나 그 외 API 오류(AIServiceError)로 화면에
+        # 에러가 그대로 노출되는 일이 없도록, Gemini 쪽에서 나는 오류는 종류에 상관없이
+        # 전부 fallback으로 넘긴다.
         logger.warning(
             "AI 다이어리 생성 실패로 제한적 템플릿 fallback을 사용합니다 (사유: %s).", type(exc).__name__
         )

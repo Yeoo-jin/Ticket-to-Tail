@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services import diary_ai_generator, diary_service
-from app.services.ai_errors import AITransientError
+from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError
 from app.services.place_data import load_places
 
 client = TestClient(app)
@@ -397,6 +397,35 @@ def test_ai_transient_failure_falls_back_to_template():
     assert any("AI 호출에 실패" in w for w in body["warnings"])
     for field in ("title", "diary", "summary", "snsPost", "photoCaptions", "hashtags", "storyCards", "warnings"):
         assert field in body
+
+
+def test_ai_config_error_also_falls_back_to_template():
+    # API 키 문제 등 AIConfigError(원래는 500으로 그대로 전파됐다)도 화면에 에러가
+    # 뜨는 대신 fallback으로 처리돼야 한다 — 데모 중 AI 설정이 불안정해도 다이어리
+    # 생성 자체는 항상 성공해야 하기 때문.
+    with patch.object(
+        diary_service.diary_ai_generator,
+        "generate_diary_with_ai",
+        side_effect=AIConfigError("Gemini 인증 오류로 요청을 처리할 수 없습니다."),
+    ):
+        response = client.post("/api/diaries/generate", data=_fields())
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["generationMode"] == "fallback"
+
+
+def test_ai_service_error_also_falls_back_to_template():
+    with patch.object(
+        diary_service.diary_ai_generator,
+        "generate_diary_with_ai",
+        side_effect=AIServiceError("Gemini 서비스 오류"),
+    ):
+        response = client.post("/api/diaries/generate", data=_fields())
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["generationMode"] == "fallback"
 
 
 # ---------------------------------------------------------------------------

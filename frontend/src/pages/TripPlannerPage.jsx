@@ -118,6 +118,10 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   // { name, address, lat, lng } 형태, CustomPlaceInput의 카카오 장소검색 결과를 그대로 쓴다.
   const [accommodation, setAccommodation] = useState(persisted?.accommodation ?? null)
 
+  // 입력하면(선택 사항) 항공↔철도 환승 대기 시간에 이 장소를 우선해서 채운다 — 서울역·
+  // 인천공항처럼 미리 준비된 데이터가 없는 거점이어도 동작한다. accommodation과 같은 형태.
+  const [layoverPlace, setLayoverPlace] = useState(persisted?.layoverPlace ?? null)
+
   const [pace, setPace] = useState(persisted?.pace ?? 'normal')
   const [timelineData, setTimelineData] = useState(persisted?.timelineData ?? null)
   const [timelineLoading, setTimelineLoading] = useState(false)
@@ -180,6 +184,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
       selectedRestaurantIdsByDay,
       customPlaces,
       accommodation,
+      layoverPlace,
       pace,
       timelineData,
       diaryMemo,
@@ -221,6 +226,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     selectedRestaurantIdsByDay,
     customPlaces,
     accommodation,
+    layoverPlace,
     pace,
     timelineData,
     diaryMemo,
@@ -396,6 +402,14 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setAccommodation(null)
   }
 
+  function handleSetLayoverPlace(place) {
+    setLayoverPlace(place)
+  }
+
+  function handleRemoveLayoverPlace() {
+    setLayoverPlace(null)
+  }
+
   function handleAddCustomRestaurant(mealType, place) {
     const currentDate = tripDays[currentDayIndex]
     const id = generateCustomPlaceId()
@@ -471,6 +485,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
         pace,
         customPlaces,
         accommodation,
+        layoverPlace,
       })
       setTimelineData(data)
       return true
@@ -618,6 +633,8 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setActiveBookings(null)
     setBookingError('')
     setDestination('')
+    setAccommodation(null)
+    setLayoverPlace(null)
     setCompanionTypes([])
     setTripDays([])
     setCurrentDayIndex(0)
@@ -712,11 +729,26 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
               </span>
             </div>
           </div>
-          {onBack && (
-            <button type="button" onClick={onBack} className="mypage-back-tab px-3 py-1.5 text-xs">
-              ← 허브로
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {step !== STEP.BOOKING_INPUT && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('처음부터 다시 시작할까요? 지금까지 입력한 내용이 모두 사라집니다.')) {
+                    handleStartOver()
+                  }
+                }}
+                className="mypage-back-tab px-3 py-1.5 text-xs"
+              >
+                🔄 처음부터
+              </button>
+            )}
+            {onBack && (
+              <button type="button" onClick={onBack} className="mypage-back-tab px-3 py-1.5 text-xs">
+                ← 허브로
+              </button>
+            )}
+          </div>
         </header>
 
         <div className={CENTERED_STEPS.includes(step) ? 'booking-center-box' : ''}>
@@ -734,6 +766,9 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
           {step === STEP.BOOKING_RESULT && bookingResult && (
             <BookingResultStep
               bookingResult={bookingResult}
+              layoverPlace={layoverPlace}
+              onSetLayoverPlace={handleSetLayoverPlace}
+              onRemoveLayoverPlace={handleRemoveLayoverPlace}
               onBack={() => setStep(STEP.BOOKING_INPUT)}
               onNext={() => setStep(STEP.COMPANION_SELECT)}
             />

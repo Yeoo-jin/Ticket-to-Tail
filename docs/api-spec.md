@@ -498,7 +498,8 @@ pet
   "customPlaces": {
     "custom-171234": { "name":"우리 가족 단골 산책로", "address":null, "lat":null, "lng":null }
   },
-  "accommodation": { "name":"해운대 게스트하우스", "address":"부산 해운대구 해운대해변로 264", "lat":35.1591, "lng":129.1602 }
+  "accommodation": { "name":"해운대 게스트하우스", "address":"부산 해운대구 해운대해변로 264", "lat":35.1591, "lng":129.1602 },
+  "layoverPlace": { "name":"앙꼬", "address":"서울 용산구 청파로47다길 6", "lat":37.5454, "lng":126.9657 }
 }
 ```
 
@@ -520,6 +521,7 @@ pet
 | `customPlaces{}.address` | string | X | 카카오 장소검색으로 골랐을 때의 주소. 없으면 `name`을 주소처럼 표시에 대신 쓴다 |
 | `customPlaces{}.lat`/`lng` | number | X | 카카오 장소검색으로 좌표까지 받았으면 채운다. 있으면 다른 장소와의 이동시간이 직선거리 기반으로 계산되고 지도에도 표시되며, 없으면 거점 기준 기본 이동시간으로 대체되고 지도에는 표시되지 않는다 |
 | `accommodation` | object | X | 숙소 정보. `customPlaces{}`와 같은 구조(`name`/`address`/`lat`/`lng`). 입력하면 매일 마지막 일정 뒤에 숙소로 이동하는 항목(`type: "accommodation"`)이 추가되고, 다음날은 숙소에서 출발하는 것으로 이동시간을 계산한다. 입력하지 않으면 기존과 동일하게(거점 기준으로 매일 새로 출발) 동작한다 |
+| `layoverPlace` | object | X | `customPlaces{}`와 같은 구조(`name`/`address`/`lat`/`lng`). 항공↔철도 환승 뒤 대기시간이 충분히 남는 구간이 있으면 이 장소를 최우선으로 채운다(서울역·인천공항처럼 서버가 미리 가진 데이터가 없는 거점이어도 동작). 입력하지 않으면 서버가 가진 데이터로 자동으로 채우거나, 데이터가 없으면 빈 시간으로 남긴다 |
 
 직접 입력한 장소는 운영시간 제약 없이 하루 중 아무 때나 배치 가능한 것으로 보고, 체류시간은 항상 60분 고정이다.
 
@@ -636,7 +638,21 @@ pet
       "companionTypes": ["infant"],
       "pace":"normal"
     },
-    "warnings": []
+    "warnings": [],
+    "stationFacilities": [
+      {
+        "stationName":"서울역",
+        "hasElevator":true,
+        "elevatorCount":18,
+        "escalatorCount":23,
+        "hasGeneralRestroom":true,
+        "hasInfoCenter":true,
+        "hasNursingRoom":true,
+        "hasAccessibleRestroom":null,
+        "hasWheelchairRamp":null,
+        "wheelchairLiftCount":null
+      }
+    ]
   }
 }
 ```
@@ -665,11 +681,78 @@ accommodation
 시간·운영시간 제약으로 배치하지 못한 관광지, 동행 조건과 맞지 않아 제외한 관광지가 있으면
 빈 배열이 아닌 사유 문자열 목록으로 반환한다(성공 응답이면서 `warnings`가 있을 수 있음).
 
+### `stationFacilities`
+
+`companionTypes`에 `infant` 또는 `mobility_impaired`가 포함되어 있을 때만 채워지며, 그 외에는
+항상 빈 배열이다. 예매정보(`bookings`)에 있는 철도 구간의 출발역·도착역 이름으로 공공데이터포털
+한국철도공사_편의시설정보 API를 조회한 결과이며, 외부 API 호출이 실패하거나 데이터가 없는 역은
+조용히 목록에서 빠진다(응답 전체가 실패하지 않음).
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `stationName` | string | 역명 (예매정보에 있던 표기 그대로, 예: "서울역") |
+| `hasElevator` | boolean | 엘리베이터 보유 여부 |
+| `elevatorCount` | number | 엘리베이터 수 |
+| `escalatorCount` | number | 에스컬레이터 수 |
+| `hasGeneralRestroom` | boolean | 일반 화장실 유무 |
+| `hasInfoCenter` | boolean | 종합안내센터 유무 |
+| `hasNursingRoom` | boolean \| null | 수유실 유무. `companionTypes`에 `infant`가 없으면 항상 `null` |
+| `hasAccessibleRestroom` | boolean \| null | 장애인 화장실 유무. `companionTypes`에 `mobility_impaired`가 없으면 항상 `null` |
+| `hasWheelchairRamp` | boolean \| null | 장애인 경사로 유무. 위와 동일 조건 |
+| `wheelchairLiftCount` | number \| null | 휠체어리프트 수. 위와 동일 조건 |
+
 ### 담당
 
 - **백엔드 로직:** 여진
 - **동행 조건별 반영 기준:** 준영
 - **결과 화면:** 서영
+
+---
+
+## POST `/api/timelines/layover-candidates`
+
+항공↔철도 예매 사이에 데이터를 가진 거점(서울역·인천공항 등)과 겹치는 환승 대기 구간이
+있으면, 그 구간에 넣을 수 있는 추천 후보 목록을 미리 보여준다. 타임라인을 실제로 만들기
+전(동행 조건을 아직 안 골랐을 수도 있는 예매정보 확인 화면)에 호출하므로 `companionTypes`는
+생략할 수 있다.
+
+### 요청
+
+```
+{
+  "bookings": [ ... ],
+  "companionTypes": ["pet"]
+}
+```
+
+### 성공 응답
+
+```
+{
+  "success":true,
+  "data": {
+    "hubRegion":"서울",
+    "windowMinutes":230,
+    "candidates": [
+      { "placeId":"place-108", "name":"앙꼬", "description":"...", "recommendationReason":"...",
+        "estimatedDurationMinutes":50, "tags":[], "category":"음식점",
+        "openTime":"11:00", "closeTime":"21:00", "lat":37.5454, "lng":126.9657,
+        "address":"서울 용산구 청파로47다길 6" }
+    ]
+  }
+}
+```
+
+매칭되는 환승 구간이 없으면 `hubRegion`은 `null`, `candidates`는 빈 배열이다 — 이때 화면은
+직접 검색 입력만 보여주면 된다. `candidates[].address`는 `/api/places/recommend`의 `Place`와
+달리 이 응답에서만 채워지며, 선택한 후보를 그대로 `/api/timelines/generate`의
+`layoverPlace`(`name`/`address`/`lat`/`lng`)로 보낼 수 있게 하기 위한 것이다.
+
+### 담당
+
+- **백엔드 로직:** 여진
+- **결과 화면:** 서영
+- **예선 구현:** 선택
 
 ---
 
