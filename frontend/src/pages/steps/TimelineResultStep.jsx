@@ -95,8 +95,6 @@ function TimelineResultStep({
       {summary && (
         <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
           <p>관광지 {summary.placeCount}곳</p>
-          <p>관광시간 {summary.sightseeingMinutes}분</p>
-          <p>예상 이동시간 {summary.estimatedTravelMinutes}분</p>
           <p>
             {companionTypeLabels(summary.companionTypes).join(' · ')} ·{' '}
             {summary.pace === 'relaxed' ? '여유롭게' : '보통'}
