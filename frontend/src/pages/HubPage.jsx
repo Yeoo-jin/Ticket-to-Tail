@@ -1,7 +1,7 @@
 import ShareButton from '../components/ShareButton'
 import DoodleSticker from '../components/stickers/DoodleSticker'
 
-function HubPage({ title, timelineDone, diaryDone, onGenerateTimeline, onGenerateDiary, onOpenMyPage }) {
+function HubPage({ title, timelineDone, diaryDone, onGenerateTimeline, onGenerateDiary, onOpenMyPage, onStartNewTrip }) {
   return (
     <div className="notebook-page min-h-app relative px-6 py-10">
       <div className="notebook-spine-holes" />
@@ -63,6 +63,10 @@ function HubPage({ title, timelineDone, diaryDone, onGenerateTimeline, onGenerat
           </div>
         </div>
       </div>
+
+      <button type="button" onClick={onStartNewTrip} className="hub-tab-secondary px-4 py-2 text-sm">
+        새 여행 시작
+      </button>
 
       <button type="button" onClick={onOpenMyPage} className="hub-tab px-4 py-2 text-sm">
         마이페이지

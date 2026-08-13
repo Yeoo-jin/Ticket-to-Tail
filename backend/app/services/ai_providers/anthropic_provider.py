@@ -3,16 +3,18 @@
 기본 provider는 Gemini이며, AI_PROVIDER=anthropic으로 설정했을 때만 사용된다.
 """
 
+import base64
 import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import anthropic
 from pydantic import ValidationError
 
-from app.prompts.booking_parse_prompt import EXTRACT_BOOKINGS_TOOL, SYSTEM_PROMPT
+from app.prompts.booking_parse_prompt import EXTRACT_BOOKINGS_TOOL, PHOTO_SYSTEM_PROMPT, SYSTEM_PROMPT
 from app.schemas.booking_extraction import RawBookingEvent, RawExtractionResult
 from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError, AIValidationFailedError
+from app.utils.ai_retry import call_with_transient_retry
 
 logger = logging.getLogger(__name__)
 
@@ -36,23 +38,26 @@ def get_anthropic_model_name() -> str:
     return model
 
 
-def _call_tool(client: anthropic.Anthropic, model: str, messages: list):
-    try:
-        return client.messages.create(
-            model=model,
-            max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            tools=[EXTRACT_BOOKINGS_TOOL],
-            tool_choice={"type": "tool", "name": TOOL_NAME},
-            messages=messages,
-        )
-    except anthropic.APIConnectionError as exc:
-        # anthropic.APITimeoutError는 APIConnectionError의 하위 클래스이므로 함께 처리된다.
-        logger.warning("Anthropic API 네트워크 오류/타임아웃이 발생했습니다.")
-        raise AITransientError("Anthropic API 네트워크 오류 또는 타임아웃") from exc
-    except anthropic.APIStatusError as exc:
-        logger.warning("Anthropic API 오류 응답 (status=%s)", getattr(exc, "status_code", "unknown"))
-        raise AIServiceError() from exc
+def _call_tool(client: anthropic.Anthropic, model: str, messages: list, system_prompt: str = SYSTEM_PROMPT):
+    def attempt():
+        try:
+            return client.messages.create(
+                model=model,
+                max_tokens=MAX_TOKENS,
+                system=system_prompt,
+                tools=[EXTRACT_BOOKINGS_TOOL],
+                tool_choice={"type": "tool", "name": TOOL_NAME},
+                messages=messages,
+            )
+        except anthropic.APIConnectionError as exc:
+            # anthropic.APITimeoutError는 APIConnectionError의 하위 클래스이므로 함께 처리된다.
+            logger.warning("Anthropic API 네트워크 오류/타임아웃이 발생했습니다.")
+            raise AITransientError("Anthropic API 네트워크 오류 또는 타임아웃") from exc
+        except anthropic.APIStatusError as exc:
+            logger.warning("Anthropic API 오류 응답 (status=%s)", getattr(exc, "status_code", "unknown"))
+            raise AIServiceError() from exc
+
+    return call_with_transient_retry(attempt)
 
 
 def _find_tool_use_block(response):
@@ -116,3 +121,49 @@ def _build_correction_turn(response, block: Optional[object], error: Exception) 
         {"role": "assistant", "content": assistant_content},
         {"role": "user", "content": user_content},
     ]
+
+
+_PHOTO_USER_INSTRUCTION = (
+    "첨부된 이미지는 예매 내역 목록을 캡처한 화면입니다. 이미지가 여러 장이면 서로 다른 "
+    "예매 내역(예: 항공권 캡처 + KTX 캡처)일 수 있습니다. 모든 이미지에 보이는 모든 예매 건을 규칙에 따라 추출하세요."
+)
+
+
+def extract_bookings_from_photos(photos: List[Tuple[bytes, str]]) -> List[RawBookingEvent]:
+    client = get_anthropic_client()
+    model = get_anthropic_model_name()
+
+    image_blocks = [
+        {
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": mime_type,
+                "data": base64.b64encode(photo_bytes).decode("utf-8"),
+            },
+        }
+        for photo_bytes, mime_type in photos
+    ]
+    messages = [
+        {
+            "role": "user",
+            "content": image_blocks + [{"type": "text", "text": _PHOTO_USER_INSTRUCTION}],
+        }
+    ]
+    response = _call_tool(client, model, messages, system_prompt=PHOTO_SYSTEM_PROMPT)
+    block = _find_tool_use_block(response)
+
+    try:
+        return _validate_tool_block(block)
+    except (ValidationError, AIValidationFailedError) as first_error:
+        logger.warning("AI 사진 응답 검증 실패, 1회 교정 재시도를 수행합니다: %s", type(first_error).__name__)
+
+        correction_messages = messages + _build_correction_turn(response, block, first_error)
+        retry_response = _call_tool(client, model, correction_messages, system_prompt=PHOTO_SYSTEM_PROMPT)
+        retry_block = _find_tool_use_block(retry_response)
+
+        try:
+            return _validate_tool_block(retry_block)
+        except (ValidationError, AIValidationFailedError) as second_error:
+            logger.warning("교정 재시도 후에도 AI 사진 응답 검증에 실패했습니다: %s", type(second_error).__name__)
+            raise AIValidationFailedError(str(second_error)) from second_error

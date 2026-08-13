@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { parseBookingText } from '../services/bookingApi'
+import { parseBookingPhotos, parseBookingText } from '../services/bookingApi'
 import { generateDiary } from '../services/diaryApi'
 import { recommendPlaces } from '../services/placeApi'
 import { generateTimeline } from '../services/timelineApi'
@@ -21,11 +21,13 @@ import {
   toggleSelection,
 } from '../utils/placeSelection'
 import { DEFAULT_POSTER_FONT } from '../utils/posterFonts'
+import { dateKey } from '../utils/timelineDisplay'
 import DoodleSticker from '../components/stickers/DoodleSticker'
 import BookingInputStep from './steps/BookingInputStep'
 import BookingResultStep from './steps/BookingResultStep'
 import CompanionSelectStep from './steps/CompanionSelectStep'
 import DiaryInputStep from './steps/DiaryInputStep'
+import DiaryPhotoInputStep from './steps/DiaryPhotoInputStep'
 import DiaryResultStep from './steps/DiaryResultStep'
 import PlaceRecommendStep from './steps/PlaceRecommendStep'
 import RestaurantRecommendStep from './steps/RestaurantRecommendStep'
@@ -38,10 +40,11 @@ const STEP = {
   RESTAURANT_RECOMMEND: 4,
   PLACE_RECOMMEND: 5,
   TIMELINE_RESULT: 6,
-  DIARY_INPUT: 7,
-  DIARY_RESULT: 8,
+  DIARY_PHOTO_INPUT: 7,
+  DIARY_INPUT: 8,
+  DIARY_RESULT: 9,
 }
-const TOTAL_STEPS = 8
+const TOTAL_STEPS = 9
 
 // 예매정보 입력 ~ 음식점/관광지 선택까지(1~5단계)는 카드를 화면 세로 중앙에 배치한다.
 // "음식점 및 관광지 선택"은 RESTAURANT_RECOMMEND·PLACE_RECOMMEND 두 단계로 나뉘어 있어 둘 다 포함한다.
@@ -64,6 +67,15 @@ function formatDayLabel(date, index) {
 // sessionStorage에 저장할 수 없어(직렬화 불가) 복원 대상에서 제외한다 — 사진이 필요한
 // 화면(7·8단계)으로 복원되더라도 사진 슬롯만 비어 보일 뿐 화면 자체가 깨지지는 않는다.
 const STORAGE_KEY = 'ticketToTale:tripPlannerState:v2'
+
+// 새 여행을 시작할 때(App.jsx) 이전 여행의 진행 상태가 남아있지 않도록 외부에서 호출한다.
+export function clearPlannerState() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // 무시 — 저장소를 쓸 수 없어도 앱 동작에는 영향이 없어야 한다.
+  }
+}
 
 function loadPersistedState() {
   try {
@@ -127,14 +139,25 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState('')
 
-  // photos: [{ file, previewUrl, memo }] — 새로고침 후에는 복원되지 않는다(위 설명 참고).
+  // photos: [{ file, previewUrl, memo, timelineItemId }] — 새로고침 후에는 복원되지 않는다(위 설명 참고).
   const [photos, setPhotos] = useState([])
   const [photoError, setPhotoError] = useState('')
+  // 다이어리 1페이지(일자별 사진 첨부)에서 며칠째를 보고 있는지. 관광지 선택 때 쓰는
+  // currentDayIndex와는 별개로 둔다(선택 흐름을 다 지나온 뒤라 currentDayIndex는 이미
+  // 마지막 날짜를 가리키고 있을 수 있어서).
+  const [diaryDayIndex, setDiaryDayIndex] = useState(persisted?.diaryDayIndex ?? 0)
   const [diaryMemo, setDiaryMemo] = useState(persisted?.diaryMemo ?? '')
   const [diaryTone, setDiaryTone] = useState(persisted?.diaryTone ?? 'emotional')
   const [diaryData, setDiaryData] = useState(persisted?.diaryData ?? null)
   const [diaryLoading, setDiaryLoading] = useState(false)
   const [diaryError, setDiaryError] = useState('')
+
+  // 식당 선택하느라 스크롤을 내려둔 채로 다음 단계(관광지 선택 등)나 다음 날짜로 넘어가면
+  // 새 화면도 스크롤이 내려간 채로 시작돼 매번 다시 올려야 하는 불편이 있어, 단계·날짜가
+  // 바뀔 때마다 맨 위로 되돌린다.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [step, currentDayIndex, diaryDayIndex])
 
   // 결과 화면 표시·꾸미기 상태는 "처음부터 다시 시작"에서만 초기화한다.
   const [splitCount, setSplitCount] = useState(persisted?.splitCount ?? DEFAULT_SPLIT_COUNT)
@@ -147,8 +170,8 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   const [dotShape, setDotShape] = useState(persisted?.dotShape ?? 'circle')
   const [checkSpacing, setCheckSpacing] = useState(persisted?.checkSpacing ?? DEFAULT_CHECK_SPACING)
   const [font, setFont] = useState(persisted?.font ?? DEFAULT_POSTER_FONT)
-  const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(persisted?.polaroidCaptionSize ?? 24)
-  const [backgroundTextSize, setBackgroundTextSize] = useState(persisted?.backgroundTextSize ?? 40)
+  const [polaroidCaptionSize, setPolaroidCaptionSize] = useState(persisted?.polaroidCaptionSize ?? 32)
+  const [backgroundTextSize, setBackgroundTextSize] = useState(persisted?.backgroundTextSize ?? 56)
   // photoCaptions: 사진별 아래 글귀(index 정렬). null이면 아직 초기화 전(첫 생성 시 photoMemo로 채움).
   const [photoCaptions, setPhotoCaptions] = useState(persisted?.photoCaptions ?? null)
   // backgroundCaptions: 배경 위 독립 글귀 3개. null이면 아직 초기화 전(첫 생성 시 기본값으로 채움).
@@ -187,6 +210,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
       layoverPlace,
       pace,
       timelineData,
+      diaryDayIndex,
       diaryMemo,
       diaryTone,
       diaryData,
@@ -229,6 +253,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     layoverPlace,
     pace,
     timelineData,
+    diaryDayIndex,
     diaryMemo,
     diaryTone,
     diaryData,
@@ -276,19 +301,27 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
   }, [])
 
   // 허브 화면에서 "다이어리 생성"을 눌러 들어온 경우, 타임라인이 이미 있으면
-  // 예매정보 입력부터가 아니라 사진 업로드(다이어리 입력) 단계로 바로 이동한다.
+  // 예매정보 입력부터가 아니라 다이어리 1페이지(일자별 사진 첨부)로 바로 이동한다.
+  // 반대로 "타임라인 생성"으로 들어왔는데 세션에 다이어리 단계가 남아있으면(예: 직전에
+  // 다이어리 쪽을 보다가 허브로 나간 경우) 타임라인 결과 화면으로 되돌린다 — 두 진입
+  // 버튼이 매번 새로 마운트되는 같은 컴포넌트를 공유해서, 저장된 마지막 단계가 지금
+  // 누른 버튼과 다를 수 있기 때문이다.
   useEffect(() => {
-    if (entryMode === 'diary' && timelineData && step !== STEP.DIARY_RESULT) {
-      setStep(STEP.DIARY_INPUT)
+    const isDiaryStep = step === STEP.DIARY_PHOTO_INPUT || step === STEP.DIARY_INPUT || step === STEP.DIARY_RESULT
+    if (entryMode === 'diary' && timelineData && !isDiaryStep) {
+      setDiaryDayIndex(0)
+      setStep(STEP.DIARY_PHOTO_INPUT)
+    } else if (entryMode === 'timeline' && timelineData && isDiaryStep) {
+      setStep(STEP.TIMELINE_RESULT)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleParseBooking() {
+  async function handleParseBooking(parseFn) {
     setBookingLoading(true)
     setBookingError('')
     try {
-      const data = await parseBookingText(bookingText)
+      const data = await parseFn()
       setBookingResult(data)
       setActiveBookings(null)
       setDestination(deriveDestinationGuess(data.bookings))
@@ -298,6 +331,23 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     } finally {
       setBookingLoading(false)
     }
+  }
+
+  function handleParseBookingText() {
+    return handleParseBooking(() => parseBookingText(bookingText))
+  }
+
+  function handleParseBookingPhotos(photos) {
+    return handleParseBooking(() => parseBookingPhotos(photos))
+  }
+
+  // 인식이 틀린 필드를 예매정보 확인 화면에서 직접 고칠 수 있게 한다.
+  function handleUpdateBooking(index, field, value) {
+    setBookingResult((prev) => {
+      if (!prev) return prev
+      const bookings = prev.bookings.map((booking, i) => (i === index ? { ...booking, [field]: value } : booking))
+      return { ...prev, bookings }
+    })
   }
 
   function toggleCompanionType(value) {
@@ -520,13 +570,16 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     await requestTimeline()
   }
 
-  function handleAddPhotos(fileList) {
+  // timelineItemId: 타임라인 화면(관광지·식사 항목)에서 첨부한 사진이면 그 항목의 id를
+  // 함께 저장해, 다이어리 생성 시 AI에게 "이 사진은 어떤 일정에서 찍었는지" 알려줄 수 있다.
+  function handleAddPhotos(fileList, timelineItemId = null) {
     const { accepted, errors } = resolveNewPhotos(photos.length, fileList)
     if (accepted.length > 0) {
       const newEntries = accepted.map((file) => ({
         file,
         previewUrl: URL.createObjectURL(file),
         memo: '',
+        timelineItemId,
       }))
       setPhotos((prev) => [...prev, ...newEntries])
     }
@@ -544,6 +597,27 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
 
   function handleChangePhotoMemo(index, value) {
     setPhotos((prev) => prev.map((photo, i) => (i === index ? { ...photo, memo: value } : photo)))
+  }
+
+  // 다이어리 1페이지(일자별 사진 첨부): 하루씩 넘기다가 마지막 날에서 "다음"을 누르면
+  // 2페이지(전체 메모·문체)로, 첫 날에서 "이전"을 누르면 타임라인 화면으로 돌아간다.
+  const diaryCurrentDate = tripDays[diaryDayIndex]
+  const diaryDayItems = (timelineData?.timeline ?? []).filter((item) => dateKey(item.startTime) === diaryCurrentDate)
+
+  function handleDiaryPhotoNext() {
+    if (diaryDayIndex < tripDays.length - 1) {
+      setDiaryDayIndex((index) => index + 1)
+    } else {
+      setStep(STEP.DIARY_INPUT)
+    }
+  }
+
+  function handleDiaryPhotoBack() {
+    if (diaryDayIndex > 0) {
+      setDiaryDayIndex((index) => index - 1)
+    } else {
+      setStep(STEP.TIMELINE_RESULT)
+    }
   }
 
   function handleChangePhotoStyle(index, field, value) {
@@ -582,6 +656,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
         timeline: timelineData,
         selectedPlaceIds: allSelectedPlaceIds(),
         photoMemos: photos.map((photo) => photo.memo),
+        photoTimelineItemIds: photos.map((photo) => photo.timelineItemId || null),
         photos,
       })
       setDiaryData(data)
@@ -651,6 +726,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setTimelineError('')
     setPhotos([])
     setPhotoError('')
+    setDiaryDayIndex(0)
     setDiaryMemo('')
     setDiaryTone('emotional')
     setDiaryData(null)
@@ -672,9 +748,9 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
     setPhotoStyles({})
   }
 
-  const isDiaryPhase = step >= STEP.DIARY_INPUT
+  const isDiaryPhase = step >= STEP.DIARY_PHOTO_INPUT
   const phaseLabel = isDiaryPhase ? '다이어리 만들기' : '타임라인 만들기'
-  const phaseTotal = isDiaryPhase ? 2 : STEP.TIMELINE_RESULT
+  const phaseTotal = isDiaryPhase ? 3 : STEP.TIMELINE_RESULT
   const phaseCurrent = isDiaryPhase ? step - STEP.TIMELINE_RESULT : step
 
   const currentDate = tripDays[currentDayIndex]
@@ -757,7 +833,8 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
             <BookingInputStep
               bookingText={bookingText}
               onChangeText={setBookingText}
-              onSubmit={handleParseBooking}
+              onSubmitText={handleParseBookingText}
+              onSubmitPhoto={handleParseBookingPhotos}
               loading={bookingLoading}
               error={bookingError}
             />
@@ -766,6 +843,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
           {step === STEP.BOOKING_RESULT && bookingResult && (
             <BookingResultStep
               bookingResult={bookingResult}
+              onUpdateBooking={handleUpdateBooking}
               layoverPlace={layoverPlace}
               onSetLayoverPlace={handleSetLayoverPlace}
               onRemoveLayoverPlace={handleRemoveLayoverPlace}
@@ -790,6 +868,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
           {step === STEP.RESTAURANT_RECOMMEND && currentDate && (
             <RestaurantRecommendStep
               dayLabel={formatDayLabel(currentDate, currentDayIndex)}
+              destination={destination}
               restaurantsForDay={restaurantsByDay[currentDate] || {}}
               selectedRestaurantIds={selectedRestaurantIdsByDay[currentDate] || {}}
               onToggleSelect={handleToggleRestaurant}
@@ -805,6 +884,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
           {step === STEP.PLACE_RECOMMEND && currentDate && (
             <PlaceRecommendStep
               dayLabel={formatDayLabel(currentDate, currentDayIndex)}
+              destination={destination}
               places={placesByDay[currentDate] || []}
               selectedPlaceIds={selectedPlaceIdsByDay[currentDate] || []}
               onToggleSelect={handleToggleSelect}
@@ -847,15 +927,26 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
             />
           )}
 
-          {step === STEP.DIARY_INPUT && (
-            <DiaryInputStep
-              destination={destination}
-              timelineData={timelineData}
+          {step === STEP.DIARY_PHOTO_INPUT && (
+            <DiaryPhotoInputStep
+              dayLabel={formatDayLabel(diaryCurrentDate, diaryDayIndex)}
+              dayItems={diaryDayItems}
+              isFirstDay={diaryDayIndex === 0}
+              isLastDay={diaryDayIndex === tripDays.length - 1}
               photos={photos}
               photoError={photoError}
               onAddPhotos={handleAddPhotos}
               onRemovePhoto={handleRemovePhoto}
               onChangePhotoMemo={handleChangePhotoMemo}
+              onNext={handleDiaryPhotoNext}
+              onBack={handleDiaryPhotoBack}
+            />
+          )}
+
+          {step === STEP.DIARY_INPUT && (
+            <DiaryInputStep
+              destination={destination}
+              timelineData={timelineData}
               memo={diaryMemo}
               onChangeMemo={setDiaryMemo}
               tone={diaryTone}
@@ -864,7 +955,7 @@ function TripPlannerPage({ entryMode = 'timeline', onBack, onTimelineComplete, o
               canSubmit={canGenerateDiary({ memo: diaryMemo, photoCount: photos.length })}
               loading={diaryLoading}
               error={diaryError}
-              onBack={() => setStep(STEP.TIMELINE_RESULT)}
+              onBack={() => setStep(STEP.DIARY_PHOTO_INPUT)}
             />
           )}
 

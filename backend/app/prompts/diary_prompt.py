@@ -15,6 +15,7 @@ SYSTEM_PROMPT = """당신은 여행 타임라인과 사용자가 남긴 메모·
 6. 선택된 tone(문체)에 맞게 표현 방식만 조정하고, 사실 내용을 바꾸지 마십시오.
 7. 사진이 첨부되지 않았다면 사진을 본 것처럼 묘사하지 마십시오.
 8. 사진별 캡션(photoCaptions)은 반드시 해당 순서의 첨부 사진과, 있다면 그 사진에 대한 사용자 메모를 근거로 작성하십시오. 첨부된 사진 수와 정확히 같은 개수를 반환하십시오.
+8-1. 사진별 메모에 등장하는 고유한 사실(반려동물 이름, 음식 이름, 특정 장소 등)이 있다면 그 사진의 캡션뿐 아니라, 문맥상 자연스러운 경우 diary(본문)·summary·snsPost에도 일관되게 반영하십시오. 다만 그 메모에 없는 이름이나 사실을 다른 사진·다른 문단에 임의로 확장해 지어내지는 마십시오.
 9. 해시태그(hashtags)는 5개 이상 10개 이하로 작성하고, 배열의 각 원소에는 공백이나 다른 해시태그를 포함하지 말고 "#단어" 형태의 순수한 해시태그 하나만 담으십시오. 여러 해시태그를 "#a#b#c"처럼 한 문자열로 합치지 마십시오.
 10. 응답은 반드시 지정된 JSON 스키마로만 반환하고, 그 외의 설명 텍스트를 추가하지 마십시오.
 11. storyCards는 3개 이상 6개 이하로 생성하십시오.
@@ -46,6 +47,7 @@ def build_user_prompt(
     timeline_lines: Sequence[str],
     place_names: Sequence[str],
     photo_memos: Sequence[Optional[str]],
+    photo_place_labels: Sequence[Optional[str]] = (),
     photo_count: int,
 ) -> str:
     lines: List[str] = [
@@ -64,10 +66,12 @@ def build_user_prompt(
 
     lines += ["", f"첨부된 사진 수: {photo_count}장"]
     if photo_count:
-        lines.append("사진별 메모 (첨부한 사진 순서와 동일):")
+        lines.append("사진별 메모 (첨부한 사진 순서와 동일. 촬영 장소/일정이 있으면 함께 표시):")
         for index in range(photo_count):
             note = photo_memos[index] if index < len(photo_memos) and photo_memos[index] else "(메모 없음)"
-            lines.append(f"{index + 1}. {note}")
+            place_label = photo_place_labels[index] if index < len(photo_place_labels) else None
+            place_part = f" / 촬영 장소·일정: {place_label}" if place_label else ""
+            lines.append(f"{index + 1}. {note}{place_part}")
     else:
         lines.append("사진 없음 - 사진을 본 것처럼 서술하지 마십시오.")
 

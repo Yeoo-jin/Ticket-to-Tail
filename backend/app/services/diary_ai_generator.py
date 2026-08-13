@@ -17,6 +17,7 @@ from app.prompts.diary_prompt import SYSTEM_PROMPT, build_user_prompt
 from app.schemas.diary_extraction import RawDiaryResult
 from app.services.ai_errors import AIConfigError, AIServiceError, AITransientError, AIValidationFailedError
 from app.services.ai_providers.gemini_provider import get_gemini_client, get_gemini_model_name
+from app.utils.ai_retry import call_with_transient_retry
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +34,22 @@ def _build_config() -> "types.GenerateContentConfig":
 
 
 def _call_model(client: "genai.Client", model: str, contents: list):
-    try:
-        return client.models.generate_content(model=model, contents=contents, config=_build_config())
-    except (httpx.TimeoutException, httpx.ConnectError) as exc:
-        logger.warning("Gemini API 네트워크 오류/타임아웃이 발생했습니다.")
-        raise AITransientError("Gemini API 네트워크 오류 또는 타임아웃") from exc
-    except genai_errors.APIError as exc:
-        code = getattr(exc, "code", None)
-        logger.warning("Gemini API 오류 응답 (code=%s)", code)
-        if code in (401, 403):
-            raise AIConfigError("Gemini 인증 오류로 요청을 처리할 수 없습니다.") from exc
-        if code == 429 or (isinstance(code, int) and code >= 500):
-            raise AITransientError(f"Gemini API 일시적 오류 (code={code})") from exc
-        raise AIServiceError() from exc
+    def attempt():
+        try:
+            return client.models.generate_content(model=model, contents=contents, config=_build_config())
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            logger.warning("Gemini API 네트워크 오류/타임아웃이 발생했습니다.")
+            raise AITransientError("Gemini API 네트워크 오류 또는 타임아웃") from exc
+        except genai_errors.APIError as exc:
+            code = getattr(exc, "code", None)
+            logger.warning("Gemini API 오류 응답 (code=%s)", code)
+            if code in (401, 403):
+                raise AIConfigError("Gemini 인증 오류로 요청을 처리할 수 없습니다.") from exc
+            if code == 429 or (isinstance(code, int) and code >= 500):
+                raise AITransientError(f"Gemini API 일시적 오류 (code={code})") from exc
+            raise AIServiceError() from exc
+
+    return call_with_transient_retry(attempt)
 
 
 def _validate_story_cards(cards, expected_photo_count: int) -> None:
@@ -90,6 +94,7 @@ def generate_diary_with_ai(
     timeline_lines: Sequence[str],
     place_names: Sequence[str],
     photo_memos: Sequence[Optional[str]],
+    photo_place_labels: Sequence[Optional[str]] = (),
     photos: Sequence[Tuple[bytes, str]],
 ) -> RawDiaryResult:
     client = get_gemini_client()
@@ -103,6 +108,7 @@ def generate_diary_with_ai(
         timeline_lines=timeline_lines,
         place_names=place_names,
         photo_memos=photo_memos,
+        photo_place_labels=photo_place_labels,
         photo_count=len(photos),
     )
 

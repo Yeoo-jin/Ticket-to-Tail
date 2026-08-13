@@ -4,7 +4,7 @@ import HubPage from './pages/HubPage'
 import MyPage from './pages/MyPage'
 import SharedDiaryPage from './pages/SharedDiaryPage'
 import SharedTimelinePage from './pages/SharedTimelinePage'
-import TripPlannerPage from './pages/TripPlannerPage'
+import TripPlannerPage, { clearPlannerState } from './pages/TripPlannerPage'
 import {
   generateTripId,
   loadCurrentTrip,
@@ -77,6 +77,15 @@ function App() {
     setScreen(SCREEN.PLANNER)
   }
 
+  function handleStartNewTrip() {
+    const ok = window.confirm('새 여행을 시작하면 지금 만들고 있는 타임라인·다이어리 진행 내용이 사라져요. 계속할까요?')
+    if (!ok) return
+    clearPlannerState()
+    setCurrentTrip(null)
+    saveCurrentTrip(null)
+    setScreen(SCREEN.COVER)
+  }
+
   if (shareRoute?.type === 'timeline') {
     return <SharedTimelinePage shareId={shareRoute.shareId} />
   }
@@ -111,6 +120,7 @@ function App() {
       onGenerateTimeline={() => openPlanner('timeline')}
       onGenerateDiary={() => openPlanner('diary')}
       onOpenMyPage={() => setScreen(SCREEN.MYPAGE)}
+      onStartNewTrip={handleStartNewTrip}
     />
   )
 }

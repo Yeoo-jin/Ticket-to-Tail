@@ -23,7 +23,7 @@ const LOCATION_REGION_MAP = {
 
 function regionOf(location) {
   if (!location) return null
-  return LOCATION_REGION_MAP[location] || null
+  return LOCATION_REGION_MAP[location.trim()] || null
 }
 
 // 구조화된 bookings에서 여행 목적지를 최선으로 추정한다.

@@ -1,16 +1,10 @@
 import ErrorMessage from '../../components/ErrorMessage'
 import LoadingIndicator from '../../components/LoadingIndicator'
 import { DIARY_TONES } from '../../utils/diaryTone'
-import { MAX_PHOTOS } from '../../utils/photoUpload'
 
 function DiaryInputStep({
   destination,
   timelineData,
-  photos,
-  photoError,
-  onAddPhotos,
-  onRemovePhoto,
-  onChangePhotoMemo,
   memo,
   onChangeMemo,
   tone,
@@ -25,7 +19,7 @@ function DiaryInputStep({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900">📸 사진·메모 입력</h2>
+      <h2 className="text-base font-semibold text-gray-900">📔 다이어리 만들기</h2>
       <p className="mt-1 text-sm text-gray-500">여행지: {destination}</p>
 
       {summary && (
@@ -34,56 +28,6 @@ function DiaryInputStep({
           {summary.estimatedTravelMinutes}분
         </div>
       )}
-
-      <div className="mt-4">
-        <p className="text-sm font-semibold text-gray-900">
-          여행 사진 ({photos.length}/{MAX_PHOTOS})
-        </p>
-        <label className="mt-2 flex h-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-500">
-          사진 선택하기
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              onAddPhotos(Array.from(event.target.files || []))
-              event.target.value = ''
-            }}
-          />
-        </label>
-        <ErrorMessage message={photoError} />
-
-        {photos.length > 0 && (
-          <ul className="mt-3 space-y-2">
-            {photos.map((photo, index) => (
-              <li key={photo.previewUrl} className="flex gap-2 rounded-lg border border-gray-200 p-2">
-                <img
-                  src={photo.previewUrl}
-                  alt={`업로드 사진 ${index + 1}`}
-                  className="h-16 w-16 shrink-0 rounded-md object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <input
-                    type="text"
-                    value={photo.memo}
-                    onChange={(event) => onChangePhotoMemo(index, event.target.value)}
-                    placeholder="이 사진에 대한 메모 (선택)"
-                    className="w-full rounded border border-gray-200 px-2 py-1 text-xs"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemovePhoto(index)}
-                  className="shrink-0 self-start text-xs text-red-500"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
 
       <div className="mt-4">
         <p className="text-sm font-semibold text-gray-900">여행 전체 메모</p>
@@ -119,7 +63,9 @@ function DiaryInputStep({
 
       <ErrorMessage message={error} />
       {!canSubmit && (
-        <p className="mt-2 text-xs text-yellow-700">여행 메모를 입력하거나 사진을 1장 이상 추가해주세요.</p>
+        <p className="mt-2 text-xs text-yellow-700">
+          여행 전체 메모를 입력하거나, 타임라인 화면에서 사진을 1장 이상 추가해주세요.
+        </p>
       )}
 
       <button

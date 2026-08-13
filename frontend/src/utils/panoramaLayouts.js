@@ -29,9 +29,9 @@ const CONTENT_BOTTOM = 1220
 const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
 
 const PHOTO_ASPECT_RATIO = 4 / 5 // width / height
-// 아래 여백에 최대 글자 크기(36px) 기준 2줄 메모가 들어가도 잘리지 않도록 여유 있게 잡는다.
+// 아래 여백에 최대 글자 크기(56px) 기준 2줄 메모가 들어가도 잘리지 않도록 여유 있게 잡는다.
 const FRAME_PAD = 44 // 위·좌·우 여백
-const FRAME_BOTTOM_PAD_RATIO = 2.5 // 아래 여백은 위쪽 여백의 약 2.5배(메모 2줄 포함)
+const FRAME_BOTTOM_PAD_RATIO = 3.6 // 아래 여백은 위쪽 여백의 약 3.6배(메모 2줄 포함)
 
 // large/medium 두 단계만 사용한다. (640-520)/640 = 18.75% ≤ 25%(요구사항).
 const LARGE_WIDTH = 640

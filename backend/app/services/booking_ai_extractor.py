@@ -5,7 +5,7 @@
 
 import logging
 import os
-from typing import List
+from typing import List, Tuple
 
 from app.schemas.booking_extraction import RawBookingEvent
 from app.services.ai_errors import (  # noqa: F401  (하위 호환을 위한 재수출)
@@ -37,3 +37,9 @@ def extract_bookings(booking_text: str) -> List[RawBookingEvent]:
     provider_name = get_provider_name()
     provider = _PROVIDERS[provider_name]
     return provider.extract_bookings(booking_text)
+
+
+def extract_bookings_from_photos(photos: List[Tuple[bytes, str]]) -> List[RawBookingEvent]:
+    provider_name = get_provider_name()
+    provider = _PROVIDERS[provider_name]
+    return provider.extract_bookings_from_photos(photos)

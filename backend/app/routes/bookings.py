@@ -1,16 +1,26 @@
-from fastapi import APIRouter
+from typing import List, Optional
 
-from app.schemas.booking import BookingParseRequest, BookingParseResponse
+from fastapi import APIRouter, File, Form, UploadFile
+
+from app.schemas.booking import BookingParseResponse
 from app.schemas.transit_status import TransitStatusRequest, TransitStatusResponse
-from app.services.booking_service import parse_booking_text
+from app.services import booking_service
+from app.services.photo_validation import validate_and_read_photos
 from app.services.transit_status_service import get_transit_status
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
 
 
 @router.post("/parse", response_model=BookingParseResponse)
-def parse_booking(request: BookingParseRequest) -> BookingParseResponse:
-    data = parse_booking_text(request)
+async def parse_booking(
+    bookingText: Optional[str] = Form(None),
+    photos: List[UploadFile] = File(default=[]),
+) -> BookingParseResponse:
+    # 빈 멀티파트 필드가 UploadFile(filename="")로 들어오는 경우를 걸러낸다(사진 없이
+    # bookingText만 보낼 때 일부 클라이언트/테스트 도구가 빈 파일 파트를 함께 보낼 수 있음).
+    real_photos = [photo for photo in photos if photo.filename]
+    photo_payloads = await validate_and_read_photos(real_photos) if real_photos else []
+    data = booking_service.parse_booking(bookingText, photo_payloads)
     return BookingParseResponse(data=data)
 
 

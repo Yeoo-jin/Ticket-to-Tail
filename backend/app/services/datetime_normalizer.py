@@ -87,6 +87,16 @@ def _build_iso_datetime(
     return dt.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+def _clean_location(value: Optional[str]) -> Optional[str]:
+    # 사진(OCR) 추출 결과에는 앞뒤 공백이 섞여 나오는 경우가 있고, 이게 남아있으면
+    # deriveDestinationGuess(프론트)의 정확히 일치하는 지역명 매칭이나 환승 거점 매칭이
+    # 조용히 실패한다. 텍스트 입력 경로도 동일하게 거쳐 일관되게 처리한다.
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
 def normalize_bookings(raw_events: List[RawBookingEvent]) -> List[Booking]:
     fallback_year = _resolve_document_year(raw_events)
     if fallback_year is None:
@@ -111,8 +121,8 @@ def normalize_bookings(raw_events: List[RawBookingEvent]) -> List[Booking]:
             Booking(
                 type=event.type,
                 transitNumber=event.transitNumber,
-                departureLocation=event.departureLocation,
-                arrivalLocation=event.arrivalLocation,
+                departureLocation=_clean_location(event.departureLocation),
+                arrivalLocation=_clean_location(event.arrivalLocation),
                 departureTime=departure_time,
                 arrivalTime=arrival_time,
             )
